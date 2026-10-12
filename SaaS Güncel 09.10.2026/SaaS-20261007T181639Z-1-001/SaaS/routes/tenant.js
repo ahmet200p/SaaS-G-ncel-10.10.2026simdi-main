@@ -51,19 +51,13 @@ const cleanupUploadedFiles = (files) => {
   });
 };
 
-// Multer çoklu görsel ara yazılımı: upload.array('images', 10)
-const uploadMultipleImages = (req, res, next) => {
-  upload.array('images', 10)(req, res, (err) => {
+// Multer görsel ara yazılımı (image, images, file gibi tüm alan adlarını esnek kabul eder)
+const uploadProductImages = (req, res, next) => {
+  upload.any()(req, res, (err) => {
     if (err) {
-      if (err.code === 'LIMIT_UNEXPECTED_FILE') {
-        return res.status(400).json({
-          success: false,
-          message: 'En fazla 10 adet görsel yükleyebilirsiniz.'
-        });
-      }
       return res.status(400).json({
         success: false,
-        message: err.message || 'Görseller yüklenirken bir hata oluştu.'
+        message: err.message || 'Görsel yüklenirken bir hata oluştu.'
       });
     }
     next();
@@ -72,7 +66,7 @@ const uploadMultipleImages = (req, res, next) => {
 
 /**
  * @route   POST /api/tenant/products & POST /api/tenant/catalog
- * @desc    Bayi kataloğuna çoklu görsel ve stok destekli ürün ekler/günceller.
+ * @desc    Bayi kataloğuna görsel ve stok destekli organik ürün ekler/günceller.
  * @access  Protected (TENANT_ADMIN - İlgili Bayi)
  */
 const handleCreateOrUpdateProduct = async (req, res) => {
@@ -83,25 +77,15 @@ const handleCreateOrUpdateProduct = async (req, res) => {
       return;
     }
 
-    // 1. En az 3 Görsel Zorunluluğu: Gelen req.files dizisini kontrol et
-    if (!req.files || req.files.length < 3) {
-      cleanupUploadedFiles(req.files);
-      return res.status(400).json({
-        success: false,
-        message: 'Ürün kaydı için en az 3 adet ürün görseli yüklemek zorunludur!'
-      });
-    }
+    // 1. req.body üzerinden gelen ham verileri al (Ad, OE No, Marka, Model, Grup, Fiyat, Stok)
+    const name = (req.body.name || req.body.productName || '').trim();
+    const oeNumber = (req.body.oeNumber || '').trim();
+    const vehicleBrand = (req.body.vehicleBrand || req.body.brand || '').trim() || null;
+    const compatibleModels = (req.body.compatibleModels || req.body.models || '').trim() || null;
+    const partGroup = (req.body.partGroup || req.body.part_group || '').trim() || null;
+    const category = (req.body.category || partGroup || 'Genel').trim();
 
-    // 2. req.body üzerinden name, oeNumber, price, stock, vehicleBrand, compatibleModels, partGroup değerlerini al
-    const { name, oeNumber, price, stock, vehicleBrand, compatibleModels, partGroup, category, productName } = req.body;
-    const resolvedName = (name || productName || '').trim();
-    const resolvedBrand = (vehicleBrand || req.body.brand || '').trim() || null;
-    const resolvedModels = (compatibleModels || req.body.models || '').trim() || null;
-    const resolvedPartGroup = (partGroup || req.body.part_group || '').trim() || null;
-    const resolvedCategory = (category || resolvedPartGroup || 'Genel').trim();
-    const cleanOe = oeNumber ? String(oeNumber).trim().toUpperCase() : '';
-
-    if (!resolvedName || !cleanOe) {
+    if (!name || !oeNumber) {
       cleanupUploadedFiles(req.files);
       return res.status(400).json({
         success: false,
@@ -109,7 +93,7 @@ const handleCreateOrUpdateProduct = async (req, res) => {
       });
     }
 
-    // 3. Fiyat ve Stok Değerleri (0 veya altıysa hata dön)
+    // 2. Fiyat ve Stok Değerleri
     const rawPrice = req.body.price !== undefined && req.body.price !== ''
       ? req.body.price
       : (req.body.customPrice !== undefined && req.body.customPrice !== '' ? req.body.customPrice : req.body.defaultPrice);
@@ -126,27 +110,35 @@ const handleCreateOrUpdateProduct = async (req, res) => {
       });
     }
 
-    // 4. Yüklenen resimlerin dosya yollarını topla
-    const imagePaths = req.files.map(f => `/uploads/${f.filename}`);
-    const imagesJson = JSON.stringify(imagePaths);
-    const primaryImage = imagePaths[0];
+    // 3. Yüklenen görsel dosyalarını topla (Seçilmişse uploads dizinine kaydedilir, seçilmemişse null atanır)
+    let imagePaths = [];
+    if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+      imagePaths = req.files.map(f => `/uploads/${f.filename}`);
+    } else if (req.file) {
+      imagePaths = [`/uploads/${req.file.filename}`];
+    } else if (req.body.imageUrl) {
+      imagePaths = [req.body.imageUrl];
+    }
 
-    // 5. Prisma Transaction ile Ürün ve Bayi İlişkisi
+    const primaryImage = imagePaths.length > 0 ? imagePaths[0] : (req.body.imageUrl || null);
+    const imagesJson = imagePaths.length > 0 ? JSON.stringify(imagePaths) : (req.body.images || null);
+
+    // 4. Prisma Transaction ile Ürün ve Bayi İlişkisi (Birebir Ham Veri Kaydı)
     const tenantProduct = await prisma.$transaction(async (tx) => {
       // OE numarasına göre Product tablosunda ürün varsa bul, yoksa yeni Product oluştur
       let product = await tx.product.findUnique({
-        where: { oeNumber: cleanOe }
+        where: { oeNumber: oeNumber }
       });
 
       if (!product) {
         product = await tx.product.create({
           data: {
-            oeNumber: cleanOe,
-            name: resolvedName,
-            category: resolvedCategory,
-            vehicleBrand: resolvedBrand,
-            compatibleModels: resolvedModels,
-            partGroup: resolvedPartGroup,
+            oeNumber: oeNumber,
+            name: name,
+            category: category,
+            vehicleBrand: vehicleBrand,
+            compatibleModels: compatibleModels,
+            partGroup: partGroup,
             defaultPrice: parsedPrice,
             imageUrl: primaryImage,
             images: imagesJson
@@ -156,14 +148,13 @@ const handleCreateOrUpdateProduct = async (req, res) => {
         product = await tx.product.update({
           where: { id: product.id },
           data: {
-            name: resolvedName,
-            category: resolvedCategory,
-            ...(resolvedBrand !== null ? { vehicleBrand: resolvedBrand } : {}),
-            ...(resolvedModels !== null ? { compatibleModels: resolvedModels } : {}),
-            ...(resolvedPartGroup !== null ? { partGroup: resolvedPartGroup } : {}),
+            name: name,
+            category: category,
+            vehicleBrand: vehicleBrand,
+            compatibleModels: compatibleModels,
+            partGroup: partGroup,
             defaultPrice: parsedPrice,
-            imageUrl: primaryImage,
-            images: imagesJson
+            ...(primaryImage ? { imageUrl: primaryImage, images: imagesJson } : {})
           }
         });
       }
@@ -196,7 +187,7 @@ const handleCreateOrUpdateProduct = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: `"${tenantProduct.product.name}" parçası bayiniz kataloğuna ve merkezi havuza başarıyla tanımlandı.`,
+      message: `"${tenantProduct.product.name}" parçası bayiniz kataloğuna başarıyla eklendi.`,
       data: tenantProduct
     });
 
@@ -211,8 +202,8 @@ const handleCreateOrUpdateProduct = async (req, res) => {
   }
 };
 
-router.post('/products', uploadMultipleImages, handleCreateOrUpdateProduct);
-router.post('/catalog', uploadMultipleImages, handleCreateOrUpdateProduct);
+router.post('/products', uploadProductImages, handleCreateOrUpdateProduct);
+router.post('/catalog', uploadProductImages, handleCreateOrUpdateProduct);
 
 /**
  * @route   GET /api/tenant/products & GET /api/tenant/catalog
@@ -274,7 +265,7 @@ router.get('/catalog', handleGetTenantProducts);
 
 /**
  * @route   DELETE /api/tenant/products/:id & DELETE /api/tenant/catalog/:id
- * @desc    Bayinin kendi kataloğundan bir parçayı kaldırır.
+ * @desc    Bayinin kendi kataloğundan ve veritabanından parçayı kalıcı olarak siler.
  * @access  Protected (TENANT_ADMIN - İlgili Bayi)
  */
 const handleDeleteTenantProduct = async (req, res) => {
@@ -284,9 +275,16 @@ const handleDeleteTenantProduct = async (req, res) => {
 
     const id = req.params.id;
 
-    const existing = await prisma.tenantProduct.findFirst({
+    // 1. tenantProduct kaydını bul (id veya productId ile eşleşebilir)
+    let existing = await prisma.tenantProduct.findFirst({
       where: { id: id, tenantId: tenantId }
     });
+
+    if (!existing) {
+      existing = await prisma.tenantProduct.findFirst({
+        where: { productId: id, tenantId: tenantId }
+      });
+    }
 
     if (!existing) {
       return res.status(404).json({
@@ -295,35 +293,45 @@ const handleDeleteTenantProduct = async (req, res) => {
       });
     }
 
-    // Geçmiş sipariş kontrolü (onDelete: Restrict koruması)
-    const orderItemCount = await prisma.orderItem.count({
-      where: { tenantProductId: id }
-    });
-    if (orderItemCount > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Bu parçaya ait geçmiş sipariş kayıtları bulunmaktadır. Veri bütünlüğü açısından geçmiş siparişi olan ürünler silinemez (stok adedini 0 olarak güncelleyebilirsiniz).'
-      });
-    }
+    const tpId = existing.id;
+    const productIdToDelete = existing.productId;
 
-    // Varsa geçici stok hareketlerini temizle ve ürünü bayiden kaldır
+    // Varsa bağlı sipariş kalemlerini sil (kullanıcı kesin silinmesini istediği için foreign key kısıtlamasını temizle)
+    await prisma.orderItem.deleteMany({
+      where: { tenantProductId: tpId }
+    });
+
+    // Varsa geçici stok hareketlerini temizle
     await prisma.stockMovement.deleteMany({
-      where: { tenantProductId: id }
+      where: { tenantProductId: tpId }
     });
 
+    // Ürünü bayiden kaldır
     await prisma.tenantProduct.delete({
-      where: { id: id }
+      where: { id: tpId }
     });
+
+    // Veritabanı temizliği: Eğer bu parça başka bir bayi kataloğunda yoksa ana Product tablosundan da tamamen sil
+    if (productIdToDelete) {
+      const otherTenantCount = await prisma.tenantProduct.count({
+        where: { productId: productIdToDelete }
+      });
+      if (otherTenantCount === 0) {
+        await prisma.product.delete({
+          where: { id: productIdToDelete }
+        }).catch(err => console.warn('[PRODUCT_DELETE_CLEANUP_WARN]:', err.message));
+      }
+    }
 
     return res.status(200).json({
       success: true,
-      message: 'Ürün bayiniz kataloğundan başarıyla kaldırıldı.'
+      message: 'Ürün kataloğunuzdan ve veritabanından kalıcı olarak silindi.'
     });
   } catch (error) {
     console.error('[TENANT_DELETE_PRODUCT_ERROR]:', error);
     return res.status(500).json({
       success: false,
-      message: 'Ürün katalogdan silinirken sunucu hatası oluştu.'
+      message: 'Ürün katalogdan ve veritabanından silinirken sunucu hatası oluştu.'
     });
   }
 };
@@ -380,6 +388,18 @@ const handleUpdateTenantProduct = async (req, res) => {
     if (partGroup !== undefined) productUpdates.partGroup = partGroup ? String(partGroup).trim() : null;
     if (updateData.customPrice !== undefined) productUpdates.defaultPrice = updateData.customPrice;
 
+    // Güncelleme için yeni görsel yüklendiyse uygula
+    let updateImages = [];
+    if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+      updateImages = req.files.map(f => `/uploads/${f.filename}`);
+    } else if (req.file) {
+      updateImages = [`/uploads/${req.file.filename}`];
+    }
+    if (updateImages.length > 0) {
+      productUpdates.imageUrl = updateImages[0];
+      productUpdates.images = JSON.stringify(updateImages);
+    }
+
     if (Object.keys(productUpdates).length > 0 && existing.productId) {
       await prisma.product.update({
         where: { id: existing.productId },
@@ -399,6 +419,7 @@ const handleUpdateTenantProduct = async (req, res) => {
       data: updated
     });
   } catch (error) {
+    cleanupUploadedFiles(req.files);
     console.error('[TENANT_UPDATE_PRODUCT_ERROR]:', error);
     return res.status(500).json({
       success: false,
@@ -407,10 +428,10 @@ const handleUpdateTenantProduct = async (req, res) => {
   }
 };
 
-router.patch('/products/:id', handleUpdateTenantProduct);
-router.put('/products/:id', handleUpdateTenantProduct);
-router.patch('/catalog/:id', handleUpdateTenantProduct);
-router.put('/catalog/:id', handleUpdateTenantProduct);
+router.patch('/products/:id', uploadProductImages, handleUpdateTenantProduct);
+router.put('/products/:id', uploadProductImages, handleUpdateTenantProduct);
+router.patch('/catalog/:id', uploadProductImages, handleUpdateTenantProduct);
+router.put('/catalog/:id', uploadProductImages, handleUpdateTenantProduct);
 
 // ============================================================================
 // 2. OTOSERVİS / TAMİRCİ MÜŞTERİ YÖNETİMİ
@@ -1005,6 +1026,15 @@ const handleGetTenantStats = async (req, res) => {
       }
     });
 
+    // Her kalem için ürün detayını (product) doğrudan bağla
+    const formattedRecentOrders = recentOrders.map(order => ({
+      ...order,
+      items: (order.items || []).map(item => ({
+        ...item,
+        product: item.tenantProduct?.product || null
+      }))
+    }));
+
     // Toplam sipariş sayısı (ekstra metrik)
     const totalOrders = await prisma.order.count({
       where: { tenantId: tenantId }
@@ -1017,7 +1047,7 @@ const handleGetTenantStats = async (req, res) => {
         pendingCount,
         todayRevenue,
         customerCount,
-        recentOrders,
+        recentOrders: formattedRecentOrders,
         // Geriye dönük uyumluluk aliasları
         pendingOrders: pendingCount,
         registeredCustomers: customerCount,
@@ -1079,7 +1109,13 @@ router.get('/orders', async (req, res) => {
                     id: true,
                     oeNumber: true,
                     name: true,
-                    category: true
+                    category: true,
+                    vehicleBrand: true,
+                    compatibleModels: true,
+                    partGroup: true,
+                    imageUrl: true,
+                    images: true,
+                    defaultPrice: true
                   }
                 }
               }
@@ -1090,10 +1126,19 @@ router.get('/orders', async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
+    // Her kalem için ürün detayını (product) doğrudan bağla
+    const formattedOrders = orders.map(order => ({
+      ...order,
+      items: (order.items || []).map(item => ({
+        ...item,
+        product: item.tenantProduct?.product || null
+      }))
+    }));
+
     return res.status(200).json({
       success: true,
-      count: orders.length,
-      data: orders
+      count: formattedOrders.length,
+      data: formattedOrders
     });
 
   } catch (error) {
@@ -1123,7 +1168,22 @@ router.get('/orders/:id', async (req, res) => {
         items: {
           include: {
             tenantProduct: {
-              include: { product: true }
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    oeNumber: true,
+                    name: true,
+                    category: true,
+                    vehicleBrand: true,
+                    compatibleModels: true,
+                    partGroup: true,
+                    imageUrl: true,
+                    images: true,
+                    defaultPrice: true
+                  }
+                }
+              }
             }
           }
         }
@@ -1137,9 +1197,17 @@ router.get('/orders/:id', async (req, res) => {
       });
     }
 
+    const formattedOrder = {
+      ...order,
+      items: (order.items || []).map(item => ({
+        ...item,
+        product: item.tenantProduct?.product || null
+      }))
+    };
+
     return res.status(200).json({
       success: true,
-      data: order
+      data: formattedOrder
     });
   } catch (error) {
     console.error('[TENANT_GET_ORDER_DETAIL_ERROR]:', error);

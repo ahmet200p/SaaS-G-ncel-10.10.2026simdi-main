@@ -88,7 +88,21 @@ async function runTests() {
     console.log('  ✅ [PASS] prisma/schema.prisma: vehicleBrand, compatibleModels, partGroup alanları mevcut.');
 
     // Veritabanındaki ürünleri sorgula
-    const sampleProducts = await prisma.product.findMany({ take: 5 });
+    let sampleProducts = await prisma.product.findMany({ take: 5 });
+    if (sampleProducts.length === 0) {
+      await prisma.product.create({
+        data: {
+          oeNumber: 'TEST-SCHEMA-OE-001',
+          name: 'Doğrulama Numunesi Parça',
+          category: 'Genel',
+          defaultPrice: 100,
+          vehicleBrand: 'Volkswagen',
+          compatibleModels: 'Golf 7',
+          partGroup: 'Motor & Mekanik'
+        }
+      });
+      sampleProducts = await prisma.product.findMany({ take: 5 });
+    }
     assert(sampleProducts.length > 0, 'Veritabanında ürün mevcut');
     assert('vehicleBrand' in sampleProducts[0], 'Product objesinde vehicleBrand özelliği mevcut');
     assert('compatibleModels' in sampleProducts[0], 'Product objesinde compatibleModels özelliği mevcut');

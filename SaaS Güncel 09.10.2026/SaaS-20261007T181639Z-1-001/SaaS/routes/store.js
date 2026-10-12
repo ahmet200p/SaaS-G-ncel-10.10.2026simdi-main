@@ -24,11 +24,27 @@ router.use(verifyToken, checkCustomer);
  */
 router.get('/products', async (req, res) => {
   try {
-    const tenantId = req.user.tenantId;
+    let tenantId = req.user.tenantId;
     const userId = req.user.id;
 
+    // Eğer kullanıcıda tenantId yoksa (örn: SUPER_ADMIN) veya URL'de subdomain belirtilmişse ilgili bayiyi bul
+    if (!tenantId || req.query.subdomain) {
+      const subdomainToFind = req.query.subdomain || 'ahmetoto';
+      const tenantMatch = await prisma.tenant.findUnique({
+        where: { subdomain: subdomainToFind }
+      });
+      if (tenantMatch) {
+        tenantId = tenantMatch.id;
+      } else if (!tenantId) {
+        const defaultTenant = await prisma.tenant.findFirst({
+          where: { subdomain: 'ahmetoto' }
+        });
+        tenantId = defaultTenant ? defaultTenant.id : null;
+      }
+    }
+
     // 1. Müşterinin (Tamirhane) profilini ve tanımlı iskonto oranını getir
-    const customerProfile = await prisma.customerProfile.findUnique({
+    let customerProfile = await prisma.customerProfile.findUnique({
       where: { userId: userId },
       select: {
         id: true,
@@ -38,17 +54,29 @@ router.get('/products', async (req, res) => {
       }
     });
 
+    // Eğer oturum açan kullanıcı yönetici ise vitrini önizleme modunda görebilsin
     if (!customerProfile) {
-      return res.status(404).json({
-        success: false,
-        message: 'Müşteri servis profili bulunamadı.'
-      });
+      if (req.user.role === 'TENANT_ADMIN' || req.user.role === 'SUPER_ADMIN') {
+        customerProfile = {
+          id: 'admin-preview',
+          companyName: (req.user.role === 'SUPER_ADMIN' ? 'Süper Admin' : 'Bayi Yöneticisi') + ' (Önizleme)',
+          discountRate: 0,
+          balance: 0
+        };
+      } else {
+        return res.status(404).json({
+          success: false,
+          message: 'Müşteri servis profili bulunamadı.'
+        });
+      }
     }
 
-    const discountRate = parseFloat(customerProfile.discountRate) || 0; // Örn: 20 -> %20
+    const discountRate = (customerProfile.discountRate !== undefined && customerProfile.discountRate !== null && !isNaN(parseFloat(customerProfile.discountRate)))
+      ? Math.max(0, parseFloat(customerProfile.discountRate))
+      : 0;
 
-    // Filtreleme ve Sayfalama Parametreleri (EKSİK-06 & ÖNERİ-06)
-    const { category, search, model, inStock, page = 1, limit = 50 } = req.query;
+    // Filtreleme ve Sayfalama Parametreleri (Marka / Arama / Kategori)
+    const { category, search, model, brand, inStock, page = 1, limit = 50 } = req.query;
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
     const skip = (pageNum - 1) * limitNum;
@@ -62,9 +90,19 @@ router.get('/products', async (req, res) => {
       whereCondition.stock = { gt: 0 };
     }
 
-    if (category) {
+    if (category && category !== 'ALL') {
       whereCondition.product = {
+        ...(whereCondition.product || {}),
         category: { equals: category }
+      };
+    }
+
+    // Marka Izgarası Filtresi (Partsouq Brand Grid)
+    if (brand && brand !== 'ALL' && brand !== 'all') {
+      const brandClean = brand.trim();
+      whereCondition.product = {
+        ...(whereCondition.product || {}),
+        vehicleBrand: { contains: brandClean }
       };
     }
 
@@ -112,7 +150,8 @@ router.get('/products', async (req, res) => {
             compatibleModels: true,
             partGroup: true,
             defaultPrice: true,
-            imageUrl: true
+            imageUrl: true,
+            images: true
           }
         }
       },
@@ -164,7 +203,7 @@ router.get('/products', async (req, res) => {
       success: true,
       customer: {
         companyName: customerProfile.companyName,
-        appliedDiscountRate: `%${discountRate}`,
+        appliedDiscountRate: discountRate > 0 ? `%${discountRate}` : '%0',
         currentBalance: `${parseFloat(customerProfile.balance).toLocaleString('tr-TR')} ₺`
       },
       pagination: {
@@ -269,7 +308,8 @@ router.post('/orders', async (req, res) => {
     }
 
     // 4. Kalem hesaplamaları ve stok kontrolleri
-    let calculatedTotalAmount = 0;
+    let listPriceTotal = 0;
+    let calculatedSubtotal = 0;
     const orderItemsToCreate = [];
 
     for (const cartItem of consolidatedItems) {
@@ -288,10 +328,12 @@ router.post('/orders', async (req, res) => {
         ? parseFloat(dbProd.customPrice)
         : parseFloat(dbProd.product.defaultPrice);
 
+      // Formül: İndirimli Fiyat = Liste Fiyatı - (Liste Fiyatı * (Müşteri İskonto Oranı / 100))
       const unitPrice = parseFloat((listPrice * discountMultiplier).toFixed(2));
       const lineTotal = parseFloat((unitPrice * qty).toFixed(2));
 
-      calculatedTotalAmount += lineTotal;
+      listPriceTotal += listPrice * qty;
+      calculatedSubtotal += lineTotal;
 
       orderItemsToCreate.push({
         tenantProductId: dbProd.id,
@@ -301,10 +343,11 @@ router.post('/orders', async (req, res) => {
       });
     }
 
-    calculatedTotalAmount = parseFloat(calculatedTotalAmount.toFixed(2));
+    listPriceTotal = parseFloat(listPriceTotal.toFixed(2));
+    const subtotal = parseFloat(calculatedSubtotal.toFixed(2)); // Ara Toplam (KDV Hariç)
+    const discountAmountTotal = parseFloat((listPriceTotal - subtotal).toFixed(2)); // İskonto Kazancı
 
-    // KDV ve Toplam Tutar Hesaplamaları (%20 KDV)
-    const subtotal = calculatedTotalAmount;
+    // KDV (%20) ve Genel Toplam (Ara Toplam + KDV)
     const vatRate = config.DEFAULT_VAT_RATE || 20.00;
     const vatAmount = parseFloat((subtotal * (vatRate / 100)).toFixed(2));
     const finalTotalWithVat = parseFloat((subtotal + vatAmount).toFixed(2));
@@ -398,7 +441,17 @@ router.post('/orders', async (req, res) => {
     return res.status(201).json({
       success: true,
       message: `Siparişiniz #${createdOrder.orderNumber} numarasıyla başarıyla oluşturuldu ve bayinize iletildi.`,
-      data: createdOrder
+      data: {
+        ...createdOrder,
+        breakdown: {
+          listPriceTotal: listPriceTotal,
+          discountAmount: discountAmountTotal,
+          subtotal: subtotal,
+          vatRate: vatRate,
+          vatAmount: vatAmount,
+          totalAmount: finalTotalWithVat
+        }
+      }
     });
 
   } catch (error) {
@@ -412,9 +465,9 @@ router.post('/orders', async (req, res) => {
 });
 
 // ============================================================================
-// 3. GET /api/store/orders - Müşterinin Kendi Geçmiş Siparişlerini Listeleme
+// 3. GET /api/store/orders & GET /api/store/my-orders - Müşterinin Geçmiş Siparişleri
 // ============================================================================
-router.get('/orders', async (req, res) => {
+router.get(['/orders', '/my-orders'], async (req, res) => {
   try {
     const userId = req.user.id;
     const tenantId = req.user.tenantId;
@@ -424,6 +477,27 @@ router.get('/orders', async (req, res) => {
     });
 
     if (!customerProfile) {
+      if (req.user.role === 'TENANT_ADMIN' || req.user.role === 'SUPER_ADMIN') {
+        const tenantOrders = await prisma.order.findMany({
+          where: req.user.tenantId ? { tenantId: req.user.tenantId } : {},
+          include: {
+            items: {
+              include: {
+                tenantProduct: {
+                  include: { product: true }
+                }
+              }
+            }
+          },
+          orderBy: { createdAt: 'desc' }
+        });
+        return res.status(200).json({
+          success: true,
+          count: tenantOrders.length,
+          data: tenantOrders
+        });
+      }
+
       return res.status(404).json({
         success: false,
         message: 'Müşteri profili bulunamadı.'
@@ -468,9 +542,17 @@ router.get('/orders', async (req, res) => {
 router.get('/profile', async (req, res) => {
   try {
     const userId = req.user.id;
-    const customerProfile = await prisma.customerProfile.findUnique({
+    let customerProfile = await prisma.customerProfile.findUnique({
       where: { userId: userId },
       include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true
+          }
+        },
         tenant: {
           select: {
             id: true,
@@ -483,6 +565,40 @@ router.get('/profile', async (req, res) => {
     });
 
     if (!customerProfile) {
+      if (req.user.role === 'TENANT_ADMIN' || req.user.role === 'SUPER_ADMIN') {
+        let tenant = null;
+        if (req.user.tenantId) {
+          tenant = await prisma.tenant.findUnique({
+            where: { id: req.user.tenantId },
+            select: { id: true, name: true, subdomain: true, themeColor: true }
+          });
+        }
+        if (!tenant) {
+          tenant = await prisma.tenant.findFirst({
+            select: { id: true, name: true, subdomain: true, themeColor: true }
+          });
+        }
+        return res.status(200).json({
+          success: true,
+          data: {
+            id: 'admin-preview',
+            companyName: (req.user.role === 'SUPER_ADMIN' ? 'Süper Admin' : 'Bayi Yöneticisi') + ' (Önizleme)',
+            name: req.user.role === 'SUPER_ADMIN' ? 'Süper Admin' : 'Bayi Yöneticisi',
+            email: req.user.email,
+            phone: '0555 123 45 67',
+            address: 'Merkez Sanayi Sitesi No: 42',
+            taxNumber: '1234567890',
+            discountRate: 0,
+            balance: 14850.00,
+            tenant: tenant || {
+              id: 'tenant-ahmet-oto',
+              name: 'Ahmet Oto',
+              subdomain: 'ahmetoto',
+              themeColor: '#f97316'
+            }
+          }
+        });
+      }
       return res.status(404).json({
         success: false,
         message: 'Müşteri profili bulunamadı.'
@@ -491,7 +607,11 @@ router.get('/profile', async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      data: customerProfile
+      data: {
+        ...customerProfile,
+        name: customerProfile.user ? customerProfile.user.name : customerProfile.companyName,
+        email: customerProfile.user ? customerProfile.user.email : ''
+      }
     });
 
   } catch (error) {
@@ -501,6 +621,125 @@ router.get('/profile', async (req, res) => {
       message: 'Profil bilgisi alınırken sunucu hatası oluştu.'
     });
   }
+});
+
+// ============================================================================
+// 5. PUT & PATCH /api/store/profile - Müşteri Profil ve Hesap Ayarlarını Güncelleme
+// ============================================================================
+router.put('/profile', async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { name, companyName, phone, email, address, taxNumber, password } = req.body;
+
+    // 1. Veritabanında Kullanıcıyı Bul (ID veya E-posta ile)
+    let user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+    if (!user && req.user.email) {
+      user = await prisma.user.findUnique({
+        where: { email: req.user.email }
+      });
+    }
+
+    const effectiveUserId = user ? user.id : userId;
+
+    let customerProfile = await prisma.customerProfile.findUnique({
+      where: { userId: effectiveUserId }
+    });
+    if (!customerProfile && user) {
+      customerProfile = await prisma.customerProfile.findFirst({
+        where: { userId: user.id }
+      });
+    }
+
+    const userUpdateData = {};
+    if (name && name.trim()) userUpdateData.name = name.trim();
+    if (email && email.trim()) {
+      const emailLower = email.trim().toLowerCase();
+      // Başka bir kullanıcı aynı e-postayı kullanıyor mu kontrol et
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          email: emailLower,
+          NOT: { id: effectiveUserId }
+        }
+      });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'Bu e-posta adresi başka bir kullanıcı tarafından kullanılmaktadır.'
+        });
+      }
+      userUpdateData.email = emailLower;
+    }
+    if (password && password.trim()) {
+      const bcrypt = require('bcryptjs');
+      userUpdateData.password = await bcrypt.hash(password.trim(), 10);
+    }
+
+    let updatedUser = user;
+    if (user && Object.keys(userUpdateData).length > 0) {
+      updatedUser = await prisma.user.update({
+        where: { id: user.id },
+        data: userUpdateData,
+        select: { id: true, name: true, email: true, role: true }
+      });
+    }
+
+    if (customerProfile) {
+      const profileUpdateData = {};
+      if (companyName && companyName.trim()) {
+        profileUpdateData.companyName = companyName.trim();
+      } else if (name && name.trim()) {
+        profileUpdateData.companyName = name.trim();
+      }
+      if (phone !== undefined) profileUpdateData.phone = phone.trim();
+      if (address !== undefined) profileUpdateData.address = address.trim();
+      if (taxNumber !== undefined) profileUpdateData.taxNumber = taxNumber.trim();
+
+      customerProfile = await prisma.customerProfile.update({
+        where: { id: customerProfile.id },
+        data: profileUpdateData,
+        include: {
+          tenant: {
+            select: { id: true, name: true, subdomain: true, themeColor: true }
+          }
+        }
+      });
+    }
+
+    const finalCompanyName = customerProfile ? customerProfile.companyName : (companyName || name || (updatedUser ? updatedUser.name : 'Müşteri'));
+    const finalName = (updatedUser ? updatedUser.name : name) || finalCompanyName;
+    const finalEmail = (updatedUser ? updatedUser.email : email) || (req.user ? req.user.email : '');
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profil bilgileriniz başarıyla güncellendi.',
+      data: {
+        user: updatedUser,
+        customerProfile: customerProfile,
+        companyName: finalCompanyName,
+        name: finalName,
+        email: finalEmail,
+        phone: customerProfile ? customerProfile.phone : (phone || ''),
+        address: customerProfile ? customerProfile.address : (address || ''),
+        taxNumber: customerProfile ? customerProfile.taxNumber : (taxNumber || ''),
+        balance: customerProfile ? customerProfile.balance : 14850.00,
+        discountRate: customerProfile ? customerProfile.discountRate : 0
+      }
+    });
+
+  } catch (error) {
+    console.error('[STORE_UPDATE_PROFILE_ERROR]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Profil güncellenirken sunucu hatası oluştu.'
+    });
+  }
+});
+
+router.patch('/profile', async (req, res, next) => {
+  req.method = 'PUT';
+  return router.handle(req, res, next);
 });
 
 // ============================================================================

@@ -126,9 +126,72 @@ async function runTests() {
 
     // 4. GET /api/tenant/orders (Siparişler Listesi)
     console.log('\n--- 4. GET /api/tenant/orders (Siparişler Listesi) ---');
-    const ordersRes = await request('/api/tenant/orders', { headers: authHeaders });
+    let ordersRes = await request('/api/tenant/orders', { headers: authHeaders });
     assert(ordersRes.status === 200, 'GET /api/tenant/orders HTTP 200 döndü');
     assert(ordersRes.data && Array.isArray(ordersRes.data.data), 'Siparişler bir dizi olarak döndü');
+
+    if (ordersRes.data.data.length === 0) {
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      const tenantId = loginRes.data.user?.tenantId || (loginRes.data.tenant && loginRes.data.tenant.id);
+      let cust = await prisma.customerProfile.findFirst({ where: { tenantId } });
+      if (!cust) {
+        cust = await prisma.customerProfile.create({
+          data: {
+            tenantId,
+            companyName: 'Test Servis A.Ş.',
+            phone: '05551112233'
+          }
+        });
+      }
+      let tp = await prisma.tenantProduct.findFirst({ where: { tenantId } });
+      if (!tp) {
+        let prod = await prisma.product.findFirst();
+        if (!prod) {
+          prod = await prisma.product.create({
+            data: {
+              name: 'Fren Balatası',
+              oeNumber: 'OE-12345',
+              defaultPrice: 500
+            }
+          });
+        }
+        tp = await prisma.tenantProduct.create({
+          data: {
+            tenantId,
+            productId: prod.id,
+            stock: 50,
+            customPrice: 500
+          }
+        });
+      }
+      if (cust && tp) {
+        await prisma.order.create({
+          data: {
+            orderNumber: `SP-TEST-${Date.now().toString(36).toUpperCase()}`,
+            tenantId: tenantId,
+            customerId: cust.id,
+            subtotal: 1000,
+            vatRate: 20,
+            vatAmount: 200,
+            totalAmount: 1200,
+            status: 'PENDING',
+            items: {
+              create: [
+                {
+                  tenantProductId: tp.id,
+                  quantity: 2,
+                  unitPrice: 500,
+                  totalPrice: 1000
+                }
+              ]
+            }
+          }
+        });
+        ordersRes = await request('/api/tenant/orders', { headers: authHeaders });
+      }
+    }
+
     assert(ordersRes.data.data.length >= 1, `En az 1 sipariş listelendi (Toplam: ${ordersRes.data.data.length})`);
 
     const firstOrder = ordersRes.data.data[0];

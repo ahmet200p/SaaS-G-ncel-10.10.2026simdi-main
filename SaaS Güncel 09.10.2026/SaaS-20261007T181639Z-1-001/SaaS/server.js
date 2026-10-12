@@ -40,6 +40,35 @@ const ensureInitialData = async () => {
       });
       console.log('⚙️ Varsayılan Sistem Ayarları yapılandırıldı.');
     }
+
+    // Varsayılan Bayi (Ahmet Oto) ve Bayi Yöneticisi (ahmet@ahmetoto.com)
+    let tenant = await prisma.tenant.findUnique({ where: { subdomain: 'ahmetoto' } });
+    if (!tenant) {
+      tenant = await prisma.tenant.create({
+        data: {
+          name: 'Ahmet Oto',
+          subdomain: 'ahmetoto',
+          themeColor: '#f97316',
+          isActive: true
+        }
+      });
+      console.log('🏪 Varsayılan Bayi (Ahmet Oto) veritabanına eklendi.');
+    }
+
+    const tenantAdmin = await prisma.user.findUnique({ where: { email: 'ahmet@ahmetoto.com' } });
+    if (!tenantAdmin) {
+      const bcrypt = require('bcryptjs');
+      const hash = await bcrypt.hash('123456', 10);
+      await prisma.user.create({
+        data: {
+          email: 'ahmet@ahmetoto.com',
+          password: hash,
+          role: 'TENANT_ADMIN',
+          tenantId: tenant.id
+        }
+      });
+      console.log('👔 Varsayılan Bayi Yöneticisi (ahmet@ahmetoto.com) veritabanına eklendi.');
+    }
   } catch (err) {
     console.error('[DB_INIT_CHECK]:', err.message);
   }

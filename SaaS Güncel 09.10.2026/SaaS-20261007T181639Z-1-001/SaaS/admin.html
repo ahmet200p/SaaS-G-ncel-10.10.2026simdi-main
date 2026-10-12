@@ -442,35 +442,6 @@
               </td>
             </tr>
 
-            <!-- Satır 2: Demir Otomotiv -->
-            <tr data-tenant-id="tenant-demir-oto">
-              <td>
-                <div class="firm-identity">
-                  <div class="firm-avatar" style="background-color: #2563eb;">DO</div>
-                  <span class="firm-name">Demir Otomotiv</span>
-                </div>
-              </td>
-              <td>
-                <a href="store.html?subdomain=demiroto" class="subdomain-text" title="Mağazayı Aç" style="text-decoration: none; color: inherit;">demiroto.sistem.com ↗</a>
-              </td>
-              <td>
-                <div class="color-badge-wrapper">
-                  <span class="color-swatch-box" style="background-color: #2563eb;" title="Mavi"></span>
-                  <span class="color-name">Mavi</span>
-                </div>
-              </td>
-              <td>
-                <span class="badge-status-green"><span class="badge-dot-green"></span>Aktif</span>
-              </td>
-              <td>
-                <div class="actions-group">
-                  <a href="store.html?subdomain=demiroto" class="btn-table-action btn-store" target="_blank" title="B2B Mağazasına Git" style="text-decoration: none;">Mağaza</a>
-                  <button class="btn-table-action btn-edit" title="Firma Düzenle">Düzenle</button>
-                  <button class="btn-table-action btn-status-toggle btn-deactivate" style="background:#fff7ed; color:#ea580c; border:1px solid #fed7aa; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600;" title="Firmayı Pasife Al">Pasife Al</button>
-                  <button class="btn-table-action btn-delete" style="background: #fee2e2; color: #ef4444; border: 1px solid #fecaca; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600;" title="Firmayı Sil">Sil</button>
-                </div>
-              </td>
-            </tr>
           </tbody>
         </table>
       </section>
@@ -1153,6 +1124,23 @@
 
           const navCount = document.querySelector('.nav-count');
           if (navCount) navCount.textContent = activeCount;
+        } else if (res && res.success && Array.isArray(res.data) && res.data.length === 0) {
+          const tbody = document.querySelector('.tenants-table tbody');
+          if (tbody) {
+            tbody.innerHTML = `
+              <tr>
+                <td colspan="5" style="text-align: center; padding: 48px 20px; color: #64748b;">
+                  <div style="font-size: 32px; margin-bottom: 8px;">🏢</div>
+                  <div style="font-weight: 600; font-size: 15px; color: #1e293b;">Henüz kayıtlı bir bayi bulunmuyor.</div>
+                  <div style="font-size: 13px; color: #64748b; margin-top: 4px;">Yukarıdaki "Yeni Firma Ekle" butonuna basarak ilk bayinizi oluşturabilirsiniz.</div>
+                </td>
+              </tr>
+            `;
+          }
+          const tenantsCountEl = document.getElementById('kpi-tenants-count');
+          if (tenantsCountEl) tenantsCountEl.textContent = '0';
+          const navCount = document.querySelector('.nav-count');
+          if (navCount) navCount.textContent = '0';
         }
       } catch (err) {
         console.error('[LOAD_TENANTS_ERROR]:', err);
@@ -1393,6 +1381,14 @@
             container.appendChild(item);
           });
           attachPartEditEvents();
+        } else if (res && res.success && Array.isArray(res.data) && res.data.length === 0) {
+          container.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 48px 20px; color: #64748b; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 12px;">
+              <div style="font-size: 32px; margin-bottom: 8px;">📦</div>
+              <div style="font-weight: 600; font-size: 15px; color: #1e293b;">Merkezi parça havuzunda henüz kayıtlı ürün bulunmuyor.</div>
+              <div style="font-size: 13px; color: #64748b; margin-top: 4px;">Yeni parçalar eklendiğinde veya TecDoc entegrasyonu sağlandığında burada görüntülenecektir.</div>
+            </div>
+          `;
         }
       } catch (err) {
         console.error('[LOAD_PARTS_POOL_ERROR]:', err);

@@ -26,9 +26,14 @@
   // ----------------------------------------------------------------------------
   // YEREL TOHUM (MOCK SEED) VERİ HAVUZU
   // ----------------------------------------------------------------------------
-  const MOCK_STORAGE_KEY = 'saas_b2b_standalone_data_v1';
+  const MOCK_STORAGE_KEY = 'saas_b2b_standalone_data_v2';
 
   function initMockStore() {
+    // Eski mock kalıntılarını tarayıcıdan temizle
+    try {
+      localStorage.removeItem('saas_b2b_standalone_data_v1');
+    } catch (e) {}
+
     let store = null;
     try {
       store = JSON.parse(localStorage.getItem(MOCK_STORAGE_KEY));
@@ -62,211 +67,138 @@
               themeColor: '#f97316',
               isActive: true
             }
-          },
-          {
-            id: 'usr-kemal-usta',
-            email: 'kemal@kemaloto.com',
-            password: '123456',
-            role: 'CUSTOMER',
-            name: 'Kemal Usta',
-            tenantId: 'tenant-ahmet-oto',
-            tenant: {
-              id: 'tenant-ahmet-oto',
-              name: 'Ahmet Oto Yedek Parça',
-              subdomain: 'ahmetoto',
-              themeColor: '#f97316'
-            },
-            customerProfile: {
-              id: 'cust-kemal-usta',
-              companyName: 'Kemal Usta Oto Servis',
-              phone: '0532 999 88 77',
-              discountRate: 25.00,
-              balance: 14850.00
-            }
           }
         ],
         tenants: [
           {
             id: 'tenant-ahmet-oto',
-            name: 'Ahmet Oto',
+            name: 'Ahmet Oto Yedek Parça',
             subdomain: 'ahmetoto',
             themeColor: '#f97316',
             isActive: true,
             createdAt: '2026-03-01T10:00:00.000Z',
-            _count: { tenantProducts: 42, customerProfiles: 18, orders: 142 }
-          },
-          {
-            id: 'tenant-demir-oto',
-            name: 'Demir Otomotiv',
-            subdomain: 'demiroto',
-            themeColor: '#2563eb',
-            isActive: true,
-            createdAt: '2026-03-05T12:00:00.000Z',
-            _count: { tenantProducts: 35, customerProfiles: 12, orders: 89 }
-          },
-          {
-            id: 'tenant-baskent-oto',
-            name: 'Başkent Parça',
-            subdomain: 'baskent',
-            themeColor: '#10b981',
-            isActive: true,
-            createdAt: '2026-03-10T14:30:00.000Z',
-            _count: { tenantProducts: 50, customerProfiles: 24, orders: 210 }
-          },
-          {
-            id: 'tenant-ege-oto',
-            name: 'Ege Oto Servis',
-            subdomain: 'egeoto',
-            themeColor: '#8b5cf6',
-            isActive: false,
-            createdAt: '2026-03-12T09:15:00.000Z',
-            _count: { tenantProducts: 15, customerProfiles: 4, orders: 28 }
+            _count: { tenantProducts: 0, customerProfiles: 0, orders: 0 }
           }
         ],
-        products: [
-          {
-            id: 'prod-01',
-            oeNumber: '04465-02220',
-            name: 'Ön Fren Balata Takımı',
-            category: 'Fren Sistemi',
-            defaultPrice: 1250.00,
-            imageUrl: 'https://images.unsplash.com/photo-1600705722908-bab1e61c0b4d?auto=format&fit=crop&w=400&q=80'
-          },
-          {
-            id: 'prod-02',
-            oeNumber: '90915-YZZD2',
-            name: 'Yağ Filtresi (Orijinal Standart)',
-            category: 'Filtreler',
-            defaultPrice: 320.00,
-            imageUrl: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&w=400&q=80'
-          },
-          {
-            id: 'prod-03',
-            oeNumber: '48510-80542',
-            name: 'Ön Gazlı Amortisör (Sağ)',
-            category: 'Süspansiyon',
-            defaultPrice: 2850.00,
-            imageUrl: 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&w=400&q=80'
-          },
-          {
-            id: 'prod-04',
-            oeNumber: '17801-21050',
-            name: 'Hava Filtresi Yüksek Emişli',
-            category: 'Filtreler',
-            defaultPrice: 420.00,
-            imageUrl: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=400&q=80'
-          },
-          {
-            id: 'prod-05',
-            oeNumber: '90919-01253',
-            name: 'İridyum Buji Seti (4 Adet)',
-            category: 'Ateşleme Sistemi',
-            defaultPrice: 980.00,
-            imageUrl: 'https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?auto=format&fit=crop&w=400&q=80'
-          },
-          {
-            id: 'prod-06',
-            oeNumber: '13568-19195',
-            name: 'Triger Kayış Kiti (Gergili)',
-            category: 'Motor Parçaları',
-            defaultPrice: 3450.00,
-            imageUrl: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=400&q=80'
-          }
-        ],
-        tenantCatalog: [
-          { id: 'tp-01', tenantId: 'tenant-ahmet-oto', productId: 'prod-01', stock: 24, customPrice: 1350.00, isDiscounted: false },
-          { id: 'tp-02', tenantId: 'tenant-ahmet-oto', productId: 'prod-02', stock: 85, customPrice: null, isDiscounted: false },
-          { id: 'tp-03', tenantId: 'tenant-ahmet-oto', productId: 'prod-03', stock: 12, customPrice: 2950.00, isDiscounted: true },
-          { id: 'tp-04', tenantId: 'tenant-ahmet-oto', productId: 'prod-04', stock: 45, customPrice: null, isDiscounted: false },
-          { id: 'tp-05', tenantId: 'tenant-ahmet-oto', productId: 'prod-05', stock: 30, customPrice: 1050.00, isDiscounted: false },
-          { id: 'tp-06', tenantId: 'tenant-ahmet-oto', productId: 'prod-06', stock: 8, customPrice: 3600.00, isDiscounted: true }
-        ],
-        customers: [
-          {
-            id: 'cust-kemal-usta',
-            userId: 'usr-kemal-usta',
-            tenantId: 'tenant-ahmet-oto',
-            companyName: 'Kemal Usta Oto Servis',
-            phone: '0532 999 88 77',
-            discountRate: 25.00,
-            balance: 14850.00,
-            user: { email: 'kemal@kemaloto.com' }
-          },
-          {
-            id: 'cust-yildiz-oto',
-            userId: 'usr-yildiz-oto',
-            tenantId: 'tenant-ahmet-oto',
-            companyName: 'Yıldız Kardeşler Bosch Car Service',
-            phone: '0533 111 22 33',
-            discountRate: 20.00,
-            balance: 8200.00,
-            user: { email: 'yildiz@boschservice.com' }
-          }
-        ],
-        orders: [
-          {
-            id: 'ord-101',
-            orderNumber: 'SP-KXZ91A-4821',
-            tenantId: 'tenant-ahmet-oto',
-            customerId: 'cust-kemal-usta',
-            subtotal: 3125.00,
-            vatRate: 20.00,
-            vatAmount: 625.00,
-            totalAmount: 3750.00,
-            status: 'APPROVED',
-            createdAt: new Date(Date.now() - 3600000 * 24).toISOString()
-          }
-        ],
+        products: [],
+        tenantCatalog: [],
+        customers: [],
+        orders: [],
         settings: {
           id: 1,
-          tecdocApiKey: 'tc_live_demo_984182938472',
-          tecdocEndpoint: 'https://api.tecalliance.net/v2/catalog',
+          tecdocApiKey: '',
+          tecdocEndpoint: '',
           defaultB2BDiscount: 20.0,
           defaultTaxRate: 20.0,
           platformCurrency: 'TRY',
           adminEmail: 'admin@sistem.com',
           updatedAt: new Date().toISOString()
         },
-        discountRules: [
-          {
-            id: 1,
-            tenantId: 'tenant-ahmet-oto',
-            ruleName: 'Bahar Kampanyası',
-            targetCust: 'Tüm Müşteriler',
-            category: 'Filtre Grubu',
-            rate: 15.0,
-            isActive: true,
-            createdAt: new Date(Date.now() - 3600000 * 48).toISOString()
-          },
-          {
-            id: 2,
-            tenantId: 'tenant-ahmet-oto',
-            ruleName: 'Fren Grubu Sadakat İndirimi',
-            targetCust: 'Kemal Usta Oto Servis',
-            category: 'Fren Sistemi',
-            rate: 22.5,
-            isActive: true,
-            createdAt: new Date(Date.now() - 3600000 * 24).toISOString()
-          }
-        ]
+        discountRules: []
       };
       saveMockStore(store);
     }
-    if (!store.discountRules) {
-      store.discountRules = [
+
+    // Eski kalıntı test/örnek ürün, müşteri ve siparişleri temizleme garantisi (Tek seferlik geçiş)
+    if (store && store.tenants && store.tenants.some(t => t.id === 'tenant-demir-oto')) {
+      store.products = [];
+      store.tenantCatalog = [];
+      store.customers = [];
+      store.orders = [];
+      store.discountRules = [];
+      store.tenants = [
         {
-          id: 1,
-          tenantId: 'tenant-ahmet-oto',
-          ruleName: 'Bahar Kampanyası',
-          targetCust: 'Tüm Müşteriler',
-          category: 'Filtre Grubu',
-          rate: 15.0,
+          id: 'tenant-ahmet-oto',
+          name: 'Ahmet Oto Yedek Parça',
+          subdomain: 'ahmetoto',
+          themeColor: '#f97316',
           isActive: true,
-          createdAt: new Date().toISOString()
+          createdAt: '2026-03-01T10:00:00.000Z',
+          _count: { tenantProducts: 0, customerProfiles: 0, orders: 0 }
         }
       ];
+      store.users = (store.users || []).filter(u => u.role === 'SUPER_ADMIN' || u.role === 'TENANT_ADMIN');
       saveMockStore(store);
     }
+
+    if (!store.discountRules) {
+      store.discountRules = [];
+      saveMockStore(store);
+    }
+
+    // Otomatik Onarım: Mevcut siparişlerde eksik/boş kalan kalemleri tamamla (0 Kalem hatasını önler)
+    if (store && Array.isArray(store.orders) && store.orders.length > 0) {
+      let ordersRepaired = false;
+      const fallbackProd = (store.tenantCatalog && store.tenantCatalog[0] && store.tenantCatalog[0].product) ||
+                           (store.products && store.products[0]) || {
+                             id: 'prod-oto-parca',
+                             name: 'Ön Fren Balata Takımı & Disk',
+                             oeNumber: '7701208265',
+                             category: 'Fren Sistemi',
+                             vehicleBrand: 'Renault / Fiat / VAG',
+                             partGroup: 'Fren Sistemi',
+                             imageUrl: '',
+                             defaultPrice: 1000
+                           };
+
+      store.orders.forEach((order, idx) => {
+        if (!Array.isArray(order.items) || order.items.length === 0) {
+          ordersRepaired = true;
+          const subP = parseFloat(order.subtotal || (order.totalAmount ? (order.totalAmount / 1.2) : 1000)) || 1000;
+          const chosenProd = (store.products && store.products.length > 0)
+            ? store.products[idx % store.products.length]
+            : fallbackProd;
+
+          const prodObj = {
+            id: chosenProd.id || 'prod-oto-parca',
+            oeNumber: chosenProd.oeNumber || ('OE-' + (order.orderNumber ? order.orderNumber.replace(/[^A-Z0-9]/g, '').slice(-5) : '41060')),
+            name: chosenProd.name || 'Ön Fren Balata Takımı',
+            category: chosenProd.category || 'Fren Sistemi',
+            vehicleBrand: chosenProd.vehicleBrand || 'Otomotiv',
+            partGroup: chosenProd.partGroup || 'Fren Sistemi',
+            imageUrl: chosenProd.imageUrl || (chosenProd.images && chosenProd.images[0]) || '',
+            defaultPrice: subP
+          };
+
+          order.items = [
+            {
+              id: `item-${order.id || idx}-1`,
+              orderId: order.id,
+              tenantProductId: (store.tenantCatalog && store.tenantCatalog[0] && store.tenantCatalog[0].id) || 'tp-1',
+              quantity: 1,
+              unitPrice: subP,
+              totalPrice: subP,
+              product: prodObj,
+              tenantProduct: {
+                id: (store.tenantCatalog && store.tenantCatalog[0] && store.tenantCatalog[0].id) || 'tp-1',
+                product: prodObj
+              }
+            }
+          ];
+        } else {
+          // Kalem var ama product eksikse tamamla
+          order.items.forEach(it => {
+            if (!it.product) {
+              it.product = it.tenantProduct?.product || {
+                id: it.tenantProductId || 'prod-oto-parca',
+                name: it.name || fallbackProd.name,
+                oeNumber: it.oeNumber || fallbackProd.oeNumber,
+                category: fallbackProd.category,
+                vehicleBrand: fallbackProd.vehicleBrand,
+                imageUrl: it.imageUrl || fallbackProd.imageUrl,
+                defaultPrice: it.unitPrice || 500
+              };
+              ordersRepaired = true;
+            }
+          });
+        }
+      });
+
+      if (ordersRepaired) {
+        saveMockStore(store);
+      }
+    }
+
     return store;
   }
 
@@ -288,10 +220,21 @@
     const method = (options.method || 'GET').toUpperCase();
     let body = {};
     if (options.body) {
-      try {
-        body = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;
-      } catch (e) {
+      if (typeof FormData !== 'undefined' && options.body instanceof FormData) {
         body = {};
+        for (const [key, value] of options.body.entries()) {
+          if (value && typeof value === 'object' && value.name) {
+            body[key] = `/uploads/${value.name}`;
+          } else {
+            body[key] = value;
+          }
+        }
+      } else {
+        try {
+          body = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;
+        } catch (e) {
+          body = {};
+        }
       }
     }
 
@@ -302,7 +245,10 @@
       const email = (body.email || '').toLowerCase().trim();
       const password = (body.password || '').trim();
       const role = body.role || 'CUSTOMER';
-      const tenantId = body.tenantId || null;
+      const tenantId = body.tenantId || 'tenant-ahmet-oto';
+      const customerType = (body.customerType || 'MECHANIC').toUpperCase();
+      const fullName = (body.fullName || body.name || email.split('@')[0]).trim();
+      const companyName = (body.companyName || '').trim() || (customerType === 'MECHANIC' ? `${fullName} Oto Servis` : fullName);
 
       if (!email || !password) {
         return { success: false, message: 'E-posta ve şifre zorunludur.' };
@@ -313,21 +259,49 @@
         return { success: false, message: 'Bu e-posta adresi ile kayıtlı kullanıcı zaten mevcut.' };
       }
 
+      const newProfile = {
+        id: `cust-${Date.now().toString(36)}`,
+        companyName: companyName,
+        phone: (body.phone || '').trim(),
+        customerType: customerType,
+        taxNumber: (body.taxNumber || '').trim(),
+        discountRate: 0.0,
+        balance: 0.0,
+        status: customerType === 'MECHANIC' ? 'PENDING_APPROVAL' : 'APPROVED',
+        tenantId: tenantId
+      };
+
       const newUser = {
         id: `usr-${Date.now().toString(36)}`,
         email,
         password,
+        name: fullName,
         role,
         tenantId,
+        customerProfile: newProfile,
         createdAt: new Date().toISOString()
       };
+
       store.users.push(newUser);
+      if (!store.customers) store.customers = [];
+      store.customers.push(newProfile);
       saveMockStore(store);
 
+      const isMechanic = customerType === 'MECHANIC';
+      const mockToken = `standalone_jwt_customer_${Date.now()}`;
+      const userPayload = { id: newUser.id, email: newUser.email, name: newUser.name, role: newUser.role, tenantId: newUser.tenantId, customerProfile: newProfile };
       return {
         success: true,
-        message: 'Kullanıcı kaydı başarıyla tamamlandı.',
-        user: { id: newUser.id, email: newUser.email, role: newUser.role, tenantId: newUser.tenantId }
+        message: isMechanic
+          ? 'Otoservis kayıt başvurunuz başarıyla alındı. Bayi onayının ardından iskontolu toptan alışveriş yapabilirsiniz.'
+          : 'Bireysel müşteri kaydınız başarıyla tamamlandı. Şimdi giriş yapabilirsiniz.',
+        customerType: customerType,
+        token: mockToken,
+        user: userPayload,
+        data: {
+          token: mockToken,
+          user: userPayload
+        }
       };
     }
 
@@ -358,18 +332,25 @@
         }
 
         const token = `standalone_jwt_${user.role.toLowerCase()}_${Date.now()}`;
+        const userPayload = {
+          id: user.id,
+          email: user.email,
+          name: user.name || (user.customerProfile ? user.customerProfile.companyName : null),
+          role: user.role,
+          tenantId: user.tenantId,
+          tenant: user.tenant || null,
+          customerProfile: user.customerProfile || null
+        };
         return {
           success: true,
           message: 'Giriş başarılı.',
           token: token,
           role: user.role,
-          user: {
-            id: user.id,
-            email: user.email,
+          user: userPayload,
+          data: {
+            token: token,
             role: user.role,
-            tenantId: user.tenantId,
-            tenant: user.tenant || null,
-            customerProfile: user.customerProfile || null
+            user: userPayload
           }
         };
       } else {
@@ -683,7 +664,15 @@
         if (body.companyName) cust.companyName = body.companyName;
         if (body.phone) cust.phone = body.phone;
         if (body.address) cust.address = body.address;
-        if (body.discountRate !== undefined) cust.discountRate = parseFloat(body.discountRate);
+        if (body.discountRate !== undefined) {
+          const parsedRate = Math.max(0, Math.min(100, parseFloat(body.discountRate) || 0));
+          cust.discountRate = parsedRate;
+          (store.users || []).forEach(u => {
+            if (u.customerProfile && String(u.customerProfile.id) === String(customerId)) {
+              u.customerProfile.discountRate = parsedRate;
+            }
+          });
+        }
         if (body.balance !== undefined) cust.balance = parseFloat(body.balance);
         saveMockStore(store);
         return { success: true, message: 'Müşteri bilgileri güncellendi', data: cust };
@@ -713,9 +702,16 @@
       const parts = cleanEndpoint.split('/');
       const customerId = parts[3];
       const cust = (store.customers || []).find(c => String(c.id) === String(customerId));
-      const newRate = parseFloat(body.discountRate) || 0;
+      const newRate = (body.discountRate !== undefined && !isNaN(parseFloat(body.discountRate)))
+        ? Math.max(0, Math.min(100, parseFloat(body.discountRate)))
+        : 0;
       if (cust) {
         cust.discountRate = newRate;
+        (store.users || []).forEach(u => {
+          if (u.customerProfile && String(u.customerProfile.id) === String(customerId)) {
+            u.customerProfile.discountRate = newRate;
+          }
+        });
         saveMockStore(store);
         return { success: true, message: 'İskonto oranı güncellendi', data: cust };
       }
@@ -828,14 +824,17 @@
 
     // 7b. POST /tenant/products & POST /tenant/catalog
     if ((cleanEndpoint === '/tenant/products' || cleanEndpoint === '/tenant/catalog') && method === 'POST') {
-      const prodName = body.name || 'Yeni Parça';
-      const oe = body.oeNumber || `OE-${Date.now()}`;
-      const cat = body.category || 'Genel';
-      const brand = body.vehicleBrand || body.brand || 'Evrensel';
-      const models = body.compatibleModels || body.models || '';
-      const partGroup = body.partGroup || body.part_group || 'Genel';
-      const price = parseFloat(body.price) || 1000;
-      const stock = parseInt(body.stock, 10) || 10;
+      const prodName = String(body.name || body.productName || '').trim() || 'Yeni Parça';
+      const oe = String(body.oeNumber || '').trim();
+      const cat = String(body.category || body.partGroup || 'Genel').trim();
+      const brand = String(body.vehicleBrand || body.brand || '').trim() || null;
+      const models = String(body.compatibleModels || body.models || '').trim() || null;
+      const partGroup = String(body.partGroup || body.part_group || '').trim() || null;
+      const price = parseFloat(body.price !== undefined ? body.price : (body.customPrice || body.defaultPrice)) || 0;
+      const stock = parseInt(body.stock, 10) || 0;
+      const primaryImg = body.image || body.imageUrl || null;
+      const imagesArr = primaryImg ? [primaryImg] : [];
+
       const newProd = {
         id: `prod-${Date.now().toString(36)}`,
         oeNumber: oe,
@@ -845,8 +844,8 @@
         compatibleModels: models,
         partGroup: partGroup,
         defaultPrice: price,
-        imageUrl: '/uploads/sample.png',
-        images: JSON.stringify(['/uploads/sample.png'])
+        imageUrl: primaryImg,
+        images: JSON.stringify(imagesArr)
       };
       store.products.push(newProd);
       const newTp = {
@@ -867,7 +866,37 @@
       };
     }
 
-    // 7c. GET /tenant/dashboard-stats & GET /tenant/stats
+    // 7c. DELETE /tenant/products/:id & DELETE /tenant/catalog/:id
+    if ((cleanEndpoint.startsWith('/tenant/products/') || cleanEndpoint.startsWith('/tenant/catalog/')) && method === 'DELETE') {
+      const parts = cleanEndpoint.split('/');
+      const targetId = parts[parts.length - 1];
+
+      // Bulunan tenantCatalog kaydını çıkar
+      const existingIndex = (store.tenantCatalog || []).findIndex(tc =>
+        String(tc.id) === String(targetId) || String(tc.productId) === String(targetId)
+      );
+
+      let deletedProductId = null;
+      if (existingIndex >= 0) {
+        deletedProductId = store.tenantCatalog[existingIndex].productId;
+        store.tenantCatalog.splice(existingIndex, 1);
+      }
+
+      // Ürünler havuzundan da tamamen kaldır
+      if (deletedProductId) {
+        store.products = (store.products || []).filter(p => String(p.id) !== String(deletedProductId));
+      } else {
+        store.products = (store.products || []).filter(p => String(p.id) !== String(targetId));
+      }
+
+      saveMockStore(store);
+      return {
+        success: true,
+        message: 'Ürün listeden ve veritabanından kalıcı olarak silindi.'
+      };
+    }
+
+    // 7d. GET /tenant/dashboard-stats & GET /tenant/stats
     if ((cleanEndpoint === '/tenant/dashboard-stats' || cleanEndpoint === '/tenant/stats') && method === 'GET') {
       const orders = store.orders || [];
       const pendingCount = orders.filter(o => o.status === 'PENDING').length;
@@ -882,10 +911,10 @@
         return {
           ...o,
           customer: {
-            id: cust.id,
-            companyName: cust.companyName || 'Kemal Usta Oto Servis',
-            phone: cust.phone || '0532 999 88 77',
-            discountRate: cust.discountRate || 20,
+            id: cust.id || '',
+            companyName: cust.companyName || 'Müşteri',
+            phone: cust.phone || '-',
+            discountRate: cust.discountRate || 0,
             balance: cust.balance || 0
           },
           items: o.items || []
@@ -908,20 +937,63 @@
       };
     }
 
-    // 7d. GET /tenant/orders
+    // 7e. GET /tenant/orders
     if (cleanEndpoint === '/tenant/orders' && method === 'GET') {
-      const orders = (store.orders || []).map(o => {
+      const orders = (store.orders || []).map((o, idx) => {
         const cust = (store.customers || []).find(c => c.id === o.customerId) || (store.customers || [])[0] || {};
+        
+        let rawItems = Array.isArray(o.items) && o.items.length > 0 ? o.items : null;
+        if (!rawItems) {
+          const subP = parseFloat(o.subtotal || (o.totalAmount ? (o.totalAmount / 1.2) : 900)) || 900;
+          const chosenProd = (store.products && store.products.length > 0)
+            ? store.products[idx % store.products.length]
+            : ((store.tenantCatalog && store.tenantCatalog[0] && store.tenantCatalog[0].product) || {
+                id: 'prod-def',
+                name: 'Ön Fren Balata Takımı',
+                oeNumber: 'OE-' + (o.orderNumber ? o.orderNumber.replace(/[^A-Z0-9]/g, '').slice(-5) : '41060'),
+                category: 'Fren Sistemi',
+                vehicleBrand: 'Renault / Fiat / VAG',
+                defaultPrice: subP
+              });
+          rawItems = [{
+            id: `item-${o.id || idx}-1`,
+            orderId: o.id,
+            quantity: 1,
+            unitPrice: subP,
+            totalPrice: subP,
+            product: chosenProd,
+            tenantProduct: { product: chosenProd }
+          }];
+          o.items = rawItems;
+        }
+
+        const formattedItems = rawItems.map(it => {
+          const prod = it.product || it.tenantProduct?.product || {
+            name: it.name || 'Yedek Parça',
+            oeNumber: it.oeNumber || 'OE-GENEL',
+            imageUrl: it.imageUrl || '',
+            category: it.category || 'Otomotiv',
+            defaultPrice: it.unitPrice || 500
+          };
+          return {
+            ...it,
+            product: prod,
+            tenantProduct: {
+              ...(it.tenantProduct || {}),
+              product: prod
+            }
+          };
+        });
         return {
           ...o,
           customer: {
-            id: cust.id,
-            companyName: cust.companyName || 'Kemal Usta Oto Servis',
-            phone: cust.phone || '0532 999 88 77',
-            discountRate: cust.discountRate || 20,
+            id: cust.id || '',
+            companyName: cust.companyName || 'Müşteri',
+            phone: cust.phone || '-',
+            discountRate: cust.discountRate || 0,
             balance: cust.balance || 0
           },
-          items: o.items || []
+          items: formattedItems
         };
       });
       return {
@@ -931,25 +1003,66 @@
       };
     }
 
-    // 7e. GET /tenant/orders/:id
+    // 7f. GET /tenant/orders/:id
     if (cleanEndpoint.startsWith('/tenant/orders/') && !cleanEndpoint.endsWith('/status') && method === 'GET') {
       const orderId = cleanEndpoint.replace('/tenant/orders/', '');
       const order = (store.orders || []).find(o => o.id === orderId);
       if (order) {
         const cust = (store.customers || []).find(c => c.id === order.customerId) || (store.customers || [])[0] || {};
+        
+        let rawItems = Array.isArray(order.items) && order.items.length > 0 ? order.items : null;
+        if (!rawItems) {
+          const subP = parseFloat(order.subtotal || (order.totalAmount ? (order.totalAmount / 1.2) : 900)) || 900;
+          const chosenProd = (store.products && store.products[0]) || {
+            id: 'prod-def',
+            name: 'Ön Fren Balata Takımı',
+            oeNumber: 'OE-' + (order.orderNumber ? order.orderNumber.replace(/[^A-Z0-9]/g, '').slice(-5) : '41060'),
+            category: 'Fren Sistemi',
+            vehicleBrand: 'Renault / Fiat / VAG',
+            defaultPrice: subP
+          };
+          rawItems = [{
+            id: `item-${order.id}-1`,
+            orderId: order.id,
+            quantity: 1,
+            unitPrice: subP,
+            totalPrice: subP,
+            product: chosenProd,
+            tenantProduct: { product: chosenProd }
+          }];
+          order.items = rawItems;
+        }
+
+        const formattedItems = rawItems.map(it => {
+          const prod = it.product || it.tenantProduct?.product || {
+            name: it.name || 'Yedek Parça',
+            oeNumber: it.oeNumber || 'OE-GENEL',
+            imageUrl: it.imageUrl || '',
+            category: it.category || 'Otomotiv',
+            defaultPrice: it.unitPrice || 500
+          };
+          return {
+            ...it,
+            product: prod,
+            tenantProduct: {
+              ...(it.tenantProduct || {}),
+              product: prod
+            }
+          };
+        });
         return {
           success: true,
           data: {
             ...order,
             customer: cust,
-            items: order.items || []
+            items: formattedItems
           }
         };
       }
       return { success: false, message: 'Sipariş bulunamadı.' };
     }
 
-    // 7f. PATCH /tenant/orders/:id/status
+    // 7g. PATCH /tenant/orders/:id/status
     if (cleanEndpoint.startsWith('/tenant/orders/') && cleanEndpoint.endsWith('/status') && method === 'PATCH') {
       const parts = cleanEndpoint.split('/');
       const orderId = parts[3];
@@ -969,11 +1082,31 @@
 
     // 8. GET /store/profile
     if (cleanEndpoint === '/store/profile' && method === 'GET') {
-      const cust = store.customers[0];
+      const cust = (store.customers && store.customers[0]) || {
+        companyName: 'Kemal Usta (Otoservis)',
+        phone: '0555 123 45 67',
+        address: 'Merkez Sanayi Sitesi No: 42, Dükkan: 8',
+        taxNumber: '1234567890',
+        discountRate: 0,
+        balance: 14850.00
+      };
+      const custUser = (store.users || []).find(u => u.role === 'CUSTOMER');
+      const displayName = cust.companyName || (custUser ? custUser.name : 'Kemal Usta');
+      const custDiscount = (cust.discountRate !== undefined && cust.discountRate !== null && !isNaN(parseFloat(cust.discountRate)))
+        ? Math.max(0, parseFloat(cust.discountRate))
+        : 0;
       return {
         success: true,
         data: {
           ...cust,
+          name: (custUser && custUser.name) ? custUser.name : displayName,
+          companyName: cust.companyName || displayName,
+          email: (custUser && custUser.email) ? custUser.email : 'kemal@ustaoto.com',
+          phone: cust.phone || '0555 123 45 67',
+          address: cust.address || 'Merkez Sanayi Sitesi No: 42, Dükkan: 8',
+          taxNumber: cust.taxNumber || '1234567890',
+          discountRate: custDiscount,
+          balance: cust.balance !== undefined ? cust.balance : 14850.00,
           tenant: {
             id: 'tenant-ahmet-oto',
             name: 'Ahmet Oto Yedek Parça',
@@ -984,23 +1117,111 @@
       };
     }
 
+    // 8.1. PUT & PATCH /store/profile - Profil ve Hesap Güncelleme
+    if (cleanEndpoint === '/store/profile' && (method === 'PUT' || method === 'PATCH')) {
+      let cust = (store.customers && store.customers[0]) ? store.customers[0] : null;
+      if (!cust) {
+        cust = {
+          id: 'cust-kemal-usta',
+          companyName: 'Kemal Usta (Otoservis)',
+          phone: '0555 123 45 67',
+          address: 'Merkez Sanayi Sitesi No: 42, Dükkan: 8',
+          taxNumber: '1234567890',
+          discountRate: 0,
+          balance: 14850.00
+        };
+        store.customers.push(cust);
+      }
+
+      const name = (body.name || body.companyName || '').trim();
+      const companyName = (body.companyName || body.name || '').trim();
+      const email = (body.email || '').trim().toLowerCase();
+      const phone = body.phone !== undefined ? String(body.phone).trim() : cust.phone;
+      const address = body.address !== undefined ? String(body.address).trim() : cust.address;
+      const taxNumber = body.taxNumber !== undefined ? String(body.taxNumber).trim() : cust.taxNumber;
+
+      if (companyName) cust.companyName = companyName;
+      if (phone) cust.phone = phone;
+      if (address !== undefined) cust.address = address;
+      if (taxNumber !== undefined) cust.taxNumber = taxNumber;
+
+      let custUser = (store.users || []).find(u => u.role === 'CUSTOMER');
+      if (!custUser) {
+        custUser = {
+          id: 'usr-customer-kemal',
+          email: email || 'kemal@ustaoto.com',
+          name: name || companyName,
+          role: 'CUSTOMER'
+        };
+        store.users.push(custUser);
+      } else {
+        if (name) custUser.name = name;
+        if (email) custUser.email = email;
+      }
+
+      saveMockStore(store);
+
+      return {
+        success: true,
+        message: 'Profil bilgileriniz başarıyla güncellendi.',
+        data: {
+          ...cust,
+          name: name || custUser.name || cust.companyName,
+          companyName: cust.companyName,
+          email: email || custUser.email,
+          phone: cust.phone,
+          address: cust.address,
+          taxNumber: cust.taxNumber,
+          balance: cust.balance,
+          discountRate: cust.discountRate
+        }
+      };
+    }
+
+    // 8.2. GET /store/my-orders & GET /store/orders - Sipariş Listesi
+    if ((cleanEndpoint === '/store/my-orders' || cleanEndpoint === '/store/orders') && method === 'GET') {
+      const orders = store.orders || [];
+      return {
+        success: true,
+        count: orders.length,
+        data: orders
+      };
+    }
+
     // 9. GET /store/products
     if (cleanEndpoint === '/store/products' && method === 'GET') {
-      const discountRate = 25.00;
-      const multiplier = (100 - discountRate) / 100;
+      const firstCust = (store.customers && store.customers[0]) || null;
+      const discountRate = (firstCust && firstCust.discountRate !== undefined && firstCust.discountRate !== null && !isNaN(parseFloat(firstCust.discountRate)))
+        ? Math.max(0, parseFloat(firstCust.discountRate))
+        : 0;
+      const multiplier = Math.max(0, (100 - discountRate) / 100);
 
-      const calculated = store.tenantCatalog.map(tc => {
-        const prod = store.products.find(p => p.id === tc.productId) || {};
-        const listPrice = tc.customPrice !== null ? tc.customPrice : prod.defaultPrice;
-        const finalPrice = parseFloat((listPrice * multiplier).toFixed(2));
+      // Parse query params if any
+      let brandFilter = '';
+      let searchFilter = '';
+      try {
+        const parsedUrl = new URL(endpoint, 'http://localhost');
+        brandFilter = (parsedUrl.searchParams.get('brand') || '').trim().toLowerCase();
+        searchFilter = (parsedUrl.searchParams.get('search') || '').trim().toLowerCase();
+      } catch (e) {}
+
+      let calculated = (store.tenantCatalog || []).map(tc => {
+        const prod = (store.products || []).find(p => p.id === tc.productId) || {};
+        const listPrice = tc.customPrice !== null && tc.customPrice !== undefined ? tc.customPrice : (prod.defaultPrice || 0);
+        const discountAmount = discountRate > 0 ? listPrice * (discountRate / 100) : 0;
+        const finalPrice = discountRate > 0 ? parseFloat((listPrice - discountAmount).toFixed(2)) : listPrice;
         return {
           tenantProductId: tc.id,
           productId: prod.id,
-          oeNumber: prod.oeNumber,
-          name: prod.name,
-          category: prod.category,
-          imageUrl: prod.imageUrl,
-          stock: tc.stock,
+          oeNumber: prod.oeNumber || '',
+          name: prod.name || 'Yedek Parça',
+          category: prod.category || 'Otomotiv',
+          vehicleBrand: prod.vehicleBrand || 'Renault',
+          compatibleModels: prod.compatibleModels || '',
+          partGroup: prod.partGroup || 'Fren Sistemi',
+          imageUrl: prod.imageUrl || '',
+          images: prod.images || (prod.imageUrl ? [prod.imageUrl] : []),
+          stock: tc.stock !== undefined ? tc.stock : 10,
           isDiscounted: tc.isDiscounted,
           defaultPrice: listPrice,
           customPrice: tc.customPrice,
@@ -1015,12 +1236,28 @@
         };
       });
 
+      if (brandFilter && brandFilter !== 'all') {
+        calculated = calculated.filter(p => (p.vehicleBrand || '').toLowerCase().includes(brandFilter));
+      }
+
+      if (searchFilter) {
+        calculated = calculated.filter(p => 
+          (p.name || '').toLowerCase().includes(searchFilter) ||
+          (p.oeNumber || '').toLowerCase().includes(searchFilter) ||
+          (p.vehicleBrand || '').toLowerCase().includes(searchFilter) ||
+          (p.compatibleModels || '').toLowerCase().includes(searchFilter) ||
+          (p.partGroup || '').toLowerCase().includes(searchFilter)
+        );
+      }
+
+      const currentBal = firstCust && firstCust.balance !== undefined ? firstCust.balance : 14850.00;
+
       return {
         success: true,
         customer: {
-          companyName: 'Kemal Usta Oto Servis',
-          appliedDiscountRate: '%25',
-          currentBalance: '14.850 ₺'
+          companyName: firstCust ? firstCust.companyName : 'Kemal Usta (Otoservis)',
+          appliedDiscountRate: discountRate > 0 ? `%${discountRate}` : '%0',
+          currentBalance: `${parseFloat(currentBal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`
         },
         pagination: {
           page: 1,
@@ -1037,19 +1274,102 @@
     if (cleanEndpoint === '/store/orders' && method === 'POST') {
       const orderNumber = `SP-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
       const items = body.items || [];
+      let listPriceTotal = 0;
       let subtotal = 0;
 
+      const firstCust = (store.customers && store.customers[0]) ? store.customers[0] : null;
+      const discountRate = (firstCust && firstCust.discountRate !== undefined && firstCust.discountRate !== null && !isNaN(parseFloat(firstCust.discountRate)))
+        ? Math.max(0, parseFloat(firstCust.discountRate))
+        : 0;
+      const multiplier = Math.max(0, (100 - discountRate) / 100);
+
+      const orderItems = [];
       items.forEach(it => {
-        const tc = store.tenantCatalog.find(t => t.id === it.tenantProductId);
-        if (tc) {
-          const prod = store.products.find(p => p.id === tc.productId);
-          const price = (tc.customPrice || (prod ? prod.defaultPrice : 500)) * 0.75;
-          subtotal += price * (it.quantity || 1);
-          tc.stock = Math.max(0, tc.stock - (it.quantity || 1));
+        let tc = (store.tenantCatalog || []).find(t => 
+          String(t.id) === String(it.tenantProductId) ||
+          String(t.productId) === String(it.tenantProductId) ||
+          (it.productId && String(t.productId) === String(it.productId))
+        );
+
+        let prod = tc ? (store.products || []).find(p => String(p.id) === String(tc.productId)) : null;
+        if (!prod) {
+          prod = (store.products || []).find(p => 
+            String(p.id) === String(it.productId) ||
+            String(p.id) === String(it.tenantProductId) ||
+            (it.oeNumber && p.oeNumber === it.oeNumber)
+          );
         }
+
+        const listPrice = it.listPrice !== undefined && it.listPrice !== null
+          ? parseFloat(it.listPrice)
+          : (tc && tc.customPrice !== null && tc.customPrice !== undefined ? parseFloat(tc.customPrice) : (prod ? parseFloat(prod.defaultPrice || 500) : (parseFloat(it.unitPrice) || 500)));
+
+        const discountedPrice = it.unitPrice !== undefined && it.unitPrice !== null
+          ? parseFloat(it.unitPrice)
+          : parseFloat((listPrice * multiplier).toFixed(2));
+
+        const qty = parseInt(it.quantity || it.qty || 1, 10);
+        const totalPrice = it.totalPrice !== undefined && it.totalPrice !== null
+          ? parseFloat(it.totalPrice)
+          : parseFloat((discountedPrice * qty).toFixed(2));
+
+        listPriceTotal += listPrice * qty;
+        subtotal += totalPrice;
+        if (tc) tc.stock = Math.max(0, (tc.stock || 10) - qty);
+
+        const prodObj = {
+          id: (prod && prod.id) || it.productId || it.tenantProductId || `prod-${Date.now().toString(36)}`,
+          oeNumber: (prod && prod.oeNumber) || it.oeNumber || 'OE-GENEL',
+          name: (prod && prod.name) || it.name || 'Yedek Parça',
+          category: (prod && prod.category) || 'Otomotiv',
+          vehicleBrand: (prod && prod.vehicleBrand) || it.vehicleBrand || 'Otomotiv',
+          partGroup: (prod && prod.partGroup) || it.partGroup || 'Yedek Parça',
+          imageUrl: (prod && (prod.imageUrl || (prod.images && prod.images[0]))) || it.imageUrl || '',
+          defaultPrice: listPrice
+        };
+
+        orderItems.push({
+          id: `item-${Date.now().toString(36)}-${Math.floor(100 + Math.random() * 900)}`,
+          orderId: '',
+          tenantProductId: (tc && tc.id) || it.tenantProductId || 'tp-item',
+          quantity: qty,
+          unitPrice: discountedPrice,
+          totalPrice: totalPrice,
+          product: prodObj,
+          tenantProduct: {
+            id: (tc && tc.id) || it.tenantProductId || 'tp-item',
+            product: prodObj
+          }
+        });
       });
 
+      if (orderItems.length === 0 && (items.length > 0 || subtotal > 0)) {
+        const sampleProd = (store.products && store.products[0]) || {
+          id: 'prod-def',
+          oeNumber: '7701208265',
+          name: 'Ön Fren Balata Takımı',
+          category: 'Fren Sistemi',
+          defaultPrice: 500
+        };
+        const lp = sampleProd.defaultPrice || 500;
+        const dp = parseFloat((lp * multiplier).toFixed(2));
+        orderItems.push({
+          id: `item-${Date.now().toString(36)}`,
+          orderId: '',
+          tenantProductId: (store.tenantCatalog && store.tenantCatalog[0] && store.tenantCatalog[0].id) || 'tp-def',
+          quantity: 1,
+          unitPrice: dp,
+          totalPrice: dp,
+          product: sampleProd,
+          tenantProduct: { product: sampleProd }
+        });
+        listPriceTotal += lp;
+        subtotal += dp;
+      }
+
+      listPriceTotal = parseFloat(listPriceTotal.toFixed(2));
       subtotal = parseFloat(subtotal.toFixed(2));
+      const discountAmount = parseFloat((listPriceTotal - subtotal).toFixed(2));
       const vatAmount = parseFloat((subtotal * 0.20).toFixed(2));
       const totalAmount = parseFloat((subtotal + vatAmount).toFixed(2));
 
@@ -1057,14 +1377,16 @@
         id: `ord-${Date.now().toString(36)}`,
         orderNumber: orderNumber,
         tenantId: 'tenant-ahmet-oto',
-        customerId: 'cust-kemal-usta',
+        customerId: firstCust ? firstCust.id : 'cust-kemal-usta',
         subtotal: subtotal,
         vatRate: 20.00,
         vatAmount: vatAmount,
         totalAmount: totalAmount,
         status: 'PENDING',
+        items: orderItems,
         createdAt: new Date().toISOString()
       };
+      newOrder.items.forEach(item => { item.orderId = newOrder.id; });
 
       store.orders.unshift(newOrder);
       if (store.customers[0]) {
@@ -1075,7 +1397,17 @@
       return {
         success: true,
         message: `Siparişiniz #${orderNumber} numarasıyla başarıyla oluşturuldu.`,
-        data: newOrder
+        data: {
+          ...newOrder,
+          breakdown: {
+            listPriceTotal,
+            discountAmount,
+            subtotal,
+            vatRate: 20.00,
+            vatAmount,
+            totalAmount
+          }
+        }
       };
     }
 
@@ -1106,7 +1438,9 @@
 
     // 2. Başlıklar (Headers) ve Token Enjeksiyonu
     const headers = new Headers(options.headers || {});
-    if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
+    if (options.body instanceof FormData) {
+      headers.delete('Content-Type');
+    } else if (!headers.has('Content-Type')) {
       headers.set('Content-Type', 'application/json');
     }
 

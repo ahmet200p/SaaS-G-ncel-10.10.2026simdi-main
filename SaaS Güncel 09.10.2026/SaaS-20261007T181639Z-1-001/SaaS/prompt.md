@@ -1,21 +1,35 @@
-"Bayi portalında (bayi.html) bulunan tüm sekmelerdeki (Dashboard, Katalog, Müşteriler, Fiyat ve İskonto) istatistiklerin ve KPI kutularının sıfırdan ve tamamen organik çalışmasını istiyorum. Sistemdeki örnek/test amaçlı girilmiş tüm verileri temizlemek ve statik HTML sayılarını kaldırmak için şu adımları uygula:
+"Müşteri vitrini (store.html) sayfasındaki 'Giriş Yapmış Kullanıcı' bölümünü (Header sağ üst köşe) B2B2C standartlarına uygun, interaktif bir Profil Menüsüne dönüştürmeni istiyorum. Lütfen şu 3 adımı uygula:
 
-1. ADIM: Veritabanı Sıfırlama (Test Verilerini Silme)
+1. ADIM: Profil Dropdown (Açılır Menü) Tasarımı
 
-Backend tarafında (Prisma kullanarak) sisteme daha önce eklenmiş olan tüm sahte verileri temizle.
+Sağ üst köşedeki Kullanıcı Adı (Örn: 'Kemal Usta') ve Profil İkonunun olduğu div'i tıklanabilir (dropdown-toggle) bir butona dönüştür.
 
-CustomerProfile (Otoservis Müşterileri), Product (Katalog Ürünleri), DiscountRule (İskonto Kuralları) ve varsa kalan Order kayıtlarını veritabanından tamamen sil. (Sadece Süper Admin ve Bayi giriş hesapları - User tablosundaki yetkililer kalsın).
+Bu butona tıklandığında (veya üzerine gelindiğinde - hover) hemen altında şık, gölgeli bir açılır menü (Dropdown) belirtsin.
 
-2. ADIM: HTML'deki Statik (Sahte) Verileri Temizleme
+Açılır menü içerisine şu linkleri (veya butonları) ekle:
 
-bayi.html dosyasını aç. Özellikle 'Fiyat ve İskonto Yönetimi' (#view-discount) sekmesindeki KPI kutularını kontrol et.
+📦 Siparişlerim (Geçmiş siparişleri listeleyecek modalı açar)
 
-HTML içine statik olarak yazılmış '2' (Kayıtlı Servis Sayısı), '%22.5' (Ortalama İskonto Oranı) gibi sahte rakamları HTML'den tamamen sil.
+⚙️ Hesap Ayarları (Firma/Şifre değiştirme modalını açar)
 
-Bu rakamların yerlerine sadece <span id="stat-customer-count">0</span>, <span id="stat-avg-discount">%0</span> gibi başlangıç değeri sıfır olan ve JS üzerinden güncellenecek boş alanlar (ID'ler) bırak.
+🚪 Çıkış Yap (Log out - kırmızı renkte)
 
-3. ADIM: JavaScript Dinamik Hesaplama Kontrolü
+2. ADIM: 'Siparişlerim' Modalı (Geçmiş Siparişler)
 
-JS dosyasında istatistikleri ekrana basan fonksiyonların (örn: loadDiscounts, loadDashboardStats) API'den gelen gerçek yanıtlara göre çalıştığından emin ol.
+Sayfaya modal-my-orders adında yeni bir geniş modal ekle.
 
-API'den gelen veri dizisi (array) boş ise (length === 0), sayfadaki tüm sayaçların, ciro hesaplarının ve ortalamaların ekranda 0 veya %0 olarak görünmesini sağlayan kontrolleri (if bloklarını) ekle.
+'Siparişlerim' seçeneğine tıklandığında bu modal açılsın.
+
+İçerisinde, müşterinin daha önce verdiği siparişlerin listelendiği temiz bir tablo olsun (Sipariş No, Tarih, Tutar, Durum - Örn: Hazırlanıyor, Kargolandı).
+
+Backend Bağlantısı: GET /api/store/my-orders endpoint'ine istek atarak kullanıcının kendi token/session'ına ait geçmiş siparişleri çekip bu tabloyu dinamik doldursun.
+
+3. ADIM: 'Hesap Ayarları' Modalı
+
+Sayfaya modal-account-settings adında yeni bir modal ekle.
+
+Kullanıcı buraya girdiğinde adını, telefon numarasını veya e-postasını güncelleyebileceği form alanları bulunsun.
+
+Varsa vergi numarası ve adres gibi detayları da buradan değiştirebilsin (PUT /api/store/profile gibi bir endpoint'e bağlansın).
+
+Not: Sayfadaki genel Bakiye Göstergesi (+22.950,00 ₺) sabit olarak header'da kalmaya devam etsin, sadece ismin olduğu kısım açılır menüye dönüşsün."

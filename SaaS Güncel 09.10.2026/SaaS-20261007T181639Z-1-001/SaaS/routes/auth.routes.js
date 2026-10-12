@@ -19,7 +19,20 @@ const { loginLimiter } = require('../middleware/rateLimiter');
  */
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, role, tenantId } = req.body;
+    const {
+      email,
+      password,
+      role,
+      tenantId,
+      subdomain,
+      fullName,
+      name,
+      phone,
+      customerType,
+      companyName,
+      taxNumber,
+      address
+    } = req.body;
 
     // 1. Girdi Kontrolleri
     if (!email || !password) {
@@ -50,37 +63,108 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // 3. Şifrenin bcrypt ile hashlenmesi
+    // 3. Hedef Bayi (Tenant) Belirleme
+    let targetTenantId = tenantId || null;
+    if (!targetTenantId) {
+      const subToFind = subdomain || 'ahmetoto';
+      const tenantMatch = await prisma.tenant.findUnique({
+        where: { subdomain: subToFind }
+      });
+      if (tenantMatch) {
+        targetTenantId = tenantMatch.id;
+      } else {
+        const defaultTenant = await prisma.tenant.findFirst({
+          where: { isActive: true }
+        });
+        targetTenantId = defaultTenant ? defaultTenant.id : null;
+      }
+    }
+
+    // 4. Şifrenin bcrypt ile hashlenmesi
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // 4. Varsayılan rol ve tenantId belirleme
+    // 5. Rol ve Müşteri Tipi Belirleme (B2B MECHANIC vs B2C RETAIL)
     const validRoles = ['SUPER_ADMIN', 'TENANT_ADMIN', 'CUSTOMER'];
     const assignedRole = role && validRoles.includes(role.toUpperCase())
       ? role.toUpperCase()
-      : (role || 'CUSTOMER');
+      : 'CUSTOMER';
 
-    // 5. User tablosuna kayıt
-    const newUser = await prisma.user.create({
-      data: {
-        email: cleanEmail,
-        password: hashedPassword,
-        role: assignedRole,
-        tenantId: tenantId || null
-      },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        tenantId: true,
-        createdAt: true
+    const validTypes = ['MECHANIC', 'RETAIL'];
+    const assignedCustomerType = customerType && validTypes.includes(customerType.toUpperCase())
+      ? customerType.toUpperCase()
+      : 'MECHANIC';
+
+    const displayName = (fullName || name || cleanEmail.split('@')[0]).trim();
+    const finalCompanyName = (companyName || '').trim() ||
+      (assignedCustomerType === 'MECHANIC' ? `${displayName} Oto Servis` : displayName);
+
+    // 6. Prisma Transaction ile User ve CustomerProfile kaydı
+    const result = await prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          email: cleanEmail,
+          password: hashedPassword,
+          role: assignedRole,
+          name: displayName,
+          tenantId: targetTenantId
+        }
+      });
+
+      let profile = null;
+      if (assignedRole === 'CUSTOMER' && targetTenantId) {
+        profile = await tx.customerProfile.create({
+          data: {
+            userId: newUser.id,
+            tenantId: targetTenantId,
+            companyName: finalCompanyName,
+            phone: (phone || '').trim(),
+            customerType: assignedCustomerType,
+            taxNumber: (taxNumber || '').trim() || null,
+            address: (address || '').trim() || null,
+            status: assignedCustomerType === 'MECHANIC' ? 'PENDING_APPROVAL' : 'APPROVED',
+            discountRate: 0.0,
+            balance: 0.0,
+            currentBalance: 0.0
+          }
+        });
       }
+
+      return { user: newUser, profile };
     });
+
+    const isMechanic = assignedCustomerType === 'MECHANIC';
+
+    // JWT token üretimi
+    const effectiveTenantId = result.user.tenantId;
+    const token = jwt.sign(
+      { id: result.user.id, email: result.user.email, role: result.user.role, tenantId: effectiveTenantId },
+      config.JWT_SECRET,
+      { expiresIn: config.JWT_EXPIRES_IN }
+    );
+
+    const userPayload = {
+      id: result.user.id,
+      email: result.user.email,
+      name: result.user.name,
+      role: result.user.role,
+      tenantId: effectiveTenantId,
+      customerProfile: result.profile
+    };
 
     return res.status(201).json({
       success: true,
-      message: 'Kullanıcı kaydı başarıyla tamamlandı.',
-      user: newUser
+      message: isMechanic
+        ? 'Otoservis kayıt başvurunuz başarıyla alındı. Bayi onayının ardından iskontolu toptan alışveriş yapabilirsiniz.'
+        : 'Bireysel müşteri kaydınız başarıyla tamamlandı. Şimdi giriş yapabilirsiniz.',
+      customerType: assignedCustomerType,
+      token,
+      user: userPayload,
+      data: {
+        token,
+        customerType: assignedCustomerType,
+        user: userPayload
+      }
     });
 
   } catch (error) {
@@ -218,18 +302,26 @@ router.post('/login', loginLimiter, async (req, res) => {
     const token = jwt.sign(payload, secret, { expiresIn });
 
     // 9. Başarılı giriş yanıtı
+    const userPayload = {
+      id: user.id,
+      email: user.email,
+      name: user.name || (user.customerProfile ? user.customerProfile.companyName : null),
+      role: user.role,
+      tenantId: effectiveTenantId,
+      tenant: user.tenant || null,
+      customerProfile: user.customerProfile || null
+    };
+
     return res.status(200).json({
       success: true,
       message: 'Giriş başarılı.',
       token,
       role: user.role,
-      user: {
-        id: user.id,
-        email: user.email,
+      user: userPayload,
+      data: {
+        token,
         role: user.role,
-        tenantId: effectiveTenantId,
-        tenant: user.tenant || null,
-        customerProfile: user.customerProfile || null
+        user: userPayload
       }
     });
 

@@ -132,7 +132,8 @@ const checkTenantAdmin = (req, res, next) => {
 };
 
 /**
- * Yalnızca CUSTOMER (Otoservis / Tamirhane) rolünün erişebilmesini sağlayan middleware
+ * Müşteri vitrini (store) erişim middleware'i:
+ * CUSTOMER rolünün yanı sıra mağazasını önizleyen TENANT_ADMIN ve SUPER_ADMIN yetkililerine de izin verir.
  */
 const checkCustomer = (req, res, next) => {
   if (!req.user) {
@@ -142,17 +143,10 @@ const checkCustomer = (req, res, next) => {
     });
   }
 
-  if (req.user.role !== 'CUSTOMER') {
+  if (req.user.role !== 'CUSTOMER' && req.user.role !== 'TENANT_ADMIN' && req.user.role !== 'SUPER_ADMIN') {
     return res.status(403).json({
       success: false,
-      message: 'Erişim reddedildi: Bu alana yalnızca Otoservis / Tamirhane (CUSTOMER) müşterileri erişebilir.'
-    });
-  }
-
-  if (!req.user.tenantId) {
-    return res.status(403).json({
-      success: false,
-      message: 'Erişim engellendi: Bağlı olunan bayi (tenant) bulunamadı.'
+      message: 'Erişim reddedildi: Bu alana erişim yetkiniz bulunmamaktadır.'
     });
   }
 
