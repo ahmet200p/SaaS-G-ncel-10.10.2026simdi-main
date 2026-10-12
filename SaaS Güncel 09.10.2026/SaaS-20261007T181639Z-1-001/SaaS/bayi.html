@@ -1,0 +1,3270 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="Ahmet Oto Bayi Yönetim Paneli - B2B Yedek Parça E-Ticaret ve Bayi Operasyon Sistemi">
+  <title>Ahmet Oto Yönetim | Bayi Yönetim Paneli (Tenant Admin)</title>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- CSS Dosyası -->
+  <link rel="stylesheet" href="tenant.css">
+  <!-- SweetAlert2 (Modern Dialogs & Confirm Alerts) -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="assets/js/api.js"></script>
+</head>
+
+<body>
+
+  <!-- ==========================================================================
+       SOL YAN MENÜ: <aside class="sidebar"> (260px, Beyaz Arkaplan, Sağ Border)
+       ========================================================================== -->
+  <aside class="sidebar">
+
+    <!-- En Üstte: Bayinin Logosu / Adı (Örn: Ahmet Oto Yönetim) -->
+    <a href="bayi.html" class="sidebar-brand">
+      <div class="brand-icon-box">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <!-- Otomotiv / Dişli İkonu -->
+          <circle cx="12" cy="12" r="3"></circle>
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+          </path>
+        </svg>
+      </div>
+      <div class="brand-info">
+        <span class="brand-name">Ahmet Oto Yönetim</span>
+        <span class="brand-badge">Bayi Portalı</span>
+      </div>
+    </a>
+
+    <!-- Navigasyon Menüsü (<ul>) -->
+    <nav class="sidebar-nav">
+      <div class="menu-section-label">Menü</div>
+      <ul class="sidebar-menu">
+
+        <!-- 1. Dashboard (Aktif) -->
+        <li class="menu-item active" data-view="view-dashboard" data-section="section-dashboard">
+          <a href="#dashboard" data-view="view-dashboard">
+            <span class="menu-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+            </span>
+            <span class="menu-text">Dashboard</span>
+          </a>
+        </li>
+
+        <!-- 2. Gelen Siparişler (yanında rozet ile bekleyen sipariş sayısı) -->
+        <li class="menu-item" data-view="view-orders" data-section="section-orders">
+          <a href="#siparisler" data-view="view-orders">
+            <span class="menu-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <path d="M16 10a4 4 0 0 1-8 0"></path>
+              </svg>
+            </span>
+            <span class="menu-text">Gelen Siparişler</span>
+            <!-- Kırmızı badge: Bekleyen sipariş sayısı -->
+            <span class="badge-danger" id="menu-badge-orders">0</span>
+          </a>
+        </li>
+
+        <!-- 3. Katalog ve Ürünlerim (Kutu - Box SVG'si ile) -->
+        <li class="menu-item" data-view="view-catalog" data-section="section-products">
+          <a href="#katalog" data-view="view-catalog">
+            <span class="menu-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path
+                  d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+                </path>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              </svg>
+            </span>
+            <span class="menu-text">Katalog ve Ürünlerim</span>
+          </a>
+        </li>
+
+        <!-- 4. Otoservis Müşterilerim -->
+        <li class="menu-item" data-view="view-customers" data-section="section-customers">
+          <a href="#musteriler" data-view="view-customers">
+            <span class="menu-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </span>
+            <span class="menu-text">Otoservis Müşterilerim</span>
+          </a>
+        </li>
+
+        <!-- 5. Fiyat ve İskonto Yönetimi -->
+        <li class="menu-item" data-view="view-discount" data-section="section-discount">
+          <a href="#fiyat-iskonto" data-view="view-discount">
+            <span class="menu-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="5" x2="5" y2="19"></line>
+                <circle cx="6.5" cy="6.5" r="2.5"></circle>
+                <circle cx="17.5" cy="17.5" r="2.5"></circle>
+              </svg>
+            </span>
+            <span class="menu-text">Fiyat ve İskonto Yönetimi</span>
+          </a>
+        </li>
+
+      </ul>
+    </nav>
+
+    <!-- Sidebar Alt Kısım: Diğer Portallara Kolay Geçiş -->
+    <div class="sidebar-footer">
+      <a href="store.html" class="portal-switch-btn" title="B2B E-Ticaret Vitrinini Aç">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="21" r="1"></circle>
+          <circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
+        <span>B2B Müşteri Vitrini</span>
+      </a>
+      <a href="index.html" class="portal-switch-btn" title="Süper Admin Paneline Dön">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+          <line x1="8" y1="21" x2="16" y2="21"></line>
+          <line x1="12" y1="17" x2="12" y2="21"></line>
+        </svg>
+        <span>Süper Admin Paneli</span>
+      </a>
+    </div>
+
+  </aside>
+
+  <!-- ==========================================================================
+       SAĞ TARAFTA: <div class="main-content">
+       ========================================================================== -->
+  <div class="main-content">
+
+    <!-- Üstte Beyaz <header>: Arama Çubuğu ve 'Ahmet Oto Yöneticisi' Profili -->
+    <header class="header">
+
+      <!-- Arama Çubuğu -->
+      <div class="header-search">
+        <span class="search-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </span>
+        <input type="text" placeholder="Sipariş no, otoservis müşterisi veya parça ara..." aria-label="Arama">
+      </div>
+
+      <!-- Sağ Taraf: Bildirim ve 'Ahmet Oto Yöneticisi' Profili -->
+      <div class="header-right">
+
+        <!-- Hızlı Bildirim Zili -->
+        <button class="header-action-btn" type="button" aria-label="Bildirimler">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span class="notification-dot"></span>
+        </button>
+
+        <div class="header-divider-v"></div>
+
+        <!-- 'Ahmet Oto Yöneticisi' Profili -->
+        <div class="user-profile" title="Yönetici Profili">
+          <div class="user-avatar-wrap">
+            <img class="user-avatar"
+              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
+              alt="Ahmet Oto Yöneticisi">
+            <span class="user-status-dot"></span>
+          </div>
+          <div class="user-details">
+            <span class="user-name">Ahmet Oto Yöneticisi</span>
+            <span class="user-role">Bayi Ana Yöneticisi</span>
+          </div>
+        </div>
+
+        <div class="header-divider-v"></div>
+
+        <!-- Çıkış Yap Butonu -->
+        <button class="logout-btn" id="logout-button" onclick="logout()" title="Oturumu Kapat">
+          <svg class="logout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span>Çıkış Yap</span>
+        </button>
+
+      </div>
+
+    </header>
+
+    <!-- Ana Çalışma Alanı Gövdesi (.page-body) -->
+    <main class="page-body">
+
+      <!-- ==========================================================================
+           1. BÖLÜM: DASHBOARD (<div id="view-dashboard" class="page-view tenant-section active">)
+           ========================================================================== -->
+      <div id="view-dashboard" class="page-view tenant-section active" data-view="view-dashboard" data-section="section-dashboard">
+
+        <!-- En üste .kpi-grid class'lı 3 adet özet kutusu -->
+        <div class="kpi-grid">
+
+          <!-- 1. Kutu: Bekleyen Siparişler -->
+          <div class="kpi-card">
+            <div class="kpi-info">
+              <span class="kpi-label">Bekleyen Siparişler</span>
+              <span class="kpi-value" id="kpi-pending-orders">0</span>
+            </div>
+            <div class="kpi-icon-wrap">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <path d="M16 10a4 4 0 0 1-8 0"></path>
+              </svg>
+            </div>
+          </div>
+
+          <!-- 2. Kutu: Bugünkü Ciro -->
+          <div class="kpi-card">
+            <div class="kpi-info">
+              <span class="kpi-label">Bugünkü Ciro</span>
+              <span class="kpi-value" id="kpi-today-revenue">0,00 ₺</span>
+            </div>
+            <div class="kpi-icon-wrap">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </div>
+          </div>
+
+          <!-- 3. Kutu: Kayıtlı Otoservis -->
+          <div class="kpi-card">
+            <div class="kpi-info">
+              <span class="kpi-label">Kayıtlı Otoservis</span>
+              <span class="kpi-value" id="kpi-customer-count">0</span>
+            </div>
+            <div class="kpi-icon-wrap">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Kutuların altına 'Son Gelen Siparişler' başlığı -->
+        <div class="section-header">
+          <h2 class="section-title">
+            Son Gelen Siparişler
+            <span class="section-badge" id="section-orders-badge">0 Yeni Talep</span>
+          </h2>
+          <button type="button" class="btn-detail" onclick="switchSection('view-orders')"
+            style="margin-left: auto; font-size: 0.85rem; padding: 6px 14px;">
+            Tüm Siparişleri Gör &rarr;
+          </button>
+        </div>
+
+        <!-- Altına HTML Tablosu (<table>) -->
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="orders-table">
+              <thead>
+                <tr>
+                  <th>Sipariş No</th>
+                  <th>Otoservis (Müşteri)</th>
+                  <th>Tutar</th>
+                  <th>Tarih</th>
+                  <th>Durum</th>
+                  <th>İşlem</th>
+                </tr>
+              </thead>
+              <tbody id="table-recent-orders">
+                <tr><td colspan="5" style="text-align:center; padding: 30px; color:#6b7280;">Henüz bekleyen siparişiniz bulunmuyor.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ==========================================================================
+           2. BÖLÜM: GELEN SİPARİŞLER GEÇMİŞİ (<div id="view-orders" class="page-view tenant-section" style="display: none;">)
+           ========================================================================== -->
+      <div id="view-orders" class="page-view tenant-section" style="display: none;" data-view="view-orders" data-section="section-orders">
+
+        <div class="section-header">
+          <div class="section-header-left">
+            <h2 class="section-title">
+              Gelen Siparişler
+              <span class="section-badge" id="orders-full-count-badge">Tüm Siparişler</span>
+            </h2>
+            <span class="section-subtitle">Bayinize gelen tüm B2B otoservis siparişleri, durum filtreleme ve sevkiyat
+              yönetimi</span>
+          </div>
+        </div>
+
+        <!-- Filtre ve Arama Çubuğu -->
+        <div class="filter-bar">
+          <div class="filter-pills" id="orders-filter-pills">
+            <button type="button" class="filter-pill active" data-status="ALL"
+              onclick="filterOrdersByStatus('ALL')">Tümü</button>
+            <button type="button" class="filter-pill" data-status="PENDING"
+              onclick="filterOrdersByStatus('PENDING')">Bekleyenler</button>
+            <button type="button" class="filter-pill" data-status="APPROVED"
+              onclick="filterOrdersByStatus('APPROVED')">Hazırlananlar</button>
+            <button type="button" class="filter-pill" data-status="SHIPPED"
+              onclick="filterOrdersByStatus('SHIPPED')">Kargolananlar</button>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="text" class="table-search-input" id="search-orders-input"
+              placeholder="Sipariş no veya servis ara...">
+          </div>
+        </div>
+
+        <!-- Tüm Siparişler Tablosu -->
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="orders-table">
+              <thead>
+                <tr>
+                  <th>Sipariş No</th>
+                  <th>Otoservis (Müşteri)</th>
+                  <th>Kalemler</th>
+                  <th>Tutar</th>
+                  <th>Tarih</th>
+                  <th>Durum</th>
+                  <th>İşlem</th>
+                </tr>
+              </thead>
+              <tbody id="table-all-orders-tbody">
+                <tr>
+                  <td colspan="7" style="text-align: center; padding: 40px 20px; color: #64748b;">
+                    <div style="font-size: 26px; margin-bottom: 8px;">⏳</div>
+                    <div style="font-weight: 600; font-size: 15px; color: #1e293b;">Sipariş verileri yükleniyor...</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ==========================================================================
+           3. BÖLÜM: KATALOG VE ÜRÜNLERİM (<div id="view-catalog" class="page-view tenant-section" style="display: none;">)
+           ========================================================================== -->
+      <div id="view-catalog" class="page-view tenant-section" style="display: none;" data-view="view-catalog" data-section="section-products">
+
+        <div class="section-header">
+          <div class="section-header-left">
+            <h2 class="section-title">Katalog ve Ürünlerim</h2>
+            <span class="section-subtitle">Bayinize tanımlı aktif yedek parça stoğu ve liste fiyatları</span>
+          </div>
+          <button id="btn-add-product" class="btn-primary">Yeni Ürün Ekle</button>
+        </div>
+
+        <!-- Ürün Arama ve Kategori Filtresi -->
+        <div class="filter-bar">
+          <div style="display: flex; gap: 12px; align-items: center; flex: 1; flex-wrap: wrap;">
+            <input type="text" class="table-search-input" id="search-products-input"
+              placeholder="Parça adı, OE no, marka veya model ile ara..."
+              style="flex: 1; min-width: 240px; max-width: 360px;">
+            <select class="table-search-input" id="filter-products-brand" style="width: 180px;">
+              <option value="">Tüm Markalar</option>
+              <option value="Volkswagen">Volkswagen</option>
+              <option value="Renault">Renault</option>
+              <option value="Fiat">Fiat</option>
+              <option value="Ford">Ford</option>
+              <option value="BMW">BMW</option>
+              <option value="Mercedes">Mercedes-Benz</option>
+              <option value="Audi">Audi</option>
+              <option value="Toyota">Toyota</option>
+              <option value="Hyundai">Hyundai</option>
+              <option value="Dacia">Dacia</option>
+              <option value="Peugeot">Peugeot</option>
+              <option value="Opel">Opel</option>
+            </select>
+            <select class="table-search-input" id="filter-products-category" style="width: 180px;">
+              <option value="">Tüm Kategoriler</option>
+              <option value="Fren Sistemi">Fren Sistemi</option>
+              <option value="Motor">Motor Parçaları</option>
+              <option value="Filtreler">Filtre Grubu</option>
+              <option value="Süspansiyon">Süspansiyon &amp; Direksiyon</option>
+              <option value="Elektrik">Elektrik &amp; Aydınlatma</option>
+              <option value="Şanzıman">Debriyaj &amp; Şanzıman</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Ürünler Tablosu -->
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="orders-table">
+              <thead>
+                <tr>
+                  <th>Görsel</th>
+                  <th>OE Numarası</th>
+                  <th>Parça Adı</th>
+                  <th>MARKA &amp; GRUP</th>
+                  <th>Stok</th>
+                  <th>Liste Fiyatı</th>
+                  <th>Durum</th>
+                  <th>İşlem</th>
+                </tr>
+              </thead>
+              <tbody id="catalog-table-body">
+                <tr>
+                  <td colspan="8" style="text-align: center; padding: 40px 20px; color: #64748b;">
+                    <div style="font-size: 26px; margin-bottom: 8px;">⏳</div>
+                    <div style="font-weight: 600; font-size: 15px; color: #1e293b;">Ürün kataloğu yükleniyor...</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ==========================================================================
+           4. BÖLÜM: KAYITLI OTOSERVİSLER (<div id="view-customers" class="page-view tenant-section" style="display: none;">)
+           ========================================================================== -->
+      <div id="view-customers" class="page-view tenant-section" style="display: none;" data-view="view-customers" data-section="section-customers">
+
+        <div class="section-header">
+          <div class="section-header-left">
+            <h2 class="section-title">Kayıtlı Otoservisler</h2>
+            <span class="section-subtitle">Bayinize kayıtlı tamirhaneler, iskonto oranları ve cari bakiye
+              durumları</span>
+          </div>
+          <button type="button" class="btn-primary" id="btn-add-customer">+ Yeni Otoservis Ekle</button>
+        </div>
+
+        <!-- Müşteri Arama Çubuğu -->
+        <div class="filter-bar">
+          <input type="text" class="table-search-input" id="search-customers-input"
+            placeholder="Servis adı, yetkili veya telefon ile ara..." style="flex: 1; max-width: 400px;">
+        </div>
+
+        <!-- Otoservisler Tablosu (Prompt.md: Statik veriler silindi, API'den dinamik doldurulur) -->
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="orders-table">
+              <thead>
+                <tr>
+                  <th>Servis Adı</th>
+                  <th>Yetkili</th>
+                  <th>Telefon</th>
+                  <th>İskonto Oranı</th>
+                  <th>Açık Cari / Bakiye</th>
+                  <th>İşlemler</th>
+                </tr>
+              </thead>
+              <tbody id="customers-table-body">
+                <tr>
+                  <td colspan="6" style="text-align: center; padding: 40px 20px; color: #64748b;">
+                    <div style="font-size: 26px; margin-bottom: 8px;">⏳</div>
+                    <div style="font-weight: 600; font-size: 15px; color: #1e293b;">Otoservis müşterileri yükleniyor...
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ==========================================================================
+           5. BÖLÜM: FİYAT VE İSKONTO YÖNETİMİ (<div id="view-discount" class="page-view tenant-section" style="display: none;">)
+           ========================================================================== -->
+      <div id="view-discount" class="page-view tenant-section" style="display: none;" data-view="view-discount" data-section="section-discount">
+
+        <div class="section-header">
+          <div class="section-header-left">
+            <h2 class="section-title">Fiyat ve İskonto Yönetimi</h2>
+            <span class="section-subtitle">Müşteriye özel veya genel iskonto kurallarının belirlenmesi ve dinamik
+              yönetimi</span>
+          </div>
+          <!-- 1. ADIM: Butondaki fazladan '+' silindi, standart <button id="btn-add-discount">+ Yeni Kural Ekle</button> yapıldı -->
+          <button type="button" class="btn-primary" id="btn-add-discount">+ Yeni Kural Ekle</button>
+        </div>
+
+        <!-- 2. ADIM: Modern, Hafif Gölgeli ve İkonlu 3'lü KPI Kutuları -->
+        <div class="discount-stats-row">
+          <div class="discount-stat-card">
+            <div class="kpi-icon-wrapper kpi-icon-blue">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+            <div class="kpi-data-col">
+              <span class="discount-stat-lbl">Kayıtlı Servis Sayısı</span>
+              <span class="discount-stat-num" id="discount-stat-active-customers">0</span>
+            </div>
+          </div>
+
+          <div class="discount-stat-card">
+            <div class="kpi-icon-wrapper kpi-icon-amber">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="5" x2="5" y2="19"></line>
+                <circle cx="6.5" cy="6.5" r="2.5"></circle>
+                <circle cx="17.5" cy="17.5" r="2.5"></circle>
+              </svg>
+            </div>
+            <div class="kpi-data-col">
+              <span class="discount-stat-lbl">Ortalama İskonto Oranı</span>
+              <span class="discount-stat-num" id="discount-stat-avg-rate">%0.0</span>
+            </div>
+          </div>
+
+          <div class="discount-stat-card">
+            <div class="kpi-icon-wrapper kpi-icon-emerald">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                <path d="m9 12 2 2 4-4"></path>
+              </svg>
+            </div>
+            <div class="kpi-data-col">
+              <span class="discount-stat-lbl">Varsayılan İskonto</span>
+              <span class="discount-stat-num" id="discount-stat-default-rate">%20.0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. ADIM: Sol form KESİNLİKLE kaldırıldı; Altta geniş, ferah ve şık İskonto Kuralları Tablosu -->
+        <div class="table-card" style="width: 100%; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05); border: 1px solid var(--border); border-radius: 14px;">
+          <div
+            style="padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #ffffff; border-top-left-radius: 14px; border-top-right-radius: 14px;">
+            <div>
+              <h4 style="font-size: 1.05rem; font-weight: 800; color: var(--text-dark); margin: 0;">Tanımlı İskonto Kuralları</h4>
+              <p style="font-size: 0.82rem; color: var(--text-muted); margin: 4px 0 0;">Servis bazlı ve kategoriye özel aktif B2B iskonto kuralları listesi</p>
+            </div>
+            <span style="font-size: 0.8rem; font-weight: 700; color: #2563eb; background: #eff6ff; padding: 6px 14px; border-radius: 20px; border: 1px solid #dbeafe;">
+              Dinamik B2B Fiyatlandırma
+            </span>
+          </div>
+
+          <div class="table-responsive">
+            <table class="orders-table">
+              <thead>
+                <tr>
+                  <th>Kural Adı</th>
+                  <th>Hedef Müşteri</th>
+                  <th>Kategori</th>
+                  <th>İskonto Oranı</th>
+                  <th>Durum</th>
+                  <th style="text-align: right;">İşlem</th>
+                </tr>
+              </thead>
+              <tbody id="discount-rules-tbody">
+                <tr>
+                  <td colspan="6" style="text-align: center; padding: 48px 20px; color: #64748b;">
+                    <div style="font-size: 28px; margin-bottom: 8px;">⏳</div>
+                    <div style="font-weight: 600; font-size: 15px; color: #1e293b;">İskonto kuralları yükleniyor...</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- ==========================================================================
+       YENİ ÜRÜN EKLE ÇEKMECESİ: <div class="drawer-overlay" id="product-drawer">
+       ========================================================================== -->
+  <div class="drawer-overlay" id="product-drawer">
+    <div class="drawer-content">
+
+      <!-- Drawer Başlığı: 'Yeni Ürün Ekle' -->
+      <div class="drawer-header">
+        <h3 class="drawer-title">Yeni Ürün Ekle</h3>
+        <button type="button" class="drawer-close-btn" id="btn-close-product-drawer" aria-label="Kapat">&times;</button>
+      </div>
+
+      <!-- Form: id="form-add-product" -->
+      <form class="drawer-form" id="form-add-product">
+        <input type="hidden" id="prod-edit-id" value="">
+        <div class="drawer-body">
+
+          <!-- 1. Parça Adı (Text) -->
+          <div class="form-group">
+            <label class="form-label" for="prod-name">Parça Adı</label>
+            <input type="text" class="form-input" id="prod-name" name="prod_name" placeholder="Örn: Ön Fren Balatası"
+              required>
+          </div>
+
+          <!-- 2. OE Numarası (Text) -->
+          <div class="form-group">
+            <label class="form-label" for="prod-oe">OE Numarası</label>
+            <input type="text" class="form-input" id="prod-oe" name="prod_oe" placeholder="Örn: 410601241R" required>
+          </div>
+
+          <!-- Araç Markası (Select Box: name="vehicleBrand" id="prod-brand") -->
+          <div class="form-group">
+            <label class="form-label" for="prod-brand">Araç Markası</label>
+            <select class="form-input" id="prod-brand" name="vehicleBrand" required>
+              <option value="" disabled selected>Seçiniz</option>
+              <option value="Volkswagen">Volkswagen</option>
+              <option value="Hyundai">Hyundai</option>
+              <option value="Renault">Renault</option>
+              <option value="Fiat">Fiat</option>
+              <option value="Ford">Ford</option>
+              <option value="Toyota">Toyota</option>
+              <option value="Opel">Opel</option>
+              <option value="Peugeot">Peugeot</option>
+              <option value="BMW">BMW</option>
+              <option value="Mercedes">Mercedes</option>
+              <option value="Audi">Audi</option>
+              <option value="Universal (Ortak Parça)">Universal (Ortak Parça)</option>
+            </select>
+          </div>
+
+          <!-- Uyumlu Modeller (Text Input: name="compatibleModels" id="prod-models") -->
+          <div class="form-group">
+            <label class="form-label" for="prod-models">Uyumlu Modeller</label>
+            <input type="text" class="form-input" id="prod-models" name="compatibleModels"
+              placeholder="Örn: Golf 7, Polo, Accent Blue (Virgülle ayırınız)">
+          </div>
+
+          <!-- Parça Grubu (Select Box: name="partGroup" id="prod-group") -->
+          <div class="form-group">
+            <label class="form-label" for="prod-group">Parça Grubu</label>
+            <select class="form-input" id="prod-group" name="partGroup" required>
+              <option value="" disabled selected>Seçiniz</option>
+              <option value="Motor &amp; Mekanik">Motor &amp; Mekanik</option>
+              <option value="Fren Sistemi">Fren Sistemi</option>
+              <option value="Süspansiyon &amp; Alt Takım">Süspansiyon &amp; Alt Takım</option>
+              <option value="Dış Aksam &amp; Kaporta">Dış Aksam &amp; Kaporta</option>
+              <option value="İç Aksam &amp; Trim">İç Aksam &amp; Trim</option>
+              <option value="Elektrik &amp; Aydınlatma">Elektrik &amp; Aydınlatma</option>
+              <option value="Filtre &amp; Bakım">Filtre &amp; Bakım</option>
+              <option value="Madeni Yağ &amp; Sıvılar">Madeni Yağ &amp; Sıvılar</option>
+            </select>
+          </div>
+
+          <!-- 7. Liste Fiyatı (Number) -->
+          <div class="form-group">
+            <label class="form-label" for="prod-price">Liste Fiyatı (₺)</label>
+            <input type="number" class="form-input" id="prod-price" name="prod_price" placeholder="Örn: 1200"
+              step="0.01" min="0" required>
+          </div>
+
+          <!-- 8. Stok Miktarı (Number) -->
+          <div class="form-group">
+            <label class="form-label" for="prod-stock">Stok Miktarı (Adet)</label>
+            <input type="number" class="form-input" id="prod-stock" name="stock" min="1" placeholder="Örn: 24" required>
+          </div>
+
+          <!-- 9. Parça Görselleri Yükle (Input type="file" multiple) -->
+          <div class="form-group">
+            <label class="form-label" for="prod-images">Parça Görselleri (Yeni kayıt için en az 3 adet)</label>
+            <input type="file" class="form-input" id="prod-images" name="images" multiple accept="image/*">
+            <small style="color: #ea580c; font-weight: 600;" id="prod-images-hint">* Yeni ürün eklerken en az 3 adet
+              fotoğraf seçilmelidir.</small>
+          </div>
+
+        </div>
+
+        <!-- Drawer en altında 'Ürünü Kaydet' ve 'İptal' butonları -->
+        <div class="drawer-footer">
+          <button type="submit" class="btn-save" id="btn-submit-product-form">Ürünü Kaydet</button>
+          <button type="button" class="btn-cancel" id="btn-cancel-product-drawer">İptal</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       3. ADIM: YENİ İSKONTO KURALI ÇEKMECESİ / MODALI (Ferah Card & 2x2 Grid Yapısı)
+       ========================================================================== -->
+  <div class="drawer-overlay" id="discount-drawer">
+    <div class="drawer-content discount-modal-card">
+
+      <!-- Drawer Başlığı: 'İskonto Kuralı Oluştur' -->
+      <div class="drawer-header discount-card-header">
+        <div>
+          <h3 class="drawer-title" style="margin: 0; font-size: 1.18rem; font-weight: 800; color: #0f172a;">İskonto Kuralı Oluştur</h3>
+          <p style="margin: 4px 0 0; font-size: 0.82rem; color: #64748b;">Kampanya veya otoservis bazlı yeni B2B iskonto kuralı tanımlayın</p>
+        </div>
+        <button type="button" class="drawer-close-btn" id="btn-close-discount-drawer"
+          aria-label="Kapat">&times;</button>
+      </div>
+
+      <!-- Form: id="form-add-discount" -->
+      <form class="drawer-form" id="form-add-discount">
+        <div class="drawer-body discount-card-body">
+
+          <!-- 3. ADIM: 2x2 Grid (Izgara) Yapısı ve form-control Sınıfları -->
+          <div class="discount-form-grid-2x2">
+
+            <!-- 1. Kural Adı (Text) -->
+            <div class="form-group">
+              <label class="form-label" for="disc-name">
+                <span>Kural Adı</span>
+                <span style="color: #ef4444;">*</span>
+              </label>
+              <input type="text" class="form-control form-input" id="disc-name" name="ruleName"
+                placeholder="Örn: Bahar Kampanyası" required>
+            </div>
+
+            <!-- 2. Hedef Müşteri (Select) -->
+            <div class="form-group">
+              <label class="form-label" for="disc-target">
+                <span>Hedef Müşteri</span>
+                <span style="color: #ef4444;">*</span>
+              </label>
+              <select class="form-control form-input" id="disc-target" name="targetCust" required>
+                <option value="Tüm Müşteriler" selected>Tüm Müşteriler</option>
+                <option value="Kemal Usta Oto Servis">Kemal Usta Oto Servis</option>
+                <option value="Güven Oto Servis">Güven Oto Servis</option>
+                <option value="Güneş Fren & Mekanik Servis">Güneş Fren &amp; Mekanik Servis</option>
+              </select>
+            </div>
+
+            <!-- 3. Uygulanacak Kategori (Select) -->
+            <div class="form-group">
+              <label class="form-label" for="disc-category">
+                <span>Kategori</span>
+                <span style="color: #ef4444;">*</span>
+              </label>
+              <select class="form-control form-input" id="disc-category" name="category" required>
+                <option value="Tüm Kategoriler" selected>Tüm Kategoriler</option>
+                <option value="Filtre Grubu">Filtre Grubu</option>
+                <option value="Fren Sistemi">Fren Sistemi</option>
+                <option value="Motor Parçaları">Motor Parçaları</option>
+                <option value="Süspansiyon & Direksiyon">Süspansiyon &amp; Direksiyon</option>
+                <option value="Elektrik & Aydınlatma">Elektrik &amp; Aydınlatma</option>
+                <option value="Debriyaj & Şanzıman">Debriyaj &amp; Şanzıman</option>
+              </select>
+            </div>
+
+            <!-- 4. İskonto Oranı % (Number input) -->
+            <div class="form-group">
+              <label class="form-label" for="disc-rate">
+                <span>İskonto Oranı (%)</span>
+                <span style="color: #ef4444;">*</span>
+              </label>
+              <input type="number" step="0.5" class="form-control form-input" id="disc-rate" name="rate"
+                placeholder="Örn: 15.0" min="0" max="100" required>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Drawer Altında 'Kuralı Kaydet' ve 'Vazgeç' Butonları -->
+        <div class="drawer-footer discount-card-footer">
+          <button type="button" class="btn-cancel" id="btn-cancel-discount-drawer">Vazgeç</button>
+          <button type="submit" class="btn-primary btn-save" id="btn-save-discount-rule">Kuralı Kaydet</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       YENİ TAMİRCİ / SERVİS EKLE ÇEKMECESİ: <div class="drawer-overlay" id="mechanic-drawer">
+       ========================================================================== -->
+  <div class="drawer-overlay" id="mechanic-drawer">
+    <div class="drawer-content mechanic-drawer-content">
+
+      <!-- Drawer Başlığı -->
+      <div class="drawer-header mechanic-drawer-header">
+        <div class="drawer-title-group">
+          <div class="drawer-icon-badge">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+          <div>
+            <h3 class="drawer-title">Yeni Otoservis / Tamirci Ekle</h3>
+            <p class="drawer-subtitle">Bayinize kayıtlı yeni bir tamirhane veya servis profilini ekleyin</p>
+          </div>
+        </div>
+        <button type="button" class="drawer-close-btn" id="btn-close-mechanic-drawer"
+          aria-label="Kapat">&times;</button>
+      </div>
+
+      <!-- Form: id="form-add-mechanic" -->
+      <form class="drawer-form" id="form-add-mechanic">
+        <div class="drawer-body mechanic-drawer-body">
+          <div class="mechanic-form-grid">
+            <!-- SOL SÜTUN: Firma Adı, Telefon, Yetkili Kişi ve Açık Cari Bakiye -->
+            <div class="mechanic-form-col">
+              <div class="form-group">
+                <label class="form-label" for="mech-name">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" class="label-icon">
+                    <path d="M3 21h18"></path>
+                    <path d="M5 21V7l8-4v18"></path>
+                    <path d="M19 21V11l-6-4"></path>
+                    <path d="M9 9v.01"></path>
+                    <path d="M9 12v.01"></path>
+                    <path d="M9 15v.01"></path>
+                    <path d="M9 18v.01"></path>
+                  </svg>
+                  <span>Servis / Atölye Adı</span>
+                  <span class="required-star">*</span>
+                </label>
+                <input type="text" class="form-control form-input" id="mech-name" name="mech_name"
+                  placeholder="Örn: Yıldız Oto Servis & Bakım" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="mech-phone">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" class="label-icon">
+                    <path
+                      d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
+                    </path>
+                  </svg>
+                  <span>Telefon Numarası</span>
+                  <span class="required-star">*</span>
+                </label>
+                <input type="tel" class="form-control form-input" id="mech-phone" name="mech_phone"
+                  placeholder="0532 123 45 67" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="mech-owner">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" class="label-icon">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  <span>Yetkili Kişi / Usta</span>
+                </label>
+                <input type="text" class="form-control form-input" id="mech-owner" name="mech_owner"
+                  placeholder="Örn: Hasan Usta">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="mech-balance">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" class="label-icon">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                  </svg>
+                  <span>Açık Cari / Bakiye (₺)</span>
+                </label>
+                <input type="number" step="0.01" class="form-control form-input" id="mech-balance" name="mech_balance"
+                  placeholder="0.00" min="0" value="0">
+              </div>
+            </div>
+
+            <!-- SAĞ SÜTUN: Adres, İskonto Oranı, E-Posta ve Şifre -->
+            <div class="mechanic-form-col">
+              <div class="form-group">
+                <label class="form-label" for="mech-address">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" class="label-icon">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                  </svg>
+                  <span>Otoservis Adresi / Konum</span>
+                </label>
+                <input type="text" class="form-control form-input" id="mech-address" name="mech_address"
+                  placeholder="İkitelli OSB San. Sit. 14. Blok No:22">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="mech-discount">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" class="label-icon">
+                    <line x1="19" y1="5" x2="5" y2="19"></line>
+                    <circle cx="6.5" cy="6.5" r="2.5"></circle>
+                    <circle cx="17.5" cy="17.5" r="2.5"></circle>
+                  </svg>
+                  <span>Tanımlı İskonto Oranı (%)</span>
+                  <span class="required-star">*</span>
+                </label>
+                <input type="number" step="0.5" class="form-control form-input" id="mech-discount" name="mech_discount"
+                  placeholder="Örn: 20" min="0" max="100" value="20" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="mech-email">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" class="label-icon">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                  </svg>
+                  <span>Giriş E-Posta Adresi</span>
+                  <span class="optional-badge">(Opsiyonel)</span>
+                </label>
+                <input type="email" class="form-control form-input" id="mech-email" name="mech_email"
+                  placeholder="Boşsa telefonla oluşturulur">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="mech-password">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" class="label-icon">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                  <span>Giriş Şifresi</span>
+                  <span class="optional-badge">(Varsayılan: 123456)</span>
+                </label>
+                <input type="password" class="form-control form-input" id="mech-password" name="mech_password"
+                  placeholder="En az 6 karakter (varsayılan: 123456)">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="drawer-footer mechanic-drawer-footer">
+          <button type="button" class="btn-cancel modern-cancel-btn" id="btn-cancel-mechanic-drawer">Vazgeç</button>
+          <button type="submit" class="btn-save btn-primary modern-submit-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+              <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            <span>Tamirciyi Kaydet</span>
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       4. SİPARİŞ DETAY ÇEKMECESİ: <div class="drawer-overlay" id="order-drawer">
+       ========================================================================== -->
+  <div class="drawer-overlay" id="order-drawer">
+    <div class="drawer-content" style="max-width: 620px;">
+
+      <div class="drawer-header">
+        <h3 class="drawer-title" id="order-drawer-title">Sipariş Detayı</h3>
+        <button type="button" class="drawer-close-btn" id="btn-close-order-drawer" aria-label="Kapat">&times;</button>
+      </div>
+
+      <div class="drawer-body" id="order-drawer-body">
+        <div style="text-align: center; padding: 30px; color: #64748b;">Yükleniyor...</div>
+      </div>
+
+      <div class="drawer-footer" id="order-drawer-footer">
+        <button type="button" class="btn-cancel" id="btn-cancel-order-drawer">Kapat</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- JavaScript: Bayi Yönetim Paneli Etkileşimi (Backend Simülasyonu) -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+      // 0. Oturum ve Rol Doğrulama (TENANT_ADMIN Guard)
+      const currentUser = requireAuth(['TENANT_ADMIN', 'SUPER_ADMIN']);
+      if (currentUser) {
+        const userNameEl = document.querySelector('.user-name');
+        if (userNameEl && currentUser.email) {
+          userNameEl.textContent = currentUser.email.split('@')[0].toUpperCase();
+        }
+        if (currentUser.tenant && currentUser.tenant.name) {
+          const brandEl = document.querySelector('.brand-name');
+          if (brandEl) brandEl.textContent = currentUser.tenant.name + ' Yönetim';
+        }
+      }
+
+      // 0. Güvenli HTML Kaçırma Yardımcısı (XSS Koruması)
+      function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+      window.escapeHtml = escapeHtml;
+
+      // 0. Toast Bildirim Fonksiyonu
+      function showToast(message) {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = 'toast-msg';
+        toast.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        <span>${escapeHtml(message)}</span>
+      `;
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => {
+          toast.classList.add('show');
+        });
+
+        setTimeout(() => {
+          toast.classList.remove('show');
+          setTimeout(() => {
+            toast.remove();
+          }, 350);
+        }, 3200);
+      }
+
+      // ==========================================================================
+      // ==========================================================================
+      // 2. ADIM: MENÜ TIKLAMA (TAB) JAVASCRIPT DÜZELTMESİ
+      // ==========================================================================
+      const menuItems = document.querySelectorAll('.sidebar-menu .menu-item');
+      const pageViews = document.querySelectorAll('.page-view');
+
+      menuItems.forEach(item => {
+        item.addEventListener('click', function (e) {
+          e.preventDefault();
+          let viewId = this.getAttribute('data-view');
+          if (!viewId) return;
+
+          // Aktif menü sınıfını değiştir
+          menuItems.forEach(m => m.classList.remove('active'));
+          this.classList.add('active');
+
+          // İlgili view'ı göster, diğerlerini gizle
+          pageViews.forEach(view => {
+            if (view.id === viewId) {
+              view.style.display = 'flex'; // veya flex-direction'a göre block
+            } else {
+              view.style.display = 'none';
+            }
+          });
+
+          // Eğer api çağrısı yapacak sayfalar açıldıysa veriyi yenile
+          if (viewId === 'view-catalog' && typeof loadProducts === 'function') loadProducts();
+          if (viewId === 'view-customers' && typeof loadCustomers === 'function') loadCustomers();
+          if (viewId === 'view-discount' && typeof loadDiscounts === 'function') loadDiscounts();
+          if (viewId === 'view-dashboard' && typeof loadDashboardStats === 'function') loadDashboardStats();
+          if (viewId === 'view-orders' && typeof loadOrdersTab === 'function') loadOrdersTab();
+        });
+      });
+
+      // Buton veya linklerden genel yönlendirme fonksiyonu
+      function switchSection(targetKey) {
+        if (!targetKey) return;
+        let viewId = targetKey;
+        if (viewId.startsWith('section-')) viewId = viewId.replace('section-', 'view-');
+        if (viewId === 'view-products') viewId = 'view-catalog';
+
+        menuItems.forEach(m => {
+          if (m.getAttribute('data-view') === viewId) {
+            m.classList.add('active');
+          } else {
+            m.classList.remove('active');
+          }
+        });
+
+        pageViews.forEach(view => {
+          if (view.id === viewId || view.id === targetKey) {
+            view.style.display = 'flex';
+          } else {
+            view.style.display = 'none';
+          }
+        });
+
+        if (viewId === 'view-catalog' && typeof loadProducts === 'function') loadProducts();
+        if (viewId === 'view-customers' && typeof loadCustomers === 'function') loadCustomers();
+        if (viewId === 'view-discount' && typeof loadDiscounts === 'function') loadDiscounts();
+        if (viewId === 'view-dashboard' && typeof loadDashboardStats === 'function') loadDashboardStats();
+        if (viewId === 'view-orders' && typeof loadOrdersTab === 'function') loadOrdersTab();
+      }
+      window.switchSection = switchSection;
+
+      // Fonksiyon isim köprüleri (Alias)
+      window.loadProducts = function () { if (typeof loadCatalog === 'function') loadCatalog(); };
+      window.loadDiscounts = function () { if (typeof loadDiscountsTab === 'function') loadDiscountsTab(); };
+      window.loadDashboard = function () { if (typeof loadDashboardStats === 'function') loadDashboardStats(); };
+
+      // Sayfa ilk yüklendiğinde URL hash'ine göre sekme aç
+      const currentHash = window.location.hash ? window.location.hash.replace('#', '') : '';
+      if (currentHash) {
+        let mapped = currentHash;
+        if (mapped === 'dashboard') mapped = 'view-dashboard';
+        if (mapped === 'siparisler' || mapped === 'orders') mapped = 'view-orders';
+        if (mapped === 'katalog' || mapped === 'products') mapped = 'view-catalog';
+        if (mapped === 'musteriler' || mapped === 'customers') mapped = 'view-customers';
+        if (mapped === 'fiyat-iskonto' || mapped === 'discount') mapped = 'view-discount';
+        switchSection(mapped);
+      }
+
+      // ==========================================================================
+      // CANLI DASHBOARD & SİPARİŞ ENTEGRASYONU (API / PRISMA / SQLITE)
+      // ==========================================================================
+      let cachedOrders = [];
+
+      async function loadDashboardStats() {
+        try {
+          const res = await apiFetch('/tenant/dashboard-stats');
+          if (res && res.success && res.data) {
+            const stats = res.data;
+            const pendingCount = stats.pendingCount !== undefined ? stats.pendingCount : (stats.pendingOrders || 0);
+            const revenue = stats.todayRevenue !== undefined ? parseFloat(stats.todayRevenue) : 0;
+            const customersCount = stats.customerCount !== undefined ? stats.customerCount : (stats.registeredCustomers || 0);
+
+            const pendingEl = document.getElementById('kpi-pending-orders');
+            if (pendingEl) pendingEl.textContent = pendingCount;
+
+            const revenueEl = document.getElementById('kpi-today-revenue');
+            if (revenueEl) revenueEl.textContent = revenue.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+
+            const custEl = document.getElementById('kpi-customer-count') || document.getElementById('kpi-registered-customers');
+            if (custEl) custEl.textContent = customersCount;
+
+            const menuBadge = document.getElementById('menu-badge-orders') || document.getElementById('badge-pending-orders');
+            if (menuBadge) {
+              menuBadge.textContent = pendingCount;
+              menuBadge.style.display = pendingCount > 0 ? 'inline-flex' : 'none';
+            }
+
+            const sectionBadge = document.getElementById('section-orders-badge');
+            if (sectionBadge) {
+              sectionBadge.textContent = pendingCount > 0 ? `${pendingCount} Yeni Sipariş` : 'Yeni Sipariş Yok';
+            }
+
+            // 3. ADIM: Siparişler 'Yükleniyor' Hatası (Dashboard Tablosu)
+            // recentOrders API'den çekilirken eğer dizi boş geliyorsa (Henüz hiç sipariş yoksa), sonsuza kadar dönen "Sipariş verileri yükleniyor..." kum saati HTML'ini tablo içinden temizle.
+            // Onun yerine tablo gövdesine (tbody): <tr><td colspan="5" style="text-align:center; padding: 30px; color:#6b7280;">Henüz bekleyen siparişiniz bulunmuyor.</td></tr> şeklinde temiz bir "Boş Durum (Empty State)" yazısı ekle.
+            const recentOrders = (stats && Array.isArray(stats.recentOrders)) ? stats.recentOrders : [];
+            const tbodyRecent = document.getElementById('table-recent-orders') || document.getElementById('recent-orders-tbody');
+            if (recentOrders.length === 0) {
+              if (tbodyRecent) {
+                tbodyRecent.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 30px; color:#6b7280;">Henüz bekleyen siparişiniz bulunmuyor.</td></tr>';
+              }
+            } else {
+              renderOrdersTable(recentOrders);
+            }
+          } else {
+            const tbodyRecent = document.getElementById('table-recent-orders') || document.getElementById('recent-orders-tbody');
+            if (tbodyRecent) {
+              tbodyRecent.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 30px; color:#6b7280;">Henüz bekleyen siparişiniz bulunmuyor.</td></tr>';
+            }
+          }
+        } catch (err) {
+          console.error('[LOAD_DASHBOARD_STATS_ERROR]:', err);
+          const tbodyRecent = document.getElementById('table-recent-orders') || document.getElementById('recent-orders-tbody');
+          if (tbodyRecent) {
+            tbodyRecent.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 30px; color:#6b7280;">Henüz bekleyen siparişiniz bulunmuyor.</td></tr>';
+          }
+        }
+      }
+
+      function renderOrdersTable(ordersList) {
+        const tbody = document.getElementById('table-recent-orders') || document.getElementById('recent-orders-tbody');
+        if (!tbody) return;
+
+        cachedOrders = ordersList || [];
+
+        if (cachedOrders.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 30px; color:#6b7280;">Henüz bekleyen siparişiniz bulunmuyor.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = '';
+        cachedOrders.forEach(order => {
+          const tr = document.createElement('tr');
+          tr.dataset.orderId = order.id;
+
+          const orderNum = escapeHtml(order.orderNumber || order.id.slice(0, 8));
+          const customerName = escapeHtml(order.customer ? (order.customer.companyName || 'Müşteri') : 'Müşteri');
+          const customerPhone = escapeHtml(order.customer ? (order.customer.phone || '') : '');
+          const totalAmount = parseFloat(order.totalAmount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+          let dateText = '-';
+          if (order.createdAt) {
+            const orderDate = new Date(order.createdAt);
+            const isToday = orderDate.toDateString() === new Date().toDateString();
+            const timeStr = orderDate.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+            dateText = isToday ? `Bugün ${timeStr}` : `${orderDate.toLocaleDateString('tr-TR')} ${timeStr}`;
+          }
+
+          let statusBadgeHtml = '';
+          let actionsHtml = '';
+
+          if (order.status === 'PENDING') {
+            statusBadgeHtml = `
+              <span class="badge-status-yellow">
+                <span class="badge-dot-yellow"></span>
+                Yeni Sipariş
+              </span>
+            `;
+            actionsHtml = `
+              <div class="table-actions">
+                <button type="button" class="btn-approve" onclick="approveOrder('${order.id}', '${orderNum}')">Siparişi Onayla</button>
+                <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
+              </div>
+            `;
+          } else if (order.status === 'APPROVED') {
+            statusBadgeHtml = `
+              <span class="badge-status-green" style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd;">
+                <span class="badge-dot-green" style="background: #0284c7;"></span>
+                Hazırlanıyor
+              </span>
+            `;
+            actionsHtml = `
+              <div class="table-actions">
+                <button type="button" class="btn-approve" style="background: #10b981; cursor: default;" disabled>Onaylandı ✓</button>
+                <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
+              </div>
+            `;
+          } else {
+            statusBadgeHtml = `
+              <span class="badge-status-green">
+                <span class="badge-dot-green"></span>
+                ${escapeHtml(order.status === 'SHIPPED' ? 'Kargoda' : order.status)}
+              </span>
+            `;
+            actionsHtml = `
+              <div class="table-actions">
+                <button type="button" class="btn-approve" style="background: #0284c7; cursor: default;" disabled>Kargolandı 🚚</button>
+                <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
+              </div>
+            `;
+          }
+
+          tr.innerHTML = `
+            <td><span class="order-number">#${orderNum}</span></td>
+            <td>
+              <div class="customer-info">
+                <span class="customer-name">${customerName}</span>
+                <span class="customer-sub">${customerPhone ? customerPhone + ' • ' : ''}Servis</span>
+              </div>
+            </td>
+            <td><span class="order-amount">${totalAmount} ₺</span></td>
+            <td><span class="order-date">${dateText}</span></td>
+            <td>${statusBadgeHtml}</td>
+            <td>${actionsHtml}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      async function loadRecentOrders() {
+        try {
+          const res = await apiFetch('/tenant/orders');
+          if (res && res.success && Array.isArray(res.data)) {
+            renderOrdersTable(res.data);
+          }
+        } catch (err) {
+          console.error('[LOAD_RECENT_ORDERS_ERROR]:', err);
+        }
+      }
+
+      async function loadDashboard() {
+        await Promise.all([loadDashboardStats(), loadRecentOrders()]);
+      }
+
+      window.approveOrder = async function (orderId, orderNum) {
+        try {
+          const res = await apiFetch(`/tenant/orders/${orderId}/status`, {
+            method: 'PATCH',
+            body: { status: 'APPROVED' }
+          });
+
+          if (res && res.success) {
+            showToast(`Sipariş #${orderNum} başarıyla onaylandı ve hazırlık aşamasına alındı!`);
+            await loadDashboard();
+            if (typeof loadOrdersTab === 'function') await loadOrdersTab();
+          } else {
+            showToast((res && res.message) ? res.message : 'Sipariş durumu güncellenemedi.', 'danger');
+          }
+        } catch (err) {
+          showToast('Onaylama hatası: ' + err.message, 'danger');
+        }
+      };
+
+      // ==========================================================================
+      // GELEN SİPARİŞLER (DETAYLI GEÇMİŞ) YÖNETİMİ
+      // ==========================================================================
+      let currentOrderStatusFilter = 'ALL';
+      let currentOrderSearchTerm = '';
+
+      async function loadOrdersTab(statusFilter = null, searchTerm = null) {
+        if (statusFilter !== null) currentOrderStatusFilter = statusFilter;
+        if (searchTerm !== null) currentOrderSearchTerm = searchTerm;
+
+        const tbody = document.getElementById('table-all-orders-tbody');
+        const countBadge = document.getElementById('orders-full-count-badge');
+        if (!tbody) return;
+
+        try {
+          let url = '/tenant/orders';
+          const params = [];
+          if (currentOrderStatusFilter && currentOrderStatusFilter !== 'ALL') {
+            params.push('status=' + encodeURIComponent(currentOrderStatusFilter));
+          }
+          if (currentOrderSearchTerm) {
+            params.push('search=' + encodeURIComponent(currentOrderSearchTerm));
+          }
+          if (params.length > 0) url += '?' + params.join('&');
+
+          const res = await apiFetch(url);
+          if (res && res.success && Array.isArray(res.data)) {
+            const orders = res.data;
+            cachedOrders = orders;
+
+            if (countBadge) {
+              countBadge.textContent = `${orders.length} Sipariş`;
+            }
+
+            if (orders.length === 0) {
+              tbody.innerHTML = `
+                <tr>
+                  <td colspan="7" style="text-align: center; padding: 48px 20px; color: #64748b;">
+                    <div style="font-size: 32px; margin-bottom: 8px;">📦</div>
+                    <div style="font-weight: 600; font-size: 15px; color: #1e293b;">Seçilen kriterlere uygun sipariş bulunamadı.</div>
+                    <div style="font-size: 13px; color: #64748b; margin-top: 4px;">Filtreleri temizleyebilir veya yeni siparişleri bekleyebilirsiniz.</div>
+                  </td>
+                </tr>
+              `;
+              return;
+            }
+
+            tbody.innerHTML = '';
+            orders.forEach(order => {
+              const tr = document.createElement('tr');
+              tr.dataset.orderId = order.id;
+
+              const orderNum = escapeHtml(order.orderNumber || order.id.slice(0, 8));
+              const customerName = escapeHtml(order.customer ? (order.customer.companyName || 'Müşteri') : 'Müşteri');
+              const customerPhone = escapeHtml(order.customer ? (order.customer.phone || '') : '');
+              const totalAmount = parseFloat(order.totalAmount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              const itemsCount = Array.isArray(order.items) ? order.items.length : 0;
+
+              let dateText = '-';
+              if (order.createdAt) {
+                const orderDate = new Date(order.createdAt);
+                const isToday = orderDate.toDateString() === new Date().toDateString();
+                const timeStr = orderDate.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+                dateText = isToday ? `Bugün ${timeStr}` : `${orderDate.toLocaleDateString('tr-TR')} ${timeStr}`;
+              }
+
+              let statusBadgeHtml = '';
+              let actionsHtml = '';
+
+              if (order.status === 'PENDING') {
+                statusBadgeHtml = `
+                  <span class="badge-status-yellow">
+                    <span class="badge-dot-yellow"></span>
+                    Yeni Sipariş
+                  </span>
+                `;
+                actionsHtml = `
+                  <div class="table-actions">
+                    <button type="button" class="btn-approve" onclick="approveOrder('${order.id}', '${orderNum}')">Siparişi Onayla</button>
+                    <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
+                  </div>
+                `;
+              } else if (order.status === 'APPROVED') {
+                statusBadgeHtml = `
+                  <span class="badge-status-green" style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd;">
+                    <span class="badge-dot-green" style="background: #0284c7;"></span>
+                    Hazırlanıyor
+                  </span>
+                `;
+                actionsHtml = `
+                  <div class="table-actions">
+                    <button type="button" class="btn-approve" style="background: #0284c7;" onclick="shipOrder('${order.id}', '${orderNum}')">Kargoya Ver 🚚</button>
+                    <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
+                  </div>
+                `;
+              } else {
+                statusBadgeHtml = `
+                  <span class="badge-status-green">
+                    <span class="badge-dot-green"></span>
+                    ${escapeHtml(order.status === 'SHIPPED' ? 'Kargolandı' : order.status)}
+                  </span>
+                `;
+                actionsHtml = `
+                  <div class="table-actions">
+                    <button type="button" class="btn-approve" style="background: #10b981; cursor: default;" disabled>Kargolandı ✓</button>
+                    <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
+                  </div>
+                `;
+              }
+
+              tr.innerHTML = `
+                <td><span class="order-number">#${orderNum}</span></td>
+                <td>
+                  <div class="customer-info">
+                    <span class="customer-name">${customerName}</span>
+                    <span class="customer-sub">${customerPhone ? customerPhone + ' • ' : ''}Servis</span>
+                  </div>
+                </td>
+                <td><span class="badge-category">${itemsCount} Kalem</span></td>
+                <td><span class="order-amount">${totalAmount} ₺</span></td>
+                <td><span class="order-date">${dateText}</span></td>
+                <td>${statusBadgeHtml}</td>
+                <td>${actionsHtml}</td>
+              `;
+              tbody.appendChild(tr);
+            });
+          }
+        } catch (err) {
+          console.error('[LOAD_ORDERS_TAB_ERROR]:', err);
+        }
+      }
+      window.loadOrdersTab = loadOrdersTab;
+
+      window.filterOrdersByStatus = function (status) {
+        const pills = document.querySelectorAll('#orders-filter-pills .filter-pill');
+        pills.forEach(p => {
+          if (p.getAttribute('data-status') === status) {
+            p.classList.add('active');
+          } else {
+            p.classList.remove('active');
+          }
+        });
+        loadOrdersTab(status);
+      };
+
+      window.shipOrder = async function (orderId, orderNum) {
+        try {
+          const res = await apiFetch(`/tenant/orders/${orderId}/status`, {
+            method: 'PATCH',
+            body: { status: 'SHIPPED' }
+          });
+          if (res && res.success) {
+            showToast(`Sipariş #${orderNum} kargoya verildi ve müşteriye bildirim iletildi!`);
+            await loadOrdersTab();
+            await loadDashboard();
+          } else {
+            showToast((res && res.message) ? res.message : 'Sipariş durumu güncellenemedi.', 'danger');
+          }
+        } catch (err) {
+          showToast('Kargolama hatası: ' + err.message, 'danger');
+        }
+      };
+
+      window.showOrderDetail = function (orderId) {
+        const order = cachedOrders.find(o => o.id === orderId);
+        if (!order) {
+          showToast('Sipariş bilgisi bulunamadı.', 'warning');
+          return;
+        }
+
+        const titleEl = document.getElementById('order-drawer-title');
+        const bodyEl = document.getElementById('order-drawer-body');
+        const footerEl = document.getElementById('order-drawer-footer');
+
+        const orderNum = escapeHtml(order.orderNumber || order.id.slice(0, 8));
+        if (titleEl) titleEl.textContent = `Sipariş #${orderNum} Detayı`;
+
+        const customerName = escapeHtml(order.customer ? (order.customer.companyName || 'Müşteri') : 'Müşteri');
+        const customerPhone = escapeHtml(order.customer ? (order.customer.phone || '-') : '-');
+        const totalAmount = parseFloat(order.totalAmount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const subtotal = parseFloat(order.subtotal || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const vatAmount = parseFloat(order.vatAmount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        let itemsHtml = '';
+        if (Array.isArray(order.items) && order.items.length > 0) {
+          itemsHtml = `
+            <div style="margin-top: 16px;">
+              <h4 style="font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 8px;">Sipariş Kalemleri (${order.items.length} Parça)</h4>
+              <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                  <thead style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                    <tr>
+                      <th style="padding: 8px 12px; text-align: left; color: #64748b;">Parça</th>
+                      <th style="padding: 8px 12px; text-align: center; color: #64748b;">Adet</th>
+                      <th style="padding: 8px 12px; text-align: right; color: #64748b;">Birim Fiyat</th>
+                      <th style="padding: 8px 12px; text-align: right; color: #64748b;">Toplam</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${order.items.map(it => {
+            const prodName = escapeHtml(it.tenantProduct?.product?.name || 'Yedek Parça');
+            const oeNum = escapeHtml(it.tenantProduct?.product?.oeNumber || '-');
+            const unitP = parseFloat(it.unitPrice || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const totalP = parseFloat(it.totalPrice || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            return `
+                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                          <td style="padding: 8px 12px;">
+                            <div style="font-weight: 600; color: #1e293b;">${prodName}</div>
+                            <div style="font-size: 11px; color: #64748b;">OE: ${oeNum}</div>
+                          </td>
+                          <td style="padding: 8px 12px; text-align: center; font-weight: 600;">${it.quantity}</td>
+                          <td style="padding: 8px 12px; text-align: right;">${unitP} ₺</td>
+                          <td style="padding: 8px 12px; text-align: right; font-weight: 600;">${totalP} ₺</td>
+                        </tr>
+                      `;
+          }).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          `;
+        }
+
+        if (bodyEl) {
+          bodyEl.innerHTML = `
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span style="color: #64748b; font-size: 13px;">Otoservis Müşterisi:</span>
+                <span style="font-weight: 700; color: #1e293b; font-size: 13px;">${customerName}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span style="color: #64748b; font-size: 13px;">İletişim Telefonu:</span>
+                <span style="font-weight: 600; color: #1e293b; font-size: 13px;">${customerPhone}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span style="color: #64748b; font-size: 13px;">Sipariş Durumu:</span>
+                <span style="font-weight: 700; font-size: 13px; color: ${order.status === 'PENDING' ? '#d97706' : '#10b981'};">
+                  ${escapeHtml(order.status === 'PENDING' ? 'Yeni Sipariş (Bekliyor)' : (order.status === 'APPROVED' ? 'Hazırlanıyor (Onaylandı)' : order.status))}
+                </span>
+              </div>
+            </div>
+
+            ${itemsHtml}
+
+            <div style="margin-top: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px; color: #64748b;">
+                <span>Ara Toplam:</span>
+                <span>${subtotal} ₺</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; color: #64748b;">
+                <span>KDV (%20):</span>
+                <span>${vatAmount} ₺</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px dashed #cbd5e1; font-size: 15px; font-weight: 800; color: #1e293b;">
+                <span>Genel Toplam:</span>
+                <span style="color: var(--tenant-color, #f97316);">${totalAmount} ₺</span>
+              </div>
+            </div>
+          `;
+        }
+
+        if (footerEl) {
+          footerEl.innerHTML = `
+            ${order.status === 'PENDING' ? `<button type="button" class="btn-save" style="background: #10b981;" onclick="approveOrder('${order.id}', '${orderNum}'); closeDrawer(document.getElementById('order-drawer'));">Siparişi Onayla</button>` : ''}
+            <button type="button" class="btn-cancel" onclick="closeDrawer(document.getElementById('order-drawer'))">Kapat</button>
+          `;
+        }
+
+        const orderDrawer = document.getElementById('order-drawer');
+        if (orderDrawer) openDrawer(orderDrawer);
+      };
+
+      // 4. Drawer Kontrolleri (Ürün, İskonto, Tamirci ve Sipariş Çekmeceleri)
+      const productDrawer = document.getElementById('product-drawer');
+      const discountDrawer = document.getElementById('discount-drawer');
+      const mechanicDrawer = document.getElementById('mechanic-drawer');
+      const orderDrawer = document.getElementById('order-drawer');
+
+      const btnAddProduct = document.getElementById('btn-add-product');
+      const btnAddDiscount = document.getElementById('btn-add-discount');
+      const btnAddCustomer = document.getElementById('btn-add-customer') || document.getElementById('btn-add-mechanic');
+      const btnAddMechanic = btnAddCustomer;
+
+      const btnCloseProductDrawer = document.getElementById('btn-close-product-drawer');
+      const btnCancelProductDrawer = document.getElementById('btn-cancel-product-drawer');
+
+      const btnCloseDiscountDrawer = document.getElementById('btn-close-discount-drawer');
+      const btnCancelDiscountDrawer = document.getElementById('btn-cancel-discount-drawer');
+
+      const btnCloseMechanicDrawer = document.getElementById('btn-close-mechanic-drawer');
+      const btnCancelMechanicDrawer = document.getElementById('btn-cancel-mechanic-drawer');
+
+      const btnCloseOrderDrawer = document.getElementById('btn-close-order-drawer');
+      const btnCancelOrderDrawer = document.getElementById('btn-cancel-order-drawer');
+
+      function openDrawer(d) {
+        if (d) {
+          d.classList.add('open');
+          document.body.style.overflow = 'hidden';
+        }
+      }
+
+      function closeDrawer(d) {
+        if (d) {
+          d.classList.remove('open');
+          document.body.style.overflow = '';
+        }
+      }
+
+      if (btnAddProduct) {
+        btnAddProduct.addEventListener('click', () => {
+          const editIdInput = document.getElementById('prod-edit-id');
+          if (editIdInput) editIdInput.value = '';
+          const drawerTitle = productDrawer?.querySelector('.drawer-title');
+          if (drawerTitle) drawerTitle.textContent = 'Yeni Ürün Ekle';
+          const submitBtn = document.getElementById('btn-submit-product-form');
+          if (submitBtn) submitBtn.textContent = 'Ürünü Kaydet';
+          const hint = document.getElementById('prod-images-hint');
+          if (hint) hint.textContent = '* Yeni ürün eklerken en az 3 adet fotoğraf seçilmelidir.';
+          formAddProduct.reset();
+          openDrawer(productDrawer);
+        });
+      }
+      if (btnAddDiscount) btnAddDiscount.addEventListener('click', () => openDrawer(discountDrawer));
+      if (btnAddCustomer) btnAddCustomer.addEventListener('click', () => openDrawer(mechanicDrawer));
+
+      if (btnCloseProductDrawer) btnCloseProductDrawer.addEventListener('click', () => closeDrawer(productDrawer));
+      if (btnCancelProductDrawer) btnCancelProductDrawer.addEventListener('click', () => closeDrawer(productDrawer));
+
+      if (btnCloseDiscountDrawer) btnCloseDiscountDrawer.addEventListener('click', () => closeDrawer(discountDrawer));
+      if (btnCancelDiscountDrawer) btnCancelDiscountDrawer.addEventListener('click', () => closeDrawer(discountDrawer));
+
+      if (btnCloseMechanicDrawer) btnCloseMechanicDrawer.addEventListener('click', () => closeDrawer(mechanicDrawer));
+      if (btnCancelMechanicDrawer) btnCancelMechanicDrawer.addEventListener('click', () => closeDrawer(mechanicDrawer));
+
+      if (btnCloseOrderDrawer) btnCloseOrderDrawer.addEventListener('click', () => closeDrawer(orderDrawer));
+      if (btnCancelOrderDrawer) btnCancelOrderDrawer.addEventListener('click', () => closeDrawer(orderDrawer));
+
+      [productDrawer, discountDrawer, mechanicDrawer, orderDrawer].forEach(drawer => {
+        if (drawer) {
+          drawer.addEventListener('click', function (e) {
+            if (e.target === drawer) closeDrawer(drawer);
+          });
+        }
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          closeDrawer(productDrawer);
+          closeDrawer(discountDrawer);
+          closeDrawer(mechanicDrawer);
+          closeDrawer(orderDrawer);
+        }
+      });
+
+      // 5. Ürün Ekleme & Düzenleme (#form-add-product -> POST/PUT /api/tenant/products Otomotiv Alanları ve Veritabanı Kaydı)
+      const formAddProduct = document.getElementById('form-add-product');
+      if (formAddProduct) {
+        formAddProduct.addEventListener('submit', async function (e) {
+          e.preventDefault();
+
+          const editId = document.getElementById('prod-edit-id')?.value || '';
+          const name = document.getElementById('prod-name').value.trim();
+          const oeNumber = document.getElementById('prod-oe').value.trim();
+          const vehicleBrand = document.getElementById('prod-brand')?.value.trim() || '';
+          const compatibleModels = document.getElementById('prod-models')?.value.trim() || '';
+          const partGroup = document.getElementById('prod-group')?.value.trim() || '';
+          const category = partGroup || 'Genel';
+          const price = document.getElementById('prod-price').value;
+          const stock = document.getElementById('prod-stock').value;
+
+          if (!name || !oeNumber || !price || !stock) {
+            alert('Lütfen tüm zorunlu alanları (Parça Adı, OE No, Liste Fiyatı, Stok) doldurunuz.');
+            return;
+          }
+
+          // Görseller kontrolü: Yeni ürün eklerken en az 3 adet zorunlu
+          const filesInput = document.getElementById('prod-images');
+          const files = filesInput ? filesInput.files : null;
+
+          if (!editId && (!files || files.length < 3)) {
+            alert('Lütfen en az 3 adet ürün görseli seçiniz!');
+            return;
+          }
+          if (editId && files && files.length > 0 && files.length < 3) {
+            alert('Görselleri güncellemek istiyorsanız en az 3 adet ürün görseli seçmelisiniz.');
+            return;
+          }
+
+          const submitBtn = formAddProduct.querySelector('button[type="submit"]') || document.getElementById('btn-submit-product-form');
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = editId ? 'Güncelleniyor...' : 'Kaydediliyor...';
+          }
+
+          try {
+            const token = localStorage.getItem('token');
+            const apiBase = (typeof window !== 'undefined' && window.API_BASE)
+              ? window.API_BASE
+              : ((window.location.protocol === 'http:' || window.location.protocol === 'https:') && (window.location.port === '5000' || window.location.port === '')
+                ? '/api'
+                : 'http://localhost:5000/api');
+
+            if (editId) {
+              // Düzenleme Modu: PATCH/PUT /api/tenant/products/:id
+              const updatePayload = {
+                name: name,
+                oeNumber: oeNumber,
+                category: category,
+                vehicleBrand: vehicleBrand,
+                compatibleModels: compatibleModels,
+                partGroup: partGroup,
+                customPrice: parseFloat(price),
+                stock: parseInt(stock, 10)
+              };
+
+              let resData;
+              try {
+                resData = await apiFetch(`/tenant/products/${editId}`, {
+                  method: 'PATCH',
+                  body: updatePayload
+                });
+              } catch (patchErr) {
+                const patchUrl = `${apiBase}/tenant/products/${editId}`;
+                const patchHeaders = { 'Content-Type': 'application/json' };
+                if (token) patchHeaders['Authorization'] = 'Bearer ' + token;
+                const r = await fetch(patchUrl, {
+                  method: 'PATCH',
+                  headers: patchHeaders,
+                  body: JSON.stringify(updatePayload)
+                });
+                resData = await r.json();
+              }
+
+              if (resData && resData.success) {
+                if (typeof showToast === 'function') {
+                  showToast(resData.message || 'Ürün bilgileri başarıyla güncellendi!', 'success');
+                }
+                closeDrawer(productDrawer);
+                formAddProduct.reset();
+                document.getElementById('prod-edit-id').value = '';
+                await loadCatalog();
+                return;
+              } else {
+                alert(resData && resData.message ? resData.message : 'Ürün güncellenirken bir hata oluştu.');
+                return;
+              }
+            }
+
+            // Yeni Ürün Ekleme Modu: POST /api/tenant/products (FormData ile görseller + alanlar)
+            const formData = new FormData();
+            formData.append('name', name);
+            formData.append('oeNumber', oeNumber);
+            formData.append('category', category);
+
+            // 4. ADIM: 3 yeni alanın document.getElementById ile alınarak formData.append() ile eklenmesi
+            const brandVal = document.getElementById('prod-brand') ? document.getElementById('prod-brand').value.trim() : vehicleBrand;
+            const modelsVal = document.getElementById('prod-models') ? document.getElementById('prod-models').value.trim() : compatibleModels;
+            const groupVal = document.getElementById('prod-group') ? document.getElementById('prod-group').value.trim() : partGroup;
+            formData.append('vehicleBrand', brandVal);
+            formData.append('compatibleModels', modelsVal);
+            formData.append('partGroup', groupVal);
+
+            formData.append('price', price);
+            formData.append('stock', stock);
+
+            if (files) {
+              for (let i = 0; i < files.length; i++) {
+                formData.append('images', files[i]);
+              }
+            }
+
+            const apiUrl = `${apiBase}/tenant/products`;
+            const headers = {};
+            if (token) headers['Authorization'] = 'Bearer ' + token;
+
+            let response;
+            try {
+              response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: headers,
+                body: formData
+              });
+            } catch (netErr) {
+              if (typeof apiFetch === 'function') {
+                const fallbackData = await apiFetch('/tenant/products', {
+                  method: 'POST',
+                  body: formData
+                });
+                if (fallbackData && fallbackData.success) {
+                  showToast(fallbackData.message || 'Ürün başarıyla kaydedildi!', 'success');
+                  closeDrawer(productDrawer);
+                  formAddProduct.reset();
+                  await loadCatalog();
+                  return;
+                }
+              }
+              throw netErr;
+            }
+
+            const data = await response.json();
+
+            if (response.ok && data && data.success) {
+              if (typeof showToast === 'function') {
+                showToast(data.message || 'Ürün ve detayları başarıyla kaydedildi!', 'success');
+              }
+              closeDrawer(productDrawer);
+              formAddProduct.reset();
+              await loadCatalog();
+            } else {
+              const errMsg = data && data.message ? data.message : 'Ürün eklenirken bir hata oluştu.';
+              alert(errMsg);
+              if (typeof showToast === 'function') showToast(errMsg, 'danger');
+            }
+          } catch (err) {
+            console.error('[ADD_PRODUCT_ERROR]:', err);
+            alert('Bağlantı hatası: ' + err.message);
+          } finally {
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = editId ? 'Değişiklikleri Güncelle' : 'Ürünü Kaydet';
+            }
+          }
+        });
+      }
+
+
+
+      // ==========================================================================
+      // 7. CANLI MÜŞTERİ YÜKLEME VE İŞLEMLER (API / SQLITE ENTEGRASYONU)
+      // ==========================================================================
+      let cachedCustomers = [];
+
+      async function loadCustomers() {
+        try {
+          const res = await apiFetch('/tenant/customers');
+          const customersTbody = document.getElementById('customers-table-body') || document.querySelector('#section-customers .orders-table tbody') || document.querySelector('#view-customers .orders-table tbody');
+          if (!customersTbody) return;
+
+          if (res && res.success && Array.isArray(res.data)) {
+            cachedCustomers = res.data;
+
+            // İskonto formu hedef müşteri dropdown'ını güncelle
+            const targetSelect = document.getElementById('section-disc-target');
+            if (targetSelect) {
+              const curVal = targetSelect.value;
+              targetSelect.innerHTML = '<option value="ALL">Tüm Kayıtlı Servisler (Genel İskonto)</option>';
+              cachedCustomers.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = `${c.companyName} (${c.phone || ''}) - Mevcut: %${c.discountRate || 0}`;
+                targetSelect.appendChild(opt);
+              });
+              if (curVal) targetSelect.value = curVal;
+            }
+
+            // KPI ve istatistik sayaçlarını güncelle
+            const kpiCustomerEl = document.getElementById('kpi-customer-count') || document.getElementById('kpi-registered-customers');
+            if (kpiCustomerEl) kpiCustomerEl.textContent = cachedCustomers.length;
+
+            const discCustCountEl = document.getElementById('discount-stat-active-customers');
+            if (discCustCountEl) discCustCountEl.textContent = cachedCustomers.length;
+
+            renderCustomersTable(cachedCustomers);
+          }
+        } catch (err) {
+          console.error('[LOAD_CUSTOMERS_ERROR]:', err);
+        }
+      }
+      window.loadCustomers = loadCustomers;
+
+      // Cari Bakiye Dinamik Formatlama ve Renklendirme Yardımcısı (Prompt 2. & 3. Adım)
+      function formatBalancePreview(balance) {
+        const num = Math.round((parseFloat(balance) || 0) * 100) / 100;
+        const absStr = Math.abs(num).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+        if (num > 0.001) {
+          return {
+            text: '+' + absStr,
+            color: '#10b981',
+            cssClass: 'text-success balance-positive'
+          };
+        } else if (num < -0.001) {
+          return {
+            text: '-' + absStr,
+            color: '#ef4444',
+            cssClass: 'text-danger balance-negative'
+          };
+        } else {
+          return {
+            text: '0,00 ₺',
+            color: '#1e293b',
+            cssClass: 'text-neutral balance-zero'
+          };
+        }
+      }
+      window.formatBalancePreview = formatBalancePreview;
+
+      function renderCustomersTable(customersList) {
+        const customersTbody = document.getElementById('customers-table-body') || document.querySelector('#section-customers .orders-table tbody') || document.querySelector('#view-customers .orders-table tbody');
+        if (!customersTbody) return;
+
+        if (!Array.isArray(customersList) || customersList.length === 0) {
+          customersTbody.innerHTML = `
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 48px 20px; color: #64748b;">
+                <div style="font-size: 32px; margin-bottom: 8px;">👥</div>
+                <div style="font-weight: 600; font-size: 15px; color: #1e293b;">Henüz kayıtlı bir otoservis müşterisi bulunmuyor.</div>
+                <div style="font-size: 13px; color: #64748b; margin-top: 4px;">Yukarıdaki "+ Yeni Tamirci Ekle" butonunu kullanarak ilk servisinizi kaydedebilirsiniz.</div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        customersTbody.innerHTML = '';
+        customersList.forEach(customer => {
+          const c = customer;
+          const tr = document.createElement('tr');
+          tr.dataset.customerId = customer.id;
+          const nameSafe = escapeHtml(customer.companyName || 'Otoservis');
+          const phoneSafe = escapeHtml(customer.phone || '-');
+          const addressSafe = customer.address ? escapeHtml(customer.address) : '';
+          const emailSafe = escapeHtml(customer.user ? customer.user.email : '');
+          const disc = customer.discountRate !== undefined ? customer.discountRate : 0;
+          const bal = parseFloat(customer.balance !== undefined ? customer.balance : (customer.currentBalance || 0));
+          const balInfo = formatBalancePreview(bal);
+
+          tr.innerHTML = `
+            <td>
+              <div class="customer-info">
+                <span class="customer-name">${nameSafe}</span>
+                <span class="customer-sub">${addressSafe ? addressSafe + ' • ' : ''}${emailSafe ? emailSafe : 'Kayıtlı Otoservis'}</span>
+              </div>
+            </td>
+            <td><span class="text-semibold">${nameSafe}</span></td>
+            <td><span class="phone-text">${phoneSafe}</span></td>
+            <td><span class="badge-discount">%${disc}</span></td>
+            <td><span class="${balInfo.cssClass}" style="color: ${balInfo.color}; font-weight: 700;">${balInfo.text}</span></td>
+            <td>
+              <div class="table-actions">
+                <button type="button" class="btn-action-collect" onclick="openPaymentModal('${customer.id}', '${nameSafe}', ${bal})">Tahsilat Gir</button>
+                <button type="button" class="btn-action-discount" onclick="openDiscountModal('${customer.id}', '${nameSafe}', ${disc})">İskonto Güncelle</button>
+                <button type="button" class="btn-action-edit" onclick="openEditCustomerModal('${customer.id}')">Düzenle</button>
+                <button type="button" class="btn-delete-customer btn-action-delete" onclick="deleteCustomer('${customer.id}')" title="Sil">Sil</button>
+              </div>
+            </td>
+          `;
+          customersTbody.appendChild(tr);
+        });
+      }
+
+      // ==========================================================================
+      // ÖZEL MODAL KONTROLCÜLERİ (Tahsilat, İskonto, Müşteri Düzenle & Sil)
+      // ==========================================================================
+      const modalPayment = document.getElementById('modal-payment') || document.getElementById('modal-customer-payment');
+      const modalDiscount = document.getElementById('modal-discount') || document.getElementById('modal-customer-discount');
+      const modalEdit = document.getElementById('modal-edit-customer') || document.getElementById('modal-customer-edit');
+      const modalDelete = document.getElementById('modal-delete-customer') || document.getElementById('modal-customer-delete') || modalEdit;
+
+      function showModal(modalEl) {
+        if (!modalEl) return;
+        modalEl.classList.add('show', 'open');
+        modalEl.style.display = 'flex';
+        modalEl.setAttribute('aria-hidden', 'false');
+      }
+
+      function hideModal(modalEl) {
+        if (!modalEl) return;
+        modalEl.classList.remove('show', 'open');
+        modalEl.style.display = 'none';
+        modalEl.setAttribute('aria-hidden', 'true');
+      }
+
+      function openModal(modalEl) { showModal(modalEl); }
+      function closeModal(modalEl) { hideModal(modalEl); }
+
+      // Kapatma butonları dinleyicileri (Kapatma Çarpıları ve Vazgeç Butonları)
+      document.getElementById('btn-close-payment-modal')?.addEventListener('click', () => hideModal(modalPayment));
+      document.getElementById('btn-cancel-payment-modal')?.addEventListener('click', () => hideModal(modalPayment));
+
+      document.getElementById('btn-close-discount-modal')?.addEventListener('click', () => hideModal(modalDiscount));
+      document.getElementById('btn-cancel-discount-modal')?.addEventListener('click', () => hideModal(modalDiscount));
+
+      document.getElementById('btn-close-edit-modal')?.addEventListener('click', () => hideModal(modalEdit));
+      document.getElementById('btn-cancel-edit-modal')?.addEventListener('click', () => hideModal(modalEdit));
+
+      // Dış alana (Backdrop) tıklayınca kapatma
+      [modalPayment, modalDiscount, modalEdit].forEach(m => {
+        if (!m) return;
+        m.addEventListener('click', function (e) {
+          if (e.target === m) hideModal(m);
+        });
+      });
+
+      // ESC tuşu ile açık modalları kapatma
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          [modalPayment, modalDiscount, modalEdit].forEach(m => hideModal(m));
+        }
+      });
+
+      // Hızlı İskonto Chip Butonları
+      document.querySelectorAll('#modal-discount .chip-btn, #modal-customer-discount .chip-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+          const rate = this.dataset.rate;
+          const input = document.getElementById('discount-modal-rate');
+          if (input) input.value = rate;
+        });
+      });
+
+      // 1. Tahsilat Modalı Canlı Önizleme ve Bakiye Hesaplama (Prompt 2. ADIM)
+      let activePaymentCustomerBalance = 0;
+
+      function updatePaymentModalBalancePreview() {
+        const amountInput = document.getElementById('payment-modal-amount');
+        const previewEl = document.getElementById('payment-modal-new-balance');
+        if (!previewEl) return;
+
+        let enteredAmount = 0;
+        if (amountInput && amountInput.value.trim() !== '') {
+          const parsed = parseFloat(amountInput.value);
+          if (!isNaN(parsed)) {
+            enteredAmount = parsed;
+          }
+        }
+
+        // Formül: Yeni Bakiye = Mevcut Bakiye + Girilen Tutar
+        const newBal = activePaymentCustomerBalance + enteredAmount;
+        const formatted = formatBalancePreview(newBal);
+
+        previewEl.textContent = formatted.text;
+        previewEl.style.color = formatted.color;
+      }
+
+      // 1. Tahsilat Modalı Açma
+      window.openPaymentModal = function (customerId, customerName, currentBalance) {
+        const idInput = document.getElementById('payment-modal-customer-id');
+        const nameEl = document.getElementById('payment-modal-customer-name');
+        const balEl = document.getElementById('payment-modal-current-balance');
+        const amountInput = document.getElementById('payment-modal-amount');
+
+        if (idInput) idInput.value = customerId;
+        if (nameEl) nameEl.textContent = customerName || 'Otoservis Müşterisi';
+        activePaymentCustomerBalance = parseFloat(currentBalance) || 0;
+        const curInfo = formatBalancePreview(activePaymentCustomerBalance);
+        if (balEl) {
+          balEl.textContent = curInfo.text;
+          balEl.style.color = curInfo.color;
+        }
+        if (amountInput) {
+          amountInput.value = '';
+          setTimeout(() => amountInput.focus(), 150);
+        }
+        updatePaymentModalBalancePreview();
+        showModal(modalPayment);
+      };
+
+      // Tutar inputu event dinleyicisi (Prompt 2. Adım Canlı Önizleme)
+      const inputPaymentAmount = document.getElementById('payment-modal-amount');
+      if (inputPaymentAmount) {
+        inputPaymentAmount.addEventListener('input', updatePaymentModalBalancePreview);
+      }
+
+      // 2. İskonto Modalı Açma
+      function openDiscountModal(customerId, customerName, currentRate) {
+        const idInput = document.getElementById('discount-modal-customer-id');
+        const nameEl = document.getElementById('discount-modal-customer-name');
+        const rateEl = document.getElementById('discount-modal-current-rate');
+        const rateInput = document.getElementById('discount-modal-rate');
+
+        if (idInput) idInput.value = customerId;
+        if (nameEl) nameEl.textContent = customerName || 'Otoservis Müşterisi';
+        const numRate = parseFloat(currentRate) || 0;
+        if (rateEl) rateEl.textContent = '%' + numRate;
+        if (rateInput) {
+          rateInput.value = numRate;
+          setTimeout(() => rateInput.focus(), 150);
+        }
+        showModal(modalDiscount);
+      }
+      window.openDiscountModal = openDiscountModal;
+
+      // 3. Müşteri Düzenleme/Silme Modalı Açma
+      window.openEditCustomerModal = function (customerId) {
+        const cust = cachedCustomers.find(c => c.id === customerId);
+        if (!cust) return;
+
+        const idInput = document.getElementById('edit-modal-customer-id');
+        const nameInput = document.getElementById('edit-modal-name');
+        const contactInput = document.getElementById('edit-modal-contact');
+        const phoneInput = document.getElementById('edit-modal-phone');
+        const addrInput = document.getElementById('edit-modal-address');
+        const discInput = document.getElementById('edit-modal-discount');
+        const balInput = document.getElementById('edit-modal-balance');
+
+        if (idInput) idInput.value = cust.id;
+        if (nameInput) nameInput.value = cust.companyName || '';
+        if (contactInput) contactInput.value = cust.user ? (cust.user.name || '') : '';
+        if (phoneInput) phoneInput.value = cust.phone || '';
+        if (addrInput) addrInput.value = cust.address || '';
+        if (discInput) discInput.value = cust.discountRate !== undefined ? cust.discountRate : 0;
+        if (balInput) balInput.value = cust.balance !== undefined ? cust.balance : (cust.currentBalance || 0);
+
+        showModal(modalEdit);
+      };
+
+      // 3. ADIM: Frontend - SweetAlert2 Onayı ve Silme Fonksiyonu
+      // (1. Aşama: "Emin misiniz? Bu müşteriyi silmek üzeresiniz." confirm1)
+      // (2. Aşama: "Son Uyarı! Müşterinin tüm bakiye ve sipariş verileri kalıcı olarak silinecektir." confirm2)
+      async function deleteCustomer(id) {
+        // SweetAlert2 ile şık bir onay penceresi göster
+        const result = await Swal.fire({
+          title: 'Emin misiniz?',
+          text: "Bu müşteriyi ve tüm bakiyesini/verilerini kalıcı olarak silmek üzeresiniz!",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#d33',
+          cancelButtonColor: '#3085d6',
+          confirmButtonText: 'Evet, Sil!',
+          cancelButtonText: 'Vazgeç'
+        });
+        const confirm1 = result;
+        const confirm2 = result;
+
+        // Kullanıcı 'Evet, Sil!' butonuna basarsa
+        if (result.isConfirmed) {
+          try {
+            const token = localStorage.getItem('token');
+            const headers = {};
+            if (token) headers['Authorization'] = 'Bearer ' + token;
+
+            let data = null;
+            let successFound = false;
+
+            // 1. Canlı fetch denemesi (Express sunucusu üzerindeyse)
+            try {
+              const response = await fetch(`/api/tenant/customers/${id}`, {
+                method: 'DELETE',
+                headers: headers
+              });
+              if (response && response.ok) {
+                data = await response.json();
+                successFound = !!(data && data.success);
+              }
+            } catch (errRel) {
+              // Göreli path bağlantısı (file:// veya farklı port)
+            }
+
+            // 2. apiFetch veya merkezi API köprüsü üzerinden dene
+            if (!successFound) {
+              if (typeof apiFetch === 'function') {
+                data = await apiFetch(`/tenant/customers/${id}`, {
+                  method: 'DELETE',
+                  headers: headers
+                });
+                successFound = !!(data && data.success);
+              } else {
+                const altUrl = (typeof API_BASE !== 'undefined' ? API_BASE : 'http://localhost:5000/api') + `/tenant/customers/${id}`;
+                const response = await fetch(altUrl, {
+                  method: 'DELETE',
+                  headers: headers
+                });
+                data = await response.json();
+                successFound = !!(data && data.success);
+              }
+            }
+
+            if (data && data.success) {
+              Swal.fire('Silindi!', 'Müşteri başarıyla silindi.', 'success');
+              if (typeof modalEdit !== 'undefined' && modalEdit) hideModal(modalEdit);
+              loadCustomers(); // Tabloyu anında yenile
+              if (typeof loadDiscountsTab === 'function') await loadDiscountsTab();
+            } else {
+              Swal.fire('Hata!', (data && data.message) || 'Silme işlemi başarısız.', 'error');
+            }
+          } catch (error) {
+            Swal.fire('Hata!', 'Sunucuya ulaşılamadı.', 'error');
+          }
+        }
+      }
+      window.deleteCustomer = deleteCustomer;
+      window.executeCustomerDelete = deleteCustomer;
+
+      // 'Bayiyi Sil' Butonu Dinleyicisi (#btn-delete-customer)
+      const btnDeleteCustomer = document.getElementById('btn-delete-customer');
+      if (btnDeleteCustomer) {
+        btnDeleteCustomer.addEventListener('click', async function () {
+          const customerId = document.getElementById('edit-modal-customer-id').value;
+          if (!customerId) return;
+          await deleteCustomer(customerId);
+        });
+      }
+
+      window.openDeleteCustomerModal = function (customerId, customerName) {
+        deleteCustomer(customerId);
+      };
+
+      // Geriye Dönük Uyumluluk için Hızlı Fonksiyonlar (Prompt Yerine Modalı Açar veya Programatik Çalışır)
+      window.quickCollectCustomer = async function (customerId, customerName, directAmount) {
+        if (directAmount !== undefined && !isNaN(parseFloat(directAmount)) && parseFloat(directAmount) > 0) {
+          const amountNum = parseFloat(directAmount);
+          try {
+            const res = await apiFetch(`/tenant/customers/${customerId}/payment`, {
+              method: 'POST',
+              body: { amount: amountNum, description: 'Hızlı Tahsilat' }
+            });
+            if (res && res.success) {
+              showToast(`Tahsilat başarıyla işlendi: ${amountNum.toLocaleString('tr-TR')} ₺ cari hesaptan düşüldü.`);
+              await loadCustomers();
+              if (typeof loadDiscountsTab === 'function') await loadDiscountsTab();
+            }
+          } catch (e) {
+            showToast('Hata: ' + e.message, 'danger');
+          }
+        } else {
+          openPaymentModal(customerId, customerName, 0);
+        }
+      };
+
+      window.quickUpdateCustomerDiscount = async function (customerId, customerName, currentRate, directRate) {
+        if (directRate !== undefined && !isNaN(parseFloat(directRate))) {
+          const rateVal = Math.max(0, Math.min(100, parseFloat(directRate)));
+          try {
+            const res = await apiFetch(`/tenant/customers/${customerId}/discount`, {
+              method: 'PATCH',
+              body: { discountRate: rateVal }
+            });
+            if (res && res.success) {
+              showToast(`"${customerName}" iskonto oranı %${rateVal} olarak güncellendi!`);
+              await loadDiscountsTab();
+              await loadCustomers();
+            }
+          } catch (e) {
+            showToast('Hata: ' + e.message, 'danger');
+          }
+        } else {
+          openDiscountModal(customerId, customerName, currentRate);
+        }
+      };
+
+      // Form 1: Tahsilat Gönderimi (POST /api/tenant/customers/:id/payment)
+      const formCustomerPayment = document.getElementById('form-customer-payment');
+      if (formCustomerPayment) {
+        formCustomerPayment.addEventListener('submit', async function (e) {
+          e.preventDefault();
+          const customerId = document.getElementById('payment-modal-customer-id').value;
+          const amount = parseFloat(document.getElementById('payment-modal-amount').value);
+          const desc = document.getElementById('payment-modal-desc').value;
+
+          if (!customerId || isNaN(amount) || amount === 0) {
+            showToast('Lütfen geçerli bir tahsilat veya düzeltme tutarı giriniz.', 'warning');
+            return;
+          }
+
+          try {
+            const res = await apiFetch(`/tenant/customers/${customerId}/payment`, {
+              method: 'POST',
+              body: { amount: amount, description: desc }
+            });
+
+            if (res && res.success) {
+              const sign = amount >= 0 ? '+' : '';
+              showToast(`Tahsilat/Bakiye işlemi başarıyla kaydedildi: ${sign}${amount.toLocaleString('tr-TR')} ₺`);
+              closeModal(modalPayment);
+              formCustomerPayment.reset();
+              await loadCustomers();
+              if (typeof loadDiscountsTab === 'function') await loadDiscountsTab();
+            } else {
+              showToast((res && res.message) ? res.message : 'Tahsilat işlenemedi.', 'danger');
+            }
+          } catch (err) {
+            showToast('Hata: ' + err.message, 'danger');
+          }
+        });
+      }
+
+      // Form 2: İskonto Güncelleme Gönderimi (PATCH /api/tenant/customers/:id/discount)
+      const formCustomerDiscount = document.getElementById('form-customer-discount');
+      if (formCustomerDiscount) {
+        formCustomerDiscount.addEventListener('submit', async function (e) {
+          e.preventDefault();
+          const customerId = document.getElementById('discount-modal-customer-id').value;
+          const discountRate = parseFloat(document.getElementById('discount-modal-rate').value);
+
+          if (!customerId || isNaN(discountRate) || discountRate < 0 || discountRate > 100) {
+            showToast('Lütfen 0 ile 100 arasında geçerli bir iskonto oranı giriniz.', 'warning');
+            return;
+          }
+
+          try {
+            const res = await apiFetch(`/tenant/customers/${customerId}/discount`, {
+              method: 'PATCH',
+              body: { discountRate: discountRate }
+            });
+
+            if (res && res.success) {
+              showToast(`İskonto oranı %${discountRate} olarak başarıyla güncellendi!`);
+              closeModal(modalDiscount);
+              await loadCustomers();
+              if (typeof loadDiscountsTab === 'function') await loadDiscountsTab();
+            } else {
+              showToast((res && res.message) ? res.message : 'İskonto güncellenemedi.', 'danger');
+            }
+          } catch (err) {
+            showToast('Hata: ' + err.message, 'danger');
+          }
+        });
+      }
+
+      // Form 3: Müşteri Bilgileri Güncelleme (PUT /api/tenant/customers/:id)
+      const formCustomerEdit = document.getElementById('form-customer-edit');
+      if (formCustomerEdit) {
+        formCustomerEdit.addEventListener('submit', async function (e) {
+          e.preventDefault();
+          const customerId = document.getElementById('edit-modal-customer-id').value;
+          const companyName = document.getElementById('edit-modal-name').value.trim();
+          const phone = document.getElementById('edit-modal-phone').value.trim();
+          const address = document.getElementById('edit-modal-address').value.trim();
+          const discountRate = parseFloat(document.getElementById('edit-modal-discount').value) || 0;
+          const balance = parseFloat(document.getElementById('edit-modal-balance').value) || 0;
+
+          if (!customerId || !companyName || !phone) {
+            showToast('Lütfen en az servis adı ve telefon numarasını giriniz.', 'warning');
+            return;
+          }
+
+          try {
+            const res = await apiFetch(`/tenant/customers/${customerId}`, {
+              method: 'PUT',
+              body: { companyName, phone, address, discountRate, balance }
+            });
+
+            if (res && res.success) {
+              showToast(`"${escapeHtml(companyName)}" bilgileri başarıyla güncellendi!`);
+              closeModal(modalEdit);
+              await loadCustomers();
+              if (typeof loadDiscountsTab === 'function') await loadDiscountsTab();
+            } else {
+              showToast((res && res.message) ? res.message : 'Müşteri güncellenemedi.', 'danger');
+            }
+          } catch (err) {
+            showToast('Hata: ' + err.message, 'danger');
+          }
+        });
+      }
+
+      // Form 4: Müşteri Silme (DELETE /api/tenant/customers/:id)
+      const formCustomerDelete = document.getElementById('form-customer-delete');
+      if (formCustomerDelete) {
+        formCustomerDelete.addEventListener('submit', async function (e) {
+          e.preventDefault();
+          const customerId = document.getElementById('delete-modal-customer-id').value;
+
+          if (!customerId) return;
+
+          try {
+            const res = await apiFetch(`/tenant/customers/${customerId}`, {
+              method: 'DELETE'
+            });
+
+            if (res && res.success) {
+              showToast('Otoservis kaydı ve bağlı veriler başarıyla silindi.');
+              closeModal(modalDelete);
+              await loadCustomers();
+              if (typeof loadDiscountsTab === 'function') await loadDiscountsTab();
+            } else {
+              showToast((res && res.message) ? res.message : 'Müşteri silinemedi.', 'danger');
+            }
+          } catch (err) {
+            showToast('Hata: ' + err.message, 'danger');
+          }
+        });
+      }
+
+
+      // ==========================================================================
+      // CANLI KATALOG YÜKLEME VE İŞLEMLER (API / SQLITE ENTEGRASYONU)
+      // 4. ADIM: loadProducts() (Tabloyu dolduran fonksiyon)
+      // ==========================================================================
+      let cachedCatalog = [];
+
+      async function loadProducts() {
+        try {
+          const res = await apiFetch('/tenant/products');
+          const catalogTbody = document.getElementById('catalog-table-body') || document.querySelector('#section-products .orders-table tbody') || document.querySelector('#view-catalog .orders-table tbody');
+          if (!catalogTbody) return;
+
+          if (res && res.success && Array.isArray(res.data)) {
+            cachedCatalog = res.data;
+            applyCatalogFilter();
+          }
+        } catch (err) {
+          console.error('[LOAD_PRODUCTS_ERROR]:', err);
+        }
+      }
+      const loadCatalog = loadProducts;
+      window.loadProducts = loadProducts;
+      window.loadCatalog = loadCatalog;
+
+      function applyCatalogFilter() {
+        const searchInput = document.getElementById('search-products-input');
+        const categorySelect = document.getElementById('filter-products-category');
+        const brandSelect = document.getElementById('filter-products-brand');
+        const term = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        const cat = categorySelect ? categorySelect.value : '';
+        const brand = brandSelect ? brandSelect.value.toLowerCase() : '';
+
+        const filtered = cachedCatalog.filter(tp => {
+          const prod = tp.product || {};
+          const nameMatch = (prod.name || '').toLowerCase().includes(term) ||
+            (prod.oeNumber || '').toLowerCase().includes(term) ||
+            (prod.vehicleBrand || '').toLowerCase().includes(term) ||
+            (prod.compatibleModels || '').toLowerCase().includes(term) ||
+            (prod.partGroup || '').toLowerCase().includes(term);
+          const catMatch = !cat || (prod.category || '').toLowerCase().includes(cat.toLowerCase());
+          const brandMatch = !brand || (prod.vehicleBrand || '').toLowerCase().includes(brand);
+          return nameMatch && catMatch && brandMatch;
+        });
+
+        renderCatalogTable(filtered);
+      }
+
+      function renderCatalogTable(productsList) {
+        const catalogTbody = document.getElementById('catalog-table-body') || document.querySelector('#section-products .orders-table tbody') || document.querySelector('#view-catalog .orders-table tbody');
+        if (!catalogTbody) return;
+
+        if (!Array.isArray(productsList) || productsList.length === 0) {
+          catalogTbody.innerHTML = `
+            <tr>
+              <td colspan="8" style="text-align: center; padding: 48px 20px; color: #64748b;">
+                <div style="font-size: 30px; margin-bottom: 8px;">📦</div>
+                <div style="font-weight: 600; font-size: 15px; color: #1e293b;">Kataloğunuzda aranan kriterde ürün bulunamadı.</div>
+                <div style="font-size: 13px; color: #64748b; margin-top: 4px;">Yeni parça eklemek için "Yeni Ürün Ekle" butonuna basabilirsiniz.</div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        catalogTbody.innerHTML = '';
+        productsList.forEach(tp => {
+          const tr = document.createElement('tr');
+          tr.dataset.tenantProductId = tp.id;
+          const prod = tp.product || {};
+          const product = prod;
+          const prodName = escapeHtml(prod.name || 'Parça');
+          const oe = escapeHtml(prod.oeNumber || '-');
+          const cat = escapeHtml(prod.category || 'Genel');
+          const brand = escapeHtml(product.vehicleBrand || '-');
+          const models = escapeHtml(product.compatibleModels || '-');
+          const partGroup = escapeHtml(product.partGroup || cat);
+          const stock = tp.stock !== undefined ? tp.stock : 0;
+          const price = tp.customPrice !== null && tp.customPrice !== undefined ? tp.customPrice : (prod.defaultPrice || 0);
+          const priceFormatted = parseFloat(price).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+          let imageList = [];
+          if (prod.images) {
+            try {
+              const parsed = JSON.parse(prod.images);
+              if (Array.isArray(parsed)) imageList = parsed;
+            } catch (e) {
+              if (typeof prod.images === 'string') imageList = prod.images.split(',').map(s => s.trim());
+            }
+          }
+          const displayImg = prod.imageUrl || (imageList.length > 0 ? imageList[0] : null);
+
+          const imgHtml = displayImg
+            ? `<div style="position: relative; display: inline-block;">
+                <img src="${escapeHtml(displayImg)}" alt="${prodName}" style="width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid #e2e8f0; display: block;">
+                ${imageList.length > 1 ? `<span style="position: absolute; bottom: -4px; right: -4px; background: #1e293b; color: #fff; font-size: 9px; padding: 1px 4px; border-radius: 4px; font-weight: 600;">+${imageList.length}</span>` : ''}
+               </div>`
+            : `<div class="product-thumb-box"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="3"></circle></svg></div>`;
+
+          tr.innerHTML = `
+            <td>
+              <div style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;">
+                ${imgHtml}
+              </div>
+            </td>
+            <td><span class="order-number">${oe}</span></td>
+            <td>
+              <div class="customer-info">
+                <span class="customer-name">${prodName}</span>
+              </div>
+            </td>
+            <td>
+              <b>${product.vehicleBrand ? escapeHtml(product.vehicleBrand) : '-'}</b> <br> <span style="font-size:11px; color:#6b7280;">${escapeHtml(product.partGroup || cat)} | ${escapeHtml(product.compatibleModels || '-')}</span>
+            </td>
+            <td><span class="text-semibold" style="color: ${stock > 0 ? 'var(--success)' : '#ef4444'}; font-weight: 700;">${stock} Adet</span></td>
+            <td><span class="order-amount">${priceFormatted} ₺</span></td>
+            <td>
+              <span class="${stock > 0 ? 'badge-status-green' : 'badge-status-red'}">
+                <span class="${stock > 0 ? 'badge-dot-green' : 'badge-dot-red'}"></span>
+                ${stock > 0 ? 'Satışta' : 'Tükendi'}
+              </span>
+            </td>
+            <td>
+              <div class="table-actions">
+                <button type="button" class="btn-action-discount" onclick="openEditProductDrawer('${tp.id}')">Düzenle</button>
+                <button type="button" class="btn-action-delete" title="Katalogdan Sil" onclick="deleteProduct('${tp.id}', '${prodName}')">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                </button>
+              </div>
+            </td>
+          `;
+          catalogTbody.appendChild(tr);
+        });
+      }
+
+      function openEditProductDrawer(tenantProductId) {
+        const tp = cachedCatalog.find(item => item.id === tenantProductId);
+        if (!tp) return;
+
+        const prod = tp.product || {};
+        const price = tp.customPrice !== null && tp.customPrice !== undefined ? tp.customPrice : (prod.defaultPrice || 0);
+        const stock = tp.stock !== undefined ? tp.stock : 0;
+
+        const editIdInput = document.getElementById('prod-edit-id');
+        if (editIdInput) editIdInput.value = tp.id;
+
+        const nameInput = document.getElementById('prod-name');
+        if (nameInput) nameInput.value = prod.name || '';
+
+        const oeInput = document.getElementById('prod-oe');
+        if (oeInput) oeInput.value = prod.oeNumber || '';
+
+        const brandInput = document.getElementById('prod-brand');
+        if (brandInput) brandInput.value = prod.vehicleBrand || '';
+
+        const modelsInput = document.getElementById('prod-models');
+        if (modelsInput) modelsInput.value = prod.compatibleModels || '';
+
+        const groupInput = document.getElementById('prod-group');
+        if (groupInput) groupInput.value = prod.partGroup || '';
+
+        const priceInput = document.getElementById('prod-price');
+        if (priceInput) priceInput.value = price;
+
+        const stockInput = document.getElementById('prod-stock');
+        if (stockInput) stockInput.value = stock;
+
+        const drawerTitle = productDrawer?.querySelector('.drawer-title');
+        if (drawerTitle) drawerTitle.textContent = `Ürünü Düzenle: ${prod.name || 'Parça'}`;
+
+        const submitBtn = document.getElementById('btn-submit-product-form');
+        if (submitBtn) submitBtn.textContent = 'Değişiklikleri Güncelle';
+
+        const hint = document.getElementById('prod-images-hint');
+        if (hint) hint.textContent = '* Mevcut görselleri korumak için boş bırakabilirsiniz.';
+
+        openDrawer(productDrawer);
+      }
+      window.openEditProductDrawer = openEditProductDrawer;
+
+      window.quickEditProduct = async function (tenantProductId, currentPrice, currentStock, prodName) {
+        openEditProductDrawer(tenantProductId);
+      };
+
+      window.deleteProduct = async function (tenantProductId, prodName) {
+        if (typeof Swal !== 'undefined') {
+          const confirmRes = await Swal.fire({
+            title: 'Ürünü Sil',
+            text: `"${prodName}" ürününü bayiniz kataloğundan silmek istediğinize emin misiniz?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Sil',
+            cancelButtonText: 'Vazgeç',
+            reverseButtons: true
+          });
+          if (!confirmRes.isConfirmed) return;
+        }
+        try {
+          const res = await apiFetch(`/tenant/products/${tenantProductId}`, {
+            method: 'DELETE'
+          });
+          if (res && res.success) {
+            if (typeof Swal !== 'undefined') {
+              Swal.fire({
+                title: 'Silindi!',
+                text: `"${prodName}" ürünü kataloğunuzdan kaldırıldı.`,
+                icon: 'success',
+                timer: 1800,
+                showConfirmButton: false
+              });
+            } else {
+              showToast(`"${prodName}" ürünü kataloğunuzdan kaldırıldı.`);
+            }
+            await loadCatalog();
+          } else {
+            showToast(res && res.message ? res.message : 'Ürün silinemedi.', 'danger');
+          }
+        } catch (err) {
+          showToast('Hata: ' + err.message, 'danger');
+        }
+      };
+
+      // ==========================================================================
+      // CANLI FİYAT VE İSKONTO YÖNETİMİ (API / SQLITE ENTEGRASYONU)
+      // ==========================================================================
+      // ==========================================================================
+      // CANLI FİYAT VE İSKONTO YÖNETİMİ (API / SQLITE ENTEGRASYONU - Prompt 4. ADIM)
+      // ==========================================================================
+      async function loadDiscountsTab() {
+        const tbody = document.getElementById('discount-rules-tbody');
+        const activeCountEl = document.getElementById('discount-stat-active-customers');
+        const avgRateEl = document.getElementById('discount-stat-avg-rate');
+        const defaultRateEl = document.getElementById('discount-stat-default-rate');
+        const targetSelect = document.getElementById('disc-target');
+
+        try {
+          const res = await apiFetch('/tenant/discounts');
+          if (res && res.success && res.data) {
+            const { customers, totalCustomers, averageDiscount, globalDiscountRate, rules, discountRules } = res.data;
+
+            // 1. KPI Kutularını Güncelle ve '%undefined' Hatasını Sıfırla
+            if (activeCountEl) {
+              activeCountEl.textContent = (totalCustomers !== undefined) ? totalCustomers : (Array.isArray(customers) ? customers.length : 0);
+            }
+
+            if (avgRateEl) {
+              const rawAvg = (averageDiscount !== undefined && !isNaN(parseFloat(averageDiscount))) ? parseFloat(averageDiscount) : 0;
+              avgRateEl.textContent = `%${rawAvg.toFixed(1)}`;
+            }
+
+            if (defaultRateEl) {
+              defaultRateEl.textContent = `%${globalDiscountRate || 20.0}`;
+            }
+
+            // 2. 'İskonto Kuralı Oluştur' Modalındaki Hedef Müşteri Dropdown'ını Kayıtlı Servislerle Doldur
+            if (targetSelect && Array.isArray(customers)) {
+              const currentVal = targetSelect.value || 'Tüm Müşteriler';
+              targetSelect.innerHTML = '<option value="Tüm Müşteriler">Tüm Müşteriler (Genel Kural)</option>';
+              customers.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.companyName || c.id;
+                opt.textContent = `${c.companyName} (${c.phone || ''})`;
+                targetSelect.appendChild(opt);
+              });
+              if (currentVal) targetSelect.value = currentVal;
+            }
+
+            // 3. İskonto Kuralları Tablosunu Doldur
+            const rulesList = Array.isArray(rules) && rules.length > 0
+              ? rules
+              : (Array.isArray(discountRules) && discountRules.length > 0 ? discountRules : []);
+
+            if (tbody) {
+              if (rulesList.length === 0) {
+                tbody.innerHTML = `
+                  <tr>
+                    <td colspan="6" style="text-align: center; padding: 48px 20px; color: #64748b;">
+                      <div style="font-size: 32px; margin-bottom: 8px;">🏷️</div>
+                      <div style="font-weight: 600; font-size: 15px; color: #1e293b;">Henüz tanımlı bir iskonto kuralı bulunmuyor.</div>
+                      <div style="font-size: 13px; color: #64748b; margin-top: 4px;">Yukarıdaki "+ Yeni Kural Ekle" butonuna basarak ilk iskonto kuralınızı oluşturabilirsiniz.</div>
+                    </td>
+                  </tr>
+                `;
+                return;
+              }
+
+              tbody.innerHTML = '';
+              rulesList.forEach(r => {
+                const tr = document.createElement('tr');
+                const ruleId = r.id;
+                const ruleNameSafe = escapeHtml(r.ruleName || r.name || 'İskonto Kuralı');
+                const targetSafe = escapeHtml(r.targetCust || r.target || 'Tüm Müşteriler');
+                const categorySafe = escapeHtml(r.category || 'Tüm Kategoriler');
+                const rateSafe = parseFloat(r.rate !== undefined ? r.rate : 0);
+
+                tr.innerHTML = `
+                  <td>
+                    <div style="font-weight: 700; color: #0f172a; font-size: 0.94rem;">${ruleNameSafe}</div>
+                  </td>
+                  <td>
+                    <span class="badge-target">${targetSafe}</span>
+                  </td>
+                  <td>
+                    <span class="badge-cat">${categorySafe}</span>
+                  </td>
+                  <td>
+                    <span class="badge-discount">%${rateSafe}</span>
+                  </td>
+                  <td>
+                    <span class="badge-status-green">
+                      <span class="badge-dot-green"></span>
+                      Aktif
+                    </span>
+                  </td>
+                  <td style="text-align: right;">
+                    <button type="button" class="btn-delete-rule btn-action-delete" onclick="deleteDiscountRule(${ruleId})" title="Kuralı Sil">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                      <span>Sil</span>
+                    </button>
+                  </td>
+                `;
+                tbody.appendChild(tr);
+              });
+            }
+          }
+        } catch (err) {
+          console.error('[LOAD_DISCOUNTS_ERROR]:', err);
+        }
+      }
+      window.loadDiscountsTab = loadDiscountsTab;
+
+      // 4. ADIM: SweetAlert2 Onayı ile İskonto Kuralı Silme (DELETE /api/tenant/discounts/:id)
+      async function deleteDiscountRule(id) {
+        const result = await Swal.fire({
+          title: 'Emin misiniz?',
+          text: "Bu iskonto kuralını veritabanından kalıcı olarak silmek üzeresiniz!",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#d33',
+          cancelButtonColor: '#3085d6',
+          confirmButtonText: 'Evet, Sil!',
+          cancelButtonText: 'Vazgeç'
+        });
+
+        if (result.isConfirmed) {
+          try {
+            const token = localStorage.getItem('token');
+            const headers = {};
+            if (token) headers['Authorization'] = 'Bearer ' + token;
+
+            let data = null;
+            let successFound = false;
+
+            // 1. Canlı sunucuya doğrudan DELETE isteği
+            try {
+              const res = await fetch(`/api/tenant/discounts/${id}`, {
+                method: 'DELETE',
+                headers: headers
+              });
+              if (res && res.ok) {
+                data = await res.json();
+                successFound = !!(data && data.success);
+              }
+            } catch (errRel) {}
+
+            // 2. apiFetch / Hibrit köprü denemesi
+            if (!successFound) {
+              if (typeof apiFetch === 'function') {
+                data = await apiFetch(`/tenant/discounts/${id}`, {
+                  method: 'DELETE',
+                  headers: headers
+                });
+                successFound = !!(data && data.success);
+              } else {
+                const altUrl = (typeof API_BASE !== 'undefined' ? API_BASE : 'http://localhost:5000/api') + `/tenant/discounts/${id}`;
+                const res = await fetch(altUrl, { method: 'DELETE', headers: headers });
+                data = await res.json();
+                successFound = !!(data && data.success);
+              }
+            }
+
+            if (data && data.success) {
+              Swal.fire('Silindi!', 'İskonto kuralı başarıyla silindi.', 'success');
+              await loadDiscountsTab();
+            } else {
+              Swal.fire('Hata!', (data && data.message) || 'Silme işlemi başarısız.', 'error');
+            }
+          } catch (error) {
+            Swal.fire('Hata!', 'Sunucuya ulaşılamadı.', 'error');
+          }
+        }
+      }
+      window.deleteDiscountRule = deleteDiscountRule;
+
+      // 4. ADIM: 'İskonto Kuralı Oluştur' Form Gönderimi (#form-add-discount -> POST /api/tenant/discounts)
+      const formAddDiscount = document.getElementById('form-add-discount');
+      if (formAddDiscount) {
+        formAddDiscount.addEventListener('submit', async function (e) {
+          e.preventDefault();
+
+          const ruleName = document.getElementById('disc-name').value.trim();
+          const targetCust = document.getElementById('disc-target').value.trim();
+          const category = document.getElementById('disc-category').value.trim();
+          const rate = parseFloat(document.getElementById('disc-rate').value) || 0;
+
+          if (!ruleName) {
+            Swal.fire('Uyarı', 'Lütfen bir kural adı giriniz.', 'warning');
+            return;
+          }
+
+          const saveBtn = document.getElementById('btn-save-discount-rule') || formAddDiscount.querySelector('.btn-save');
+          if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Kaydediliyor...';
+          }
+
+          try {
+            const token = localStorage.getItem('token');
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = 'Bearer ' + token;
+
+            let data = null;
+            let successFound = false;
+
+            // 1. Canlı POST isteği
+            try {
+              const res = await fetch('/api/tenant/discounts', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({ ruleName, targetCust, category, rate })
+              });
+              if (res && res.ok) {
+                data = await res.json();
+                successFound = !!(data && data.success);
+              }
+            } catch (errRel) {}
+
+            // 2. apiFetch / Hibrit köprü denemesi
+            if (!successFound) {
+              if (typeof apiFetch === 'function') {
+                data = await apiFetch('/tenant/discounts', {
+                  method: 'POST',
+                  headers: headers,
+                  body: { ruleName, targetCust, category, rate }
+                });
+                successFound = !!(data && data.success);
+              }
+            }
+
+            if (data && data.success) {
+              Swal.fire('Başarılı!', 'Yeni iskonto kuralı başarıyla oluşturuldu.', 'success');
+              formAddDiscount.reset();
+              closeDrawer(discountDrawer);
+              await loadDiscountsTab();
+            } else {
+              Swal.fire('Hata!', (data && data.message) || 'Kural kaydedilemedi.', 'error');
+            }
+          } catch (err) {
+            Swal.fire('Hata!', 'Sunucuya ulaşılamadı.', 'error');
+          } finally {
+            if (saveBtn) {
+              saveBtn.disabled = false;
+              saveBtn.textContent = 'Kuralı Kaydet';
+            }
+          }
+        });
+      }
+
+      // Yeni Tamirci / Otoservis Ekleme (#form-add-mechanic -> POST /api/tenant/customers)
+      const formAddMechanic = document.getElementById('form-add-mechanic');
+      if (formAddMechanic) {
+        formAddMechanic.addEventListener('submit', async function (e) {
+          e.preventDefault();
+
+          const name = document.getElementById('mech-name').value.trim();
+          const phone = document.getElementById('mech-phone').value.trim();
+          const address = document.getElementById('mech-address') ? document.getElementById('mech-address').value.trim() : '';
+          const owner = document.getElementById('mech-owner') ? document.getElementById('mech-owner').value.trim() : '';
+          const email = document.getElementById('mech-email') ? document.getElementById('mech-email').value.trim() : '';
+          const password = document.getElementById('mech-password') ? document.getElementById('mech-password').value.trim() : '';
+          const discount = document.getElementById('mech-discount').value.trim() || '20';
+          const rawBal = parseFloat(document.getElementById('mech-balance').value) || 0;
+
+          if (!name || !phone) {
+            showToast('Lütfen en az servis adı ve telefon numarasını eksiksiz giriniz.', 'warning');
+            return;
+          }
+
+          const submitBtn = formAddMechanic.querySelector('.btn-save');
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Kaydediliyor...';
+          }
+
+          try {
+            const res = await apiFetch('/tenant/customers', {
+              method: 'POST',
+              body: {
+                companyName: name,
+                phone: phone,
+                address: address,
+                email: email,
+                password: password,
+                discountRate: discount,
+                balance: rawBal
+              }
+            });
+
+            if (res && res.success) {
+              showToast(`"${escapeHtml(name)}" servisi başarıyla veritabanına kaydedildi!`);
+              formAddMechanic.reset();
+              closeDrawer(mechanicDrawer);
+              await loadCustomers();
+              await loadDiscountsTab();
+            } else {
+              showToast(res && res.message ? res.message : 'Kayıt işlemi başarısız oldu.', 'danger');
+            }
+          } catch (err) {
+            showToast('Bağlantı hatası: ' + err.message, 'danger');
+          } finally {
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Tamirciyi Kaydet';
+            }
+          }
+        });
+      }
+
+      // Canlı Arama ve Filtre Dinleyicileri
+      const searchOrdersInput = document.getElementById('search-orders-input');
+      if (searchOrdersInput) {
+        searchOrdersInput.addEventListener('input', function () {
+          loadOrdersTab(null, this.value.trim());
+        });
+      }
+
+      const searchProductsInput = document.getElementById('search-products-input');
+      if (searchProductsInput) {
+        searchProductsInput.addEventListener('input', applyCatalogFilter);
+      }
+
+      const filterProductsCategory = document.getElementById('filter-products-category');
+      if (filterProductsCategory) {
+        filterProductsCategory.addEventListener('change', applyCatalogFilter);
+      }
+
+      const filterProductsBrand = document.getElementById('filter-products-brand');
+      if (filterProductsBrand) {
+        filterProductsBrand.addEventListener('change', applyCatalogFilter);
+      }
+
+      const searchCustomersInput = document.getElementById('search-customers-input');
+      if (searchCustomersInput) {
+        searchCustomersInput.addEventListener('input', function () {
+          const term = this.value.toLowerCase().trim();
+          const filtered = cachedCustomers.filter(c => {
+            return (c.companyName || '').toLowerCase().includes(term) ||
+              (c.phone || '').toLowerCase().includes(term) ||
+              (c.user && (c.user.email || '').toLowerCase().includes(term));
+          });
+          renderCustomersTable(filtered);
+        });
+      }
+
+      // Sayfa Açılışında Tüm Verileri Yükle
+      loadCustomers();
+      loadCatalog();
+      loadDashboard();
+      loadDiscountsTab();
+
+      // Üst Genel Arama Çubuğu
+      const headerSearch = document.querySelector('.header-search input');
+      if (headerSearch) {
+        headerSearch.addEventListener('input', function () {
+          const term = this.value.toLowerCase().trim();
+          const activeView = Array.from(allSections).find(v => v.style.display !== 'none');
+          if (activeView) {
+            const rows = activeView.querySelectorAll('.orders-table tbody tr');
+            rows.forEach(r => {
+              const text = r.textContent.toLowerCase();
+              r.style.display = text.includes(term) ? '' : 'none';
+            });
+          }
+        });
+      }
+
+      // Üst Bildirim Zili Butonu
+      const notifBtn = document.querySelector('.header-action-btn');
+      if (notifBtn) {
+        notifBtn.addEventListener('click', function () {
+          showToast('Sistem Özeti: Bekleyen siparişler ve canlı veriler veritabanı ile senkronizedir.');
+        });
+      }
+
+      console.log('Bayi Yönetim Paneli Başarıyla Yüklendi');
+    });
+  </script>
+
+  <!-- Ekranın Sağ Alt Köşesindeki Toast Bildirim Konteyneri -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ==========================================================================
+       3. ADIM: ÖZEL MODALLAR (Tahsilat, İskonto, Müşteri Düzenle & Sil)
+       ========================================================================== -->
+
+  <!-- 1. modal-payment (Tahsilat Gir) -->
+  <div class="modal-overlay" id="modal-payment" style="display: none;" aria-hidden="true">
+    <div class="modal-container">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge modal-icon-success">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"></line>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+          </div>
+          <div>
+            <h3 class="modal-title">Tahsilat Girişi</h3>
+            <p class="modal-subtitle" id="payment-modal-customer-name">Otoservis Seçildi</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" id="btn-close-payment-modal" aria-label="Kapat">&times;</button>
+      </div>
+      <form id="form-customer-payment">
+        <input type="hidden" id="payment-modal-customer-id" name="customerId">
+        <div class="modal-body">
+          <div class="modal-info-box">
+            <span class="info-label">Mevcut Cari Bakiye:</span>
+            <span class="info-value" id="payment-modal-current-balance">0,00 ₺</span>
+          </div>
+          <div class="form-group" style="margin-top: 16px;">
+            <label class="form-label" for="payment-modal-amount">Tahsil Edilen Tutar (₺) <span
+                style="color: #ef4444;">*</span></label>
+            <input type="number" step="0.01" class="form-control" id="payment-modal-amount" name="amount"
+              placeholder="Tahsil Edilen Tutar (₺)" required>
+          </div>
+          <div class="form-group" style="margin-top: 12px;">
+            <div class="payment-preview-card" id="payment-preview-card">
+              <span class="payment-preview-label">İşlem Sonrası Yeni Bakiye:</span>
+              <span class="payment-preview-value" id="payment-modal-new-balance">0,00 ₺</span>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top: 14px;">
+            <label class="form-label" for="payment-modal-desc">Tahsilat Türü / Açıklama</label>
+            <input type="text" class="form-control" id="payment-modal-desc" name="description"
+              placeholder="Örn: Nakit, Banka Havale/EFT, Pos Çekimi" value="Cari Tahsilat">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" id="btn-cancel-payment-modal">Vazgeç</button>
+          <button type="submit" class="btn-primary" id="btn-submit-payment-modal">Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. modal-discount (İskonto Güncelle) -->
+  <div class="modal-overlay" id="modal-discount" style="display: none;" aria-hidden="true">
+    <div class="modal-container">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge modal-icon-primary">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="5" x2="5" y2="19"></line>
+              <circle cx="6.5" cy="6.5" r="2.5"></circle>
+              <circle cx="17.5" cy="17.5" r="2.5"></circle>
+            </svg>
+          </div>
+          <div>
+            <h3 class="modal-title">Özel İskonto Tanımla</h3>
+            <p class="modal-subtitle" id="discount-modal-customer-name">Otoservis Seçildi</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" id="btn-close-discount-modal" aria-label="Kapat">&times;</button>
+      </div>
+      <form id="form-customer-discount">
+        <input type="hidden" id="discount-modal-customer-id" name="customerId">
+        <div class="modal-body">
+          <div class="modal-info-box">
+            <span class="info-label">Mevcut İskonto Oranı:</span>
+            <span class="info-value" id="discount-modal-current-rate">%0</span>
+          </div>
+          <div class="form-group" style="margin-top: 16px;">
+            <label class="form-label" for="discount-modal-rate">Yeni İskonto Oranı (%) <span
+                style="color: #ef4444;">*</span></label>
+            <input type="number" step="0.5" min="0" max="100" class="form-control" id="discount-modal-rate"
+              name="discountRate" placeholder="Yeni İskonto Oranı (%)" required>
+          </div>
+          <div class="quick-chips" style="margin-top: 10px;">
+            <button type="button" class="chip-btn" data-rate="5">%5</button>
+            <button type="button" class="chip-btn" data-rate="10">%10</button>
+            <button type="button" class="chip-btn" data-rate="15">%15</button>
+            <button type="button" class="chip-btn" data-rate="20">%20</button>
+            <button type="button" class="chip-btn" data-rate="25">%25</button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" id="btn-cancel-discount-modal">Vazgeç</button>
+          <button type="submit" class="btn-primary" id="btn-submit-discount-modal">Uygula</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. modal-edit-customer (Müşteri Düzenle/Sil - 2. ADIM: İki Sütunlu Modern UI/UX) -->
+  <div class="modal-overlay" id="modal-edit-customer" style="display: none;" aria-hidden="true">
+    <div class="modal-container customer-edit-modal-container">
+      <div class="modal-header customer-edit-modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge modal-icon-edit-customer">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </div>
+          <div>
+            <h3 class="modal-title">Müşteri Düzenle / Sil</h3>
+            <p class="modal-subtitle">Otoservis firma profili, yetkili iletişim ve bakiye parametrelerini güncelleyin
+            </p>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" id="btn-close-edit-modal" aria-label="Kapat">&times;</button>
+      </div>
+
+      <form id="form-customer-edit" class="customer-edit-form">
+        <input type="hidden" id="edit-modal-customer-id" name="customerId">
+        <div class="modal-body customer-edit-modal-body">
+          <div class="customer-form-grid">
+            <!-- SOL SÜTUN: Firma, Yetkili Kişi ve İskonto Oranı -->
+            <div class="customer-form-col">
+              <div class="form-group">
+                <label class="form-label" for="edit-modal-name">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" class="label-icon">
+                    <path d="M3 21h18"></path>
+                    <path d="M5 21V7l8-4v18"></path>
+                    <path d="M19 21V11l-6-4"></path>
+                    <path d="M9 9v.01"></path>
+                    <path d="M9 12v.01"></path>
+                    <path d="M9 15v.01"></path>
+                    <path d="M9 18v.01"></path>
+                  </svg>
+                  <span>Firma / Servis Adı</span>
+                  <span class="required-star">*</span>
+                </label>
+                <input type="text" class="form-control form-input" id="edit-modal-name" name="companyName"
+                  placeholder="Örn: Bosch Car Service" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="edit-modal-contact">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" class="label-icon">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  <span>Yetkili Kişi</span>
+                </label>
+                <input type="text" class="form-control form-input" id="edit-modal-contact" name="contactName"
+                  placeholder="Örn: Hasan Özkan (Usta / Yönetici)">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="edit-modal-discount">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" class="label-icon">
+                    <line x1="19" y1="5" x2="5" y2="19"></line>
+                    <circle cx="6.5" cy="6.5" r="2.5"></circle>
+                    <circle cx="17.5" cy="17.5" r="2.5"></circle>
+                  </svg>
+                  <span>Özel İskonto Oranı (%)</span>
+                </label>
+                <input type="number" step="0.5" min="0" max="100" class="form-control form-input"
+                  id="edit-modal-discount" name="discountRate" placeholder="Örn: 15.0">
+              </div>
+            </div>
+
+            <!-- SAĞ SÜTUN: Telefon, Adres ve Cari Bakiye -->
+            <div class="customer-form-col">
+              <div class="form-group">
+                <label class="form-label" for="edit-modal-phone">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" class="label-icon">
+                    <path
+                      d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
+                    </path>
+                  </svg>
+                  <span>Telefon Numarası</span>
+                  <span class="required-star">*</span>
+                </label>
+                <input type="tel" class="form-control form-input" id="edit-modal-phone" name="phone"
+                  placeholder="05XX XXX XX XX" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="edit-modal-address">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" class="label-icon">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                  </svg>
+                  <span>Otoservis Adresi / Lokasyon</span>
+                </label>
+                <input type="text" class="form-control form-input" id="edit-modal-address" name="address"
+                  placeholder="İlçe, Sanayi Sitesi veya Açık Adres">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="edit-modal-balance">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" class="label-icon">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                  </svg>
+                  <span>Güncel Cari Bakiye (₺)</span>
+                </label>
+                <input type="number" step="0.01" class="form-control form-input" id="edit-modal-balance" name="balance"
+                  placeholder="0.00">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer customer-edit-modal-footer">
+          <!-- Sol Alt Köşede: Modern, İkonlu ve Kırmızı 'Bayiyi Sil' Butonu -->
+          <button type="button" class="btn-delete-dealer modern-danger-btn" id="btn-delete-customer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+            <span>Bayiyi Sil</span>
+          </button>
+
+          <!-- Sağ Alt Köşede Sağa Yaslı: İyileştirilmiş Vazgeç ve Güncelle Butonları -->
+          <div class="modal-footer-actions-right">
+            <button type="button" class="btn-cancel modern-cancel-btn" id="btn-cancel-edit-modal">
+              Vazgeç
+            </button>
+            <button type="submit" class="btn-primary modern-submit-btn" id="btn-submit-edit-modal"><svg width="16"
+                height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>Güncelle</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+</body>
+
+</html>

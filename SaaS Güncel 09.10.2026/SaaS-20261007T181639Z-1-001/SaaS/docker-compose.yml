@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. POSTGRESQL VERİTABANI SERVİSİ
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: saas_postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: saas_admin
+      POSTGRES_PASSWORD: saas_super_secure_pass_2026
+      POSTGRES_DB: saas_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - saas_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saas_admin -d saas_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - saas_network
+
+  # ----------------------------------------------------------------------------
+  # 2. B2B SAAS NODE.JS UYGULAMA SUNUCUSU
+  # ----------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: saas_b2b_app
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: "postgresql://saas_admin:saas_super_secure_pass_2026@postgres:5432/saas_db?schema=public"
+      JWT_SECRET: "saas_b2b_ultra_secure_jwt_secret_key_2026_auto"
+      JWT_EXPIRES_IN: "7d"
+    networks:
+      - saas_network
+
+volumes:
+  saas_pgdata:
+    driver: local
+
+networks:
+  saas_network:
+    driver: bridge

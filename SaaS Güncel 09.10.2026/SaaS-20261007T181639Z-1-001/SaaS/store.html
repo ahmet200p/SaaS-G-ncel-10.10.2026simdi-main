@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Ahmet Oto Yedek Parça - B2B Otomotiv Toptan Yedek Parça Sipariş Portalı">
+  <title>Ahmet Oto Yedek Parça | B2B E-Ticaret Portalı</title>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="store.css">
+  <script src="assets/js/api.js"></script>
+</head>
+<body>
+
+  <!-- ==========================================================================
+       ÜST HEADER (store-header) - Yükseklik: 70px, Beyaz Arkaplan, Altı Hafif Gölgeli
+       ========================================================================== -->
+  <header class="store-header">
+    
+    <!-- SOL: Firma Logosu / İsmi (Yazı rengi: --tenant-color) -->
+    <div class="header-left">
+      <a href="store.html" class="brand-link">
+        <div class="brand-symbol">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        <span class="brand-name">Ahmet Oto Yedek Parça</span>
+        <span class="brand-b2b-tag">B2B Portal</span>
+      </a>
+    </div>
+
+    <!-- ORTA: Geniş Arama Çubuğu (Genişlik %50) -->
+    <div class="header-center">
+      <form class="search-bar-form" id="store-search-form" onsubmit="event.preventDefault();">
+        <svg class="search-lead-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" class="search-input" placeholder="Parça adı, OE numarası, barkod veya araç modeli ile arayın..." id="store-search-input">
+        <!-- İçinde --tenant-color arkaplanlı 'Ara' butonu -->
+        <button type="submit" class="btn-search" id="btn-store-search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <span>Ara</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- SAĞ: Kullanıcı Profili ve Sepetim Butonu -->
+    <div class="header-right">
+      
+      <!-- Kullanıcı Profili (Örn: Hoş Geldin, Kemal Usta) -->
+      <div class="user-profile" id="user-profile-widget" title="Kemal Usta Otomotiv Servis Hesabı">
+        <div class="user-avatar-wrap">
+          <img class="user-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='32' fill='%23ea580c'/><circle cx='32' cy='24' r='12' fill='%23ffffff'/><path d='M14 54 C14 42, 22 36, 32 36 C42 36, 50 42, 50 54 Z' fill='%23ffffff'/></svg>" alt="Kemal Usta Profil">
+          <span class="user-status-dot" title="Çevrimiçi"></span>
+        </div>
+        <div class="user-details">
+          <span class="user-greeting">Hoş Geldin, Kemal Usta</span>
+          <span class="user-badge">Kemal Oto Servis • Cari No: 1042</span>
+        </div>
+      </div>
+
+      <div class="header-divider-v"></div>
+
+      <!-- 'Sepetim' Butonu (Sağ üstünde kırmızı bildirim rozeti - badge) -->
+      <button class="btn-cart" id="btn-cart-view" aria-label="Sepetim">
+        <svg class="cart-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="21" r="1"></circle>
+          <circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
+        <span>Sepetim</span>
+        <!-- Sağ üstünde kırmızı bildirim rozeti (badge) -->
+        <span class="cart-badge" id="cart-item-count">0</span>
+      </button>
+
+      <button class="btn-logout" id="logout-button" onclick="logout()" title="Oturumu Kapat" style="margin-left: 12px; padding: 7px 14px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #475569; transition: all 0.2s ease;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        <span>Çıkış Yap</span>
+      </button>
+
+    </div>
+
+  </header>
+
+  <!-- ==========================================================================
+       ANA İÇERİK ALANI (.container: 260px 1fr Grid)
+       ========================================================================== -->
+  <div class="container">
+    
+    <!-- 1. SÜTUN: FİLTRE YAN MENÜSÜ (<aside class="filter-sidebar">) -->
+    <aside class="filter-sidebar">
+      
+      <!-- 'Araç Seçimi' Başlığı -->
+      <h3 class="filter-heading">Araç Seçimi</h3>
+
+      <!-- 3 adet <select> dropdown'ı: 'Marka Seç', 'Model Seç', 'Motor Tipi' -->
+      <div class="vehicle-select-group">
+        <div class="select-wrapper">
+          <select class="filter-select" id="select-brand" aria-label="Marka Seç">
+            <option value="" disabled selected>Marka Seç</option>
+            <option value="renault">Renault</option>
+            <option value="dacia">Dacia</option>
+            <option value="ford">Ford</option>
+            <option value="fiat">Fiat</option>
+            <option value="volkswagen">Volkswagen</option>
+          </select>
+        </div>
+
+        <div class="select-wrapper">
+          <select class="filter-select" id="select-model" aria-label="Model Seç">
+            <option value="" disabled selected>Model Seç</option>
+            <option value="clio">Clio</option>
+            <option value="megane">Megane</option>
+            <option value="duster">Duster</option>
+            <option value="focus">Focus</option>
+            <option value="egea">Egea</option>
+          </select>
+        </div>
+
+        <div class="select-wrapper">
+          <select class="filter-select" id="select-engine" aria-label="Motor Tipi">
+            <option value="" disabled selected>Motor Tipi</option>
+            <option value="1.5-dci">1.5 dCi Dizel</option>
+            <option value="1.0-tce">1.0 TCe Benzin</option>
+            <option value="1.3-tce">1.3 TCe Benzin</option>
+            <option value="1.6-tdci">1.6 TDCi Dizel</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- İnce bir çizgi (hr) -->
+      <hr class="filter-hr">
+
+      <!-- 'Kategoriler' Başlığı -->
+      <h3 class="filter-heading">Kategoriler</h3>
+
+      <!-- <ul> Listesi (Fren Sistemi, Motor, Süspansiyon, Filtreler) -->
+      <ul class="filter-category-list">
+        <li class="filter-category-item">
+          <a href="#fren-sistemi">Fren Sistemi</a>
+        </li>
+        <li class="filter-category-item">
+          <a href="#motor">Motor</a>
+        </li>
+        <li class="filter-category-item">
+          <a href="#suspansiyon">Süspansiyon</a>
+        </li>
+        <li class="filter-category-item">
+          <a href="#filtreler">Filtreler</a>
+        </li>
+      </ul>
+
+    </aside>
+
+    <!-- 2. SÜTUN: ANA ÜRÜN LİSTELEME ALANI (<main class="product-area">) -->
+    <main class="product-area">
+      
+      <!-- Üst Araç Çubuğu (Solunda 'Toplam 45 ürün bulundu', sağında 'Sırala: Fiyata Göre' select'i) -->
+      <div class="product-toolbar">
+        <span class="product-count-text">Toplam <strong>45</strong> ürün bulundu</span>
+        <div class="sort-wrapper">
+          <select class="sort-select" id="sort-select" aria-label="Sıralama">
+            <option value="price-asc" selected>Sırala: Fiyata Göre</option>
+            <option value="price-desc">Sırala: Fiyata Göre (Azalan)</option>
+            <option value="newest">Sırala: En Yeniler</option>
+            <option value="bestseller">Sırala: Çok Satanlar</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Araç çubuğunun altına <div id="products-grid"> -->
+      <div id="products-grid">
+        
+        <!-- Örnek Kart 1 (Prompttaki birebir örnek: Ön Fren Balatası) -->
+        <div class="product-card">
+          <!-- Üstte 150px yüksekliğinde gri bir resim alanı -->
+          <div class="product-image-box">
+            <svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M6 12h.01M18 12h.01"></path>
+            </svg>
+          </div>
+
+          <!-- Resmin altında gri ve küçük fontla OE Numarası -->
+          <span class="product-oe">OE: 410601241R</span>
+
+          <!-- Altında kalın fontla Ürün Adı -->
+          <h4 class="product-title">Ön Fren Balatası</h4>
+
+          <!-- Altında bir fiyat kutusu (background: #f8fafc; padding: 10px; border-radius: 6px;) -->
+          <div class="product-price-box">
+            <span class="price-list">1.200,00 ₺</span>
+            <span class="price-special">Size Özel: 900,00 ₺</span>
+          </div>
+
+          <!-- En altta tam genişlikte --tenant-color arkaplanlı '+ Sepete Ekle' butonu -->
+          <button type="button" class="btn-add-to-cart">+ Sepete Ekle</button>
+        </div>
+
+        <!-- Örnek Kart 2: Motor Hava Filtresi -->
+        <div class="product-card">
+          <div class="product-image-box">
+            <svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12h18M3 6h18M3 18h18"></path>
+              <circle cx="12" cy="12" r="9"></circle>
+            </svg>
+          </div>
+          <span class="product-oe">OE: 165467674R</span>
+          <h4 class="product-title">Motor Hava Filtresi</h4>
+          <div class="product-price-box">
+            <span class="price-list">380,00 ₺</span>
+            <span class="price-special">Size Özel: 280,00 ₺</span>
+          </div>
+          <button type="button" class="btn-add-to-cart">+ Sepete Ekle</button>
+        </div>
+
+        <!-- Örnek Kart 3: Ön Amortisör -->
+        <div class="product-card">
+          <div class="product-image-box">
+            <svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v20M8 7h8M8 12h8M8 17h8"></path>
+              <circle cx="12" cy="2" r="1"></circle>
+              <circle cx="12" cy="22" r="1"></circle>
+            </svg>
+          </div>
+          <span class="product-oe">OE: 543020048R</span>
+          <h4 class="product-title">Ön Amortisör (Gazlı)</h4>
+          <div class="product-price-box">
+            <span class="price-list">2.450,00 ₺</span>
+            <span class="price-special">Size Özel: 1.850,00 ₺</span>
+          </div>
+          <button type="button" class="btn-add-to-cart">+ Sepete Ekle</button>
+        </div>
+
+        <!-- Örnek Kart 4: Motor Yağ Filtresi -->
+        <div class="product-card">
+          <div class="product-image-box">
+            <svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="5" y="4" width="14" height="16" rx="3"></rect>
+              <line x1="9" y1="9" x2="15" y2="9"></line>
+              <line x1="9" y1="13" x2="15" y2="13"></line>
+            </svg>
+          </div>
+          <span class="product-oe">OE: 152089599R</span>
+          <h4 class="product-title">Motor Yağ Filtresi</h4>
+          <div class="product-price-box">
+            <span class="price-list">260,00 ₺</span>
+            <span class="price-special">Size Özel: 195,00 ₺</span>
+          </div>
+          <button type="button" class="btn-add-to-cart">+ Sepete Ekle</button>
+        </div>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- ==========================================================================
+       ALT BİLGİ (STORE FOOTER)
+       ========================================================================== -->
+  <footer class="store-footer">
+    <div class="footer-left">
+      <span>&copy; 2026 Ahmet Oto Yedek Parça Dağıtım A.Ş. • B2B Servis Ağı</span>
+    </div>
+    <div class="footer-links">
+      <a href="index.html">Süper Admin Paneli</a>
+      <a href="#teslimat">Teslimat & Sevkiyat</a>
+      <a href="#iadeler">Garanti & İade</a>
+      <a href="#destek">B2B Destek Hattı: 0850 333 44 55</a>
+    </div>
+  </footer>
+
+  <!-- ==========================================================================
+       SEPET ÇEKMECESİ (CART DRAWER OVERLAY & CONTENT)
+       ========================================================================== -->
+  <div class="cart-overlay" id="cart-drawer">
+    <div class="cart-content">
+      
+      <!-- 1. HEADER: 'Sepetim (2 Ürün)' başlığı ve çarpı (Kapat) butonu -->
+      <div class="cart-header">
+        <h3 class="cart-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+          Sepetim (2 Ürün)
+        </h3>
+        <button type="button" class="cart-close-btn" id="btn-close-cart" aria-label="Kapat">&times;</button>
+      </div>
+
+      <!-- 2. BODY: Sepetteki ürünlerin listeleneceği flex bir alan -->
+      <div class="cart-body">
+        
+        <!-- Örnek Sepet Ürünü 1: Ön Fren Balatası -->
+        <div class="cart-item">
+          <!-- Ufak resim -->
+          <div class="cart-item-image">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </div>
+          <!-- Ürün detayları: Ürün adı, OE, adet butonları ve fiyatı -->
+          <div class="cart-item-details">
+            <h4 class="cart-item-title">Ön Fren Balatası</h4>
+            <span class="cart-item-oe">OE: 410601241R</span>
+            <div class="cart-item-bottom">
+              <!-- Adet artırma/azaltma butonları -->
+              <div class="cart-qty-control">
+                <button type="button" class="qty-btn" aria-label="Azalt">-</button>
+                <span class="qty-val">1</span>
+                <button type="button" class="qty-btn" aria-label="Artır">+</button>
+              </div>
+              <!-- Fiyatı -->
+              <span class="cart-item-price">900,00 ₺</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Örnek Sepet Ürünü 2: Motor Hava Filtresi -->
+        <div class="cart-item">
+          <div class="cart-item-image">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12h18M3 6h18M3 18h18"></path>
+              <circle cx="12" cy="12" r="9"></circle>
+            </svg>
+          </div>
+          <div class="cart-item-details">
+            <h4 class="cart-item-title">Motor Hava Filtresi</h4>
+            <span class="cart-item-oe">OE: 165467674R</span>
+            <div class="cart-item-bottom">
+              <div class="cart-qty-control">
+                <button type="button" class="qty-btn" aria-label="Azalt">-</button>
+                <span class="qty-val">1</span>
+                <button type="button" class="qty-btn" aria-label="Artır">+</button>
+              </div>
+              <span class="cart-item-price">280,00 ₺</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 3. FOOTER: Üstü çizili 'Genel Toplam', yeşil ve kalın 'İndirimli Ara Toplam', yeşil 'Siparişi Tamamla' butonu -->
+      <div class="cart-footer">
+        <!-- Üstü çizili bir şekilde 'Genel Toplam' -->
+        <div class="cart-summary-line line-strikethrough">
+          <span>Genel Toplam</span>
+          <span>1.580,00 ₺</span>
+        </div>
+        <!-- Altında yeşil ve kalın fontla 'İndirimli Ara Toplam' -->
+        <div class="cart-summary-line line-discounted">
+          <span>İndirimli Ara Toplam</span>
+          <span>1.180,00 ₺</span>
+        </div>
+        <!-- En altta da yeşil arkaplanlı büyük bir 'Siparişi Tamamla' butonu -->
+        <button type="button" class="btn-checkout">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          Siparişi Tamamla
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Ekranın Sağ Alt Köşesindeki Toast Bildirim Konteyneri -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- JavaScript: B2B Müşteri Arayüzü Etkileşimi (Eksiksiz Sepet ve Sipariş Mantığı) -->
+  <script>
+    // 0. Oturum ve Rol Doğrulama (CUSTOMER Guard)
+    const currentUser = requireAuth(['CUSTOMER', 'TENANT_ADMIN', 'SUPER_ADMIN']);
+
+    // 0. Toast Bildirim Fonksiyonu (XSS Korumalı)
+    function showToast(message, type = 'success') {
+      let container = document.getElementById('toast-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+      }
+
+      const toast = document.createElement('div');
+      toast.className = `toast-msg ${type}`;
+      const iconColor = type === 'warning' ? '#f59e0b' : (type === 'danger' ? '#ef4444' : '#ea580c');
+      toast.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        <span>${escapeHtml(message)}</span>
+      `;
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.add('show');
+      });
+
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+          toast.remove();
+        }, 350);
+      }, 3200);
+    }
+
+    // Sepet Çekmecesi Kontrolleri
+    function openCart() {
+      const cartDrawer = document.getElementById('cart-drawer');
+      if (cartDrawer) {
+        cartDrawer.classList.add('open');
+      }
+    }
+
+    function closeCart() {
+      const cartDrawer = document.getElementById('cart-drawer');
+      if (cartDrawer) {
+        cartDrawer.classList.remove('open');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const btnCartView = document.getElementById('btn-cart-view');
+      const btnCloseCart = document.getElementById('btn-close-cart');
+      const cartDrawer = document.getElementById('cart-drawer');
+      const cartBadge = document.getElementById('cart-item-count');
+      const cartBody = document.querySelector('.cart-body');
+      const cartTitle = document.querySelector('.cart-title');
+      const lineStrikethrough = document.querySelector('.cart-summary-line.line-strikethrough span:last-child');
+      const lineDiscounted = document.querySelector('.cart-summary-line.line-discounted span:last-child');
+      const btnCheckout = document.querySelector('.btn-checkout');
+
+      if (btnCartView) btnCartView.addEventListener('click', openCart);
+      if (btnCloseCart) btnCloseCart.addEventListener('click', closeCart);
+
+      if (cartDrawer) {
+        cartDrawer.addEventListener('click', function (e) {
+          if (e.target === cartDrawer) closeCart();
+        });
+      }
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeCart();
+      });
+
+      // ==========================================================================
+      // 1. CANLI PROFİL VE CARİ BİLGİLERİ YÜKLEME
+      // ==========================================================================
+      async function loadProfile() {
+        try {
+          const res = await apiFetch('/store/profile');
+          if (res && res.success && res.data) {
+            const p = res.data;
+            const greetingEl = document.querySelector('.user-greeting');
+            const badgeEl = document.querySelector('.user-badge');
+            const brandEl = document.querySelector('.brand-name');
+
+            if (greetingEl) {
+              const name = p.companyName || (currentUser && currentUser.email ? currentUser.email.split('@')[0] : 'Usta');
+              greetingEl.textContent = `Hoş Geldin, ${name}`;
+            }
+            if (badgeEl) {
+              const disc = p.discountRate !== undefined ? `%${p.discountRate}` : '%0';
+              const bal = p.balance !== undefined ? parseFloat(p.balance).toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' ₺' : '0,00 ₺';
+              badgeEl.textContent = `${p.companyName || 'Müşteri'} • İskonto: ${disc} • Bakiye: ${bal}`;
+            }
+            if (brandEl && p.tenant && p.tenant.name) {
+              brandEl.textContent = `${p.tenant.name} Yedek Parça`;
+            }
+          }
+        } catch (e) {
+          console.error('[LOAD_PROFILE_ERROR]:', e);
+        }
+      }
+
+      // ==========================================================================
+      // 2. SEPET TOPLAMLARINI YENİDEN HESAPLAMA
+      // ==========================================================================
+      function updateCartTotals() {
+        const items = document.querySelectorAll('.cart-body .cart-item');
+        let totalItems = 0;
+        let totalDiscounted = 0;
+        let totalList = 0;
+
+        items.forEach(item => {
+          const qty = parseInt(item.querySelector('.qty-val').textContent, 10) || 1;
+          const specialPrice = parseFloat(item.dataset.specialPrice) || 0;
+          const listPrice = parseFloat(item.dataset.listPrice) || (specialPrice * 1.33);
+
+          totalItems += qty;
+          totalDiscounted += specialPrice * qty;
+          totalList += listPrice * qty;
+
+          const priceEl = item.querySelector('.cart-item-price');
+          if (priceEl) {
+            priceEl.textContent = (specialPrice * qty).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+          }
+        });
+
+        if (cartBadge) {
+          cartBadge.textContent = totalItems;
+          cartBadge.classList.remove('badge-pop');
+          void cartBadge.offsetWidth;
+          cartBadge.classList.add('badge-pop');
+        }
+
+        if (cartTitle) {
+          cartTitle.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="9" cy="21" r="1"></circle>
+              <circle cx="20" cy="21" r="1"></circle>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+            </svg>
+            Sepetim (${totalItems} Ürün)
+          `;
+        }
+
+        if (lineStrikethrough) {
+          lineStrikethrough.textContent = totalList.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+        }
+
+        if (lineDiscounted) {
+          lineDiscounted.textContent = totalDiscounted.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+        }
+      }
+
+      // Sepet İçi Adet Butonları (- / +) Etkinleştirme
+      function attachCartItemEvents(item) {
+        const minusBtn = item.querySelector('.cart-qty-control button:first-child');
+        const plusBtn = item.querySelector('.cart-qty-control button:last-child');
+        const qtyVal = item.querySelector('.qty-val');
+        const title = item.querySelector('.cart-item-title')?.textContent || 'Ürün';
+
+        if (minusBtn) {
+          minusBtn.onclick = function () {
+            let current = parseInt(qtyVal.textContent, 10) || 1;
+            if (current > 1) {
+              qtyVal.textContent = current - 1;
+              updateCartTotals();
+            } else {
+              item.remove();
+              updateCartTotals();
+              showToast(`"${title}" sepetten çıkarıldı.`);
+            }
+          };
+        }
+
+        if (plusBtn) {
+          plusBtn.onclick = function () {
+            let current = parseInt(qtyVal.textContent, 10) || 1;
+            qtyVal.textContent = current + 1;
+            updateCartTotals();
+          };
+        }
+      }
+
+      // ==========================================================================
+      // 3. CANLI ÜRÜNLERİ LİSTELEME (API ENTEGRASYONU & XSS SANİTİZASYONU)
+      // ==========================================================================
+      async function loadProducts() {
+        try {
+          const res = await apiFetch('/store/products');
+          if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+            const grid = document.querySelector('.products-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            res.data.forEach(p => {
+              const safeName = escapeHtml(p.name || 'Yedek Parça');
+              const safeOe = escapeHtml(p.oeNumber || '');
+              const safeCat = escapeHtml(p.category || 'Otomotiv');
+              const listPrice = parseFloat(p.defaultPrice || 0);
+              const customPrice = p.customPrice !== null && p.customPrice !== undefined ? parseFloat(p.customPrice) : listPrice;
+              const discountedPrice = parseFloat(p.discountedPrice !== undefined ? p.discountedPrice : customPrice);
+              const listFormatted = listPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              const discFormatted = discountedPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              const discountRate = p.appliedDiscountRate || 0;
+              const inStock = p.stock > 0;
+
+              const card = document.createElement('article');
+              card.className = 'product-card';
+              card.dataset.tenantProductId = p.tenantProductId;
+              card.dataset.specialPrice = discountedPrice;
+              card.dataset.listPrice = listPrice;
+              card.dataset.oe = safeOe;
+              card.dataset.title = safeName;
+
+              card.innerHTML = `
+                <div class="product-badge-discount">%${discountRate} İskonto</div>
+                <div class="product-image-container">
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M6 12h.01M18 12h.01"></path>
+                  </svg>
+                </div>
+                <div class="product-info">
+                  <span class="product-category-tag">${safeCat}</span>
+                  <h4 class="product-title">${safeName}</h4>
+                  <div class="product-meta">
+                    <span class="product-oe">OE: ${safeOe}</span>
+                    <span class="product-stock ${inStock ? 'stock-in' : 'stock-out'}">${inStock ? 'Stokta ' + p.stock + ' Adet' : 'Tükendi'}</span>
+                  </div>
+                  <div class="product-pricing">
+                    <div class="price-group">
+                      <span class="price-list">${listFormatted} ₺</span>
+                      <span class="price-special">${discFormatted} ₺</span>
+                    </div>
+                    <button type="button" class="btn-add-to-cart" ${!inStock ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                      </svg>
+                      <span>${inStock ? 'Sepete Ekle' : 'Tükendi'}</span>
+                    </button>
+                  </div>
+                </div>
+              `;
+              grid.appendChild(card);
+            });
+
+            attachAddToCartButtons();
+
+            const productCountText = document.querySelector('.product-count-text');
+            if (productCountText) {
+              productCountText.innerHTML = `Toplam <strong>${res.data.length}</strong> ürün listelendi`;
+            }
+          }
+        } catch (e) {
+          console.error('[LOAD_PRODUCTS_ERROR]:', e);
+        }
+      }
+
+      // Ürün Kartlarındaki '+ Sepete Ekle' Butonlarını Bağlama
+      function attachAddToCartButtons() {
+        const addToCartButtons = document.querySelectorAll('.product-card .btn-add-to-cart');
+        addToCartButtons.forEach(button => {
+          button.onclick = function () {
+            const card = this.closest('.product-card');
+            if (!card) return;
+
+            const title = card.dataset.title || card.querySelector('.product-title')?.textContent.trim() || 'Ürün';
+            const oe = card.dataset.oe || card.querySelector('.product-oe')?.textContent.trim() || '';
+            const tenantProductId = card.dataset.tenantProductId || '';
+            const specialPrice = parseFloat(card.dataset.specialPrice) || 500;
+            const listPrice = parseFloat(card.dataset.listPrice) || (specialPrice * 1.3);
+
+            let existingItem = null;
+            const cartItems = document.querySelectorAll('.cart-body .cart-item');
+            cartItems.forEach(item => {
+              if (item.dataset.tenantProductId === tenantProductId || (oe && item.dataset.oe === oe)) {
+                existingItem = item;
+              }
+            });
+
+            if (existingItem) {
+              const qtyVal = existingItem.querySelector('.qty-val');
+              qtyVal.textContent = (parseInt(qtyVal.textContent, 10) || 1) + 1;
+              updateCartTotals();
+            } else {
+              const newItem = document.createElement('div');
+              newItem.className = 'cart-item';
+              newItem.dataset.tenantProductId = tenantProductId;
+              newItem.dataset.oe = oe;
+              newItem.dataset.specialPrice = specialPrice;
+              newItem.dataset.listPrice = listPrice;
+              newItem.innerHTML = `
+                <div class="cart-item-image">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </div>
+                <div class="cart-item-details">
+                  <h4 class="cart-item-title">${escapeHtml(title)}</h4>
+                  <span class="cart-item-oe">${escapeHtml(oe)}</span>
+                  <div class="cart-item-bottom">
+                    <div class="cart-qty-control">
+                      <button type="button" class="qty-btn" aria-label="Azalt">-</button>
+                      <span class="qty-val">1</span>
+                      <button type="button" class="qty-btn" aria-label="Artır">+</button>
+                    </div>
+                    <span class="cart-item-price">${specialPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</span>
+                  </div>
+                </div>
+              `;
+              cartBody.appendChild(newItem);
+              attachCartItemEvents(newItem);
+              updateCartTotals();
+            }
+
+            showToast(`"${title}" sepete eklendi!`, 'success');
+          };
+        });
+      }
+
+      // ==========================================================================
+      // 4. CANLI SİPARİŞİ TAMAMLA BUTONU (POST /api/store/orders)
+      // ==========================================================================
+      if (btnCheckout) {
+        btnCheckout.addEventListener('click', async function () {
+          const items = document.querySelectorAll('.cart-body .cart-item');
+          if (items.length === 0) {
+            showToast('Sepetiniz boş! Lütfen önce ürün ekleyin.', 'warning');
+            return;
+          }
+
+          const orderItems = [];
+          items.forEach(item => {
+            const tenantProductId = item.dataset.tenantProductId;
+            const qty = parseInt(item.querySelector('.qty-val').textContent, 10) || 1;
+            if (tenantProductId) {
+              orderItems.push({
+                tenantProductId: tenantProductId,
+                quantity: qty
+              });
+            }
+          });
+
+          if (orderItems.length === 0) {
+            showToast('Sepetteki ürünlerin bayi kimliği doğrulanamadı. Lütfen sayfayı yenileyip ürünleri tekrar ekleyin.', 'warning');
+            return;
+          }
+
+          btnCheckout.disabled = true;
+          btnCheckout.textContent = 'Sipariş İletiliyor...';
+
+          try {
+            const res = await apiFetch('/store/orders', {
+              method: 'POST',
+              body: { items: orderItems }
+            });
+
+            if (res && res.success && res.data) {
+              const orderNum = res.data.orderNumber;
+              showToast(`Siparişiniz #${orderNum} numarasıyla oluşturuldu ve bayinize iletildi!`, 'success');
+              cartBody.innerHTML = '';
+              updateCartTotals();
+              await loadProfile();
+              await loadProducts();
+              setTimeout(() => {
+                closeCart();
+              }, 1800);
+            } else {
+              showToast(res && res.message ? res.message : 'Sipariş oluşturulamadı.', 'danger');
+            }
+          } catch (err) {
+            showToast('Sipariş hatası: ' + err.message, 'danger');
+          } finally {
+            btnCheckout.disabled = false;
+            btnCheckout.textContent = 'Siparişi Tamamla';
+          }
+        });
+      }
+
+      // Sayfa Açılışında Canlı Verileri Çek
+      loadProfile();
+      loadProducts();
+
+      // 5. Üst Canlı Ürün Arama Çubuğu
+      const searchInput = document.getElementById('store-search-input');
+      const searchForm = document.getElementById('store-search-form') || document.querySelector('.search-bar-form');
+      const productCards = document.querySelectorAll('.product-card');
+      const productCountText = document.querySelector('.product-count-text');
+
+      function filterProducts() {
+        const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        let matched = 0;
+
+        productCards.forEach(card => {
+          const text = card.textContent.toLowerCase();
+          const match = text.includes(query);
+          card.style.display = match ? 'flex' : 'none';
+          if (match) matched++;
+        });
+
+        if (productCountText) {
+          productCountText.innerHTML = `Toplam <strong>${matched}</strong> ürün bulundu`;
+        }
+      }
+
+      if (searchInput) {
+        searchInput.addEventListener('input', filterProducts);
+      }
+      if (searchForm) {
+        searchForm.addEventListener('submit', function (e) {
+          e.preventDefault();
+          filterProducts();
+        });
+      }
+
+      // 6. Sol Filtre Kategorileri ve Araç Seçimleri
+      document.querySelectorAll('.filter-category-list a').forEach(link => {
+        link.addEventListener('click', function (e) {
+          e.preventDefault();
+          const catName = this.textContent.trim();
+          showToast(`"${catName}" kategorisi filtrelendi.`);
+        });
+      });
+
+      ['select-brand', 'select-model', 'select-engine'].forEach(id => {
+        const sel = document.getElementById(id);
+        if (sel) {
+          sel.addEventListener('change', function () {
+            if (this.value) {
+              showToast(`Araç Filtresi Güncellendi: ${this.options[this.selectedIndex].text}`);
+            }
+          });
+        }
+      });
+
+      // 7. Kullanıcı Profil Bilgi Rozeti
+      const userProfile = document.getElementById('user-profile-widget');
+      if (userProfile) {
+        userProfile.addEventListener('click', function () {
+          showToast('Kemal Usta Otomotiv • Açık Bakiye: 8.250 ₺ • Tanımlı İskonto: %30');
+        });
+      }
+
+      // 8. Alt Bilgi Linkleri
+      document.querySelectorAll('.footer-links a[href^="#"]').forEach(link => {
+        link.addEventListener('click', function (e) {
+          e.preventDefault();
+          const text = this.textContent.trim();
+          showToast(`Bilgilendirme: ${text}`);
+        });
+      });
+
+      console.log('B2B Müşteri Arayüzü Başarıyla Yüklendi');
+    });
+  </script>
+
+</body>
+</html>
