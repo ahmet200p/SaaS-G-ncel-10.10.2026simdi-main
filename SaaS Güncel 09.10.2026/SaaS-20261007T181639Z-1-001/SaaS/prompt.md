@@ -1,26 +1,39 @@
-"Müşteri vitrini (store.html) sayfasındaki 'ARAÇ MARKALARI' (Brand Grid) bölümünü daha gerçekçi ve kapsamlı bir hale getirmek için şu 4 adımı uygula:
+"Müşteri vitrini (store.html) sayfasındaki sepet sürecini B2B (toptancı-tamirci) gerçeklerine uygun hale getirmek için ödeme adımını yeniden kurgulamanı istiyorum. Şu an 'Siparişi Onayla' butonuna basıldığında sipariş direkt geçiliyor, ancak bunun yerine bir 'Ödeme Yöntemi' seçimi sunmalıyız. Lütfen şu adımları uygula:
 
-1. ADIM: Gerçek Logoların Entegrasyonu
+1. ADIM: Ödeme Seçenekleri Modalı Tasarımı
 
-Şu an kullanılan jenerik, basit çizgi/ikon şeklindeki sahte marka logolarını HTML'den tamamen temizle.
+Sepetteki 'Siparişi Onayla' butonuna tıklandığında, siparişi hemen API'ye göndermek yerine modal-payment-method adında şık bir ekran (Modal) aç.
 
-Bunların yerine markaların orijinal, tanınabilir logolarını (SVG veya şık PNG formatında) ekle. (Harici bir public CDN olan cdn.worldvectorlogo.com bağlantılarını kullanarak veya FontAwesome'ın marka ikonları yerine doğrudan renkli/gerçek marka görsellerini <img> etiketiyle çekerek bu profesyonelliği sağla).
+Bu modalda alt alta duran 3 farklı ödeme seçeneği (kutu/kart şeklinde) oluştur:
 
-2. ADIM: Marka Çeşitliliğini Artırma
+1. Seçenek (Aktif): 'Cari Hesaba Yaz (Veresiye)'
 
-Ekrandaki sınırlı listeyi genişlet. Pazardaki popüler araçların tümünü kapsayacak şekilde şu markaları listeye ekle:
-Volkswagen, Renault, Fiat, Ford, BMW, Mercedes-Benz, Toyota, Hyundai, Audi, Opel, Peugeot, Honda, Nissan, Kia, Skoda, Seat, Citroen, Dacia, Volvo, Chery.
+Açıklaması: "Sipariş tutarı cari hesabınıza borç olarak yansıtılacaktır."
 
-3. ADIM: Responsive Izgara (Grid) Tasarımı
+2. Seçenek (Aktif): 'Havale / EFT ile Öde'
 
-Marka sayısı 20'yi bulacağı için mevcut tasarımı şık bir CSS Grid yapısına çevir.
+Açıklaması: "Ödemeyi banka hesabımıza gönderdiğinizde siparişiniz onaylanacaktır."
 
-Masaüstünde yan yana 7 veya 8 kutu, mobilde ise yan yana 3 veya 4 kutu sığacak şekilde grid-template-columns ayarlarını yap.
+3. Seçenek (Pasif/Disabled): 'Kredi Kartı ile Öde'
 
-Kutulara tıklanabilirlik hissi vermek için :hover durumunda hafif bir yukarı kalkma (transform: translateY(-2px)) veya çerçeve renginin turuncuya dönmesi gibi modern bir UX efekti ekle.
+Kutunun rengi soluk olsun ve üzerine veya yanına şık bir "Çok Yakında" rozeti (badge) ekle. Bu seçeneğe tıklanamasın.
 
-4. ADIM: JavaScript Filtreleme Bağlantısı
+2. ADIM: Sipariş Oluşturma (Havale ve Cari Mantığı)
 
-HTML'deki bu marka butonlarına data-brand="Volkswagen" gibi etiketler ekle.
+Kullanıcı **'Cari Hesaba Yaz'**ı seçip altındaki 'Siparişi Tamamla' butonuna basarsa:
 
-JS dosyasında bu butonlara tıklanma (click) olayını dinle. Tıklanan markaya göre, sayfada listelenen ürün dizisini (allProductsData) o markaya (vehicleBrand eşleşmesi) göre filtrele ve tabloyu yeniden çiz. 'Tüm Markalar' butonuna basıldığında filtreyi sıfırla."
+POST /api/store/orders isteğine paymentMethod: 'CURRENT_ACCOUNT' verisini ekle.
+
+Sipariş bayi paneline 'Hazırlanıyor' statüsünde düşsün.
+
+Kullanıcı 'Havale / EFT' seçeneğini seçerse:
+
+Kutunun altında dinamik olarak bayinin IBAN bilgileri (API'den veya tenant ayarlarından çekilen) belirtsin.
+
+Kullanıcı siparişi tamamladığında POST /api/store/orders isteğine paymentMethod: 'BANK_TRANSFER' verisini ekle.
+
+Sipariş bayi paneline 'Ödeme Bekliyor' statüsünde düşsün.
+
+3. ADIM: Başarı Ekranı ve Yönlendirme
+
+Sipariş API'ye başarılı bir şekilde iletildiğinde SweetAlert2 ile "Siparişiniz Başarıyla Alındı" mesajı göster, sepeti sıfırla ve kullanıcıyı Profil > Siparişlerim sekmesine yönlendir."

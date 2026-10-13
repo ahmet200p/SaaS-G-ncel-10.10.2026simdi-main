@@ -168,6 +168,7 @@ model Order {
   vatAmount      Float           @default(0.0)
   totalAmount    Float           // KDV Dahil Toplam
   status         String          @default("PENDING") // PENDING, APPROVED, SHIPPED
+  paymentMethod  String?         // CURRENT_ACCOUNT, BANK_TRANSFER, CREDIT_CARD
 
   items          OrderItem[]
   stockMovements StockMovement[]

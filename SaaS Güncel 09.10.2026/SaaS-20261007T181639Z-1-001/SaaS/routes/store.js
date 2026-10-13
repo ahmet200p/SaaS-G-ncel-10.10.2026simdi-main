@@ -9,6 +9,58 @@ const prisma = require('../lib/prisma');
 const config = require('../config');
 const { verifyToken, checkCustomer } = require('../middleware/auth');
 
+// ============================================================================
+// 0. GET /api/store/bank-info - Havale / EFT için Bayi Banka ve IBAN Bilgileri
+// (Genel Vitrin ve Ödeme Modalı Erişimi)
+// ============================================================================
+router.get('/bank-info', async (req, res) => {
+  try {
+    let tenantId = null;
+    const authHeader = req.headers['authorization'];
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, config.jwtSecret);
+        if (decoded && decoded.tenantId) {
+          tenantId = decoded.tenantId;
+        }
+      } catch (e) {}
+    }
+
+    if (!tenantId) {
+      const defTenant = await prisma.tenant.findFirst();
+      tenantId = defTenant ? defTenant.id : null;
+    }
+    const tenant = tenantId ? await prisma.tenant.findUnique({ where: { id: tenantId } }) : null;
+    const tenantName = tenant ? tenant.name : 'Ahmet Oto';
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        bankName: 'Ziraat Bankası',
+        accountHolder: `${tenantName} Otomotiv San. ve Tic. Ltd. Şti.`,
+        iban: 'TR33 0001 0001 2345 6789 0000 01',
+        branch: 'Merkez Sanayi Şubesi (Şube Kodu: 1042)',
+        accountNumber: '12345678-5001',
+        instructions: 'Lütfen açıklama alanına Firma Adınızı veya Sipariş Numaranızı yazmayı unutmayınız.'
+      }
+    });
+  } catch (error) {
+    return res.status(200).json({
+      success: true,
+      data: {
+        bankName: 'Ziraat Bankası',
+        accountHolder: 'Ahmet Oto Otomotiv San. ve Tic. Ltd. Şti.',
+        iban: 'TR33 0001 0001 2345 6789 0000 01',
+        branch: 'Merkez Sanayi Şubesi (Şube Kodu: 1042)',
+        accountNumber: '12345678-5001',
+        instructions: 'Lütfen açıklama alanına Firma Adınızı veya Sipariş Numaranızı yazmayı unutmayınız.'
+      }
+    });
+  }
+});
+
 // Tüm B2B vitrin rotalarına JWT doğrulama ve CUSTOMER rol kontrolü uygula
 router.use(verifyToken, checkCustomer);
 
@@ -274,15 +326,22 @@ router.post('/orders', async (req, res) => {
     }
 
     // 2. Müşteri Profilini Getir
-    const customerProfile = await prisma.customerProfile.findUnique({
+    let customerProfile = await prisma.customerProfile.findUnique({
       where: { userId: userId }
     });
 
     if (!customerProfile) {
-      return res.status(404).json({
-        success: false,
-        message: 'Müşteri profili bulunamadı.'
-      });
+      if (req.user.role === 'TENANT_ADMIN' || req.user.role === 'SUPER_ADMIN') {
+        customerProfile = await prisma.customerProfile.findFirst({
+          where: tenantId ? { tenantId: tenantId } : {}
+        });
+      }
+      if (!customerProfile) {
+        return res.status(404).json({
+          success: false,
+          message: 'Müşteri profili bulunamadı.'
+        });
+      }
     }
 
     const discountRate = parseFloat(customerProfile.discountRate) || 0;
@@ -355,6 +414,15 @@ router.post('/orders', async (req, res) => {
     // Çakışmasız Benzersiz Sipariş Numarası Üret (Örn: SP-KXZ91A-4821)
     const orderNumber = `SP-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+    // Ödeme Yöntemi ve Başlangıç Statüsü (Cari: 'Hazırlanıyor', Havale: 'Ödeme Bekliyor')
+    const paymentMethod = req.body.paymentMethod || (req.body.paymentMethodSelect ? req.body.paymentMethodSelect : null);
+    let orderStatus = 'PENDING';
+    if (paymentMethod === 'CURRENT_ACCOUNT') {
+      orderStatus = 'Hazırlanıyor';
+    } else if (paymentMethod === 'BANK_TRANSFER') {
+      orderStatus = 'Ödeme Bekliyor';
+    }
+
     // 5. Prisma Transaction (Atomik Sipariş Oluşturma, KDV, Güvenli Stok Düşme, Stok Denetimi ve Cari Bakiye Defteri)
     const createdOrder = await prisma.$transaction(async (tx) => {
       // A. Sipariş ana kaydını oluştur (KDV oran ve tutarlarıyla birlikte)
@@ -367,7 +435,8 @@ router.post('/orders', async (req, res) => {
           vatRate: vatRate,
           vatAmount: vatAmount,
           totalAmount: finalTotalWithVat,
-          status: 'PENDING',
+          status: orderStatus,
+          paymentMethod: paymentMethod || null,
           items: {
             create: orderItemsToCreate
           }

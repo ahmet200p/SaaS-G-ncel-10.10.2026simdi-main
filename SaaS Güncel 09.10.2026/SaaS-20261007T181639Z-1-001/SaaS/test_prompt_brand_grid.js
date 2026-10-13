@@ -90,6 +90,28 @@ assert(htmlContent.includes('clearFilters'), 'Tüm markalar / filtre sıfırlama
 
 console.log('  ✅ [PASS] 4. Adım: JavaScript allProductsData filtreleme, click dinleyicisi ve Tüm Markalar sıfırlama eksiksiz.');
 
+// ----------------------------------------------------------------------------
+// 5. ADIM: BAYİ PANELİ (bayi.html) ARAÇ MARKASI DROPDOWN GÜNCELLEMESİ
+// ----------------------------------------------------------------------------
+console.log('--- 5. ADIM: bayi.html Araç Markası Dropdown Listesi Testi ---');
+const bayiHtmlPath = path.join(__dirname, 'bayi.html');
+assert(fs.existsSync(bayiHtmlPath), 'bayi.html dosyası mevcut olmalıdır');
+const bayiHtmlContent = fs.readFileSync(bayiHtmlPath, 'utf8');
+
+assert(bayiHtmlContent.includes('id="prod-brand"') && bayiHtmlContent.includes('name="vehicleBrand"'), 'bayi.html içinde Araç Markası (<select name="vehicleBrand"> / id="prod-brand") bulunmalıdır');
+assert(bayiHtmlContent.includes('modal-add-product'), 'bayi.html ürün ekleme modalı/formu modal-add-product referansı içermelidir');
+assert(bayiHtmlContent.includes('Seçiniz') && bayiHtmlContent.includes('disabled'), 'Dropdown içinde varsayılan/disabled Seçiniz seçeneği olmalıdır');
+assert(bayiHtmlContent.includes('Universal (Tüm Markalara Uyumlu / Ortak Parça)'), 'Dropdown içinde Universal seçeneği olmalıdır');
+
+requiredBrands.forEach(b => {
+  assert(
+    bayiHtmlContent.includes(`<option value="${b}">${b}</option>`),
+    `bayi.html dropdown listesinde <option value="${b}">${b}</option> bulunmalıdır`
+  );
+});
+
+console.log('  ✅ [PASS] 5. Adım: bayi.html Araç Markası dropdown seçenekleri (Seçiniz, Universal ve 20 marka) eksiksiz güncellendi.');
+
 console.log('\n====================================================');
 console.log('🎉 PROMPT.MD ARAÇ MARKALARI TÜM GEREKSİNİMLERİ 100% BAŞARILI!');
 console.log('====================================================\n');

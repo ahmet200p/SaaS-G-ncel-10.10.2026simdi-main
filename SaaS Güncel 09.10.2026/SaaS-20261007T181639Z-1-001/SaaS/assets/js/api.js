@@ -1270,6 +1270,21 @@
       };
     }
 
+    // 9.3. GET /store/bank-info
+    if (cleanEndpoint === '/store/bank-info' && method === 'GET') {
+      const bankData = (store.tenant && store.tenant.bankInfo) || {
+        bankName: 'Ziraat Bankası',
+        accountHolder: (store.tenant && store.tenant.name) || 'Ahmet Oto Otomotiv Ltd. Şti.',
+        iban: 'TR33 0001 0001 2345 6789 0000 01',
+        branch: 'Merkez Şube',
+        instructions: 'Havale / EFT açıklama kısmına firma adınızı veya sipariş numaranızı yazınız.'
+      };
+      return {
+        success: true,
+        data: bankData
+      };
+    }
+
     // 10. POST /store/orders
     if (cleanEndpoint === '/store/orders' && method === 'POST') {
       const orderNumber = `SP-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -1373,16 +1388,25 @@
       const vatAmount = parseFloat((subtotal * 0.20).toFixed(2));
       const totalAmount = parseFloat((subtotal + vatAmount).toFixed(2));
 
+      const paymentMethod = body.paymentMethod || null;
+      let orderStatus = 'PENDING';
+      if (paymentMethod === 'CURRENT_ACCOUNT') {
+        orderStatus = 'Hazırlanıyor';
+      } else if (paymentMethod === 'BANK_TRANSFER') {
+        orderStatus = 'Ödeme Bekliyor';
+      }
+
       const newOrder = {
         id: `ord-${Date.now().toString(36)}`,
         orderNumber: orderNumber,
         tenantId: 'tenant-ahmet-oto',
         customerId: firstCust ? firstCust.id : 'cust-kemal-usta',
+        paymentMethod: paymentMethod,
         subtotal: subtotal,
         vatRate: 20.00,
         vatAmount: vatAmount,
         totalAmount: totalAmount,
-        status: 'PENDING',
+        status: orderStatus,
         items: orderItems,
         createdAt: new Date().toISOString()
       };

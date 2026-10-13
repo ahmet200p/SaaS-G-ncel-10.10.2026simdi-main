@@ -1231,7 +1231,7 @@ router.patch('/orders/:id/status', async (req, res) => {
     const orderId = req.params.id;
     const { status } = req.body;
 
-    const validStatuses = ['PENDING', 'APPROVED', 'SHIPPED'];
+    const validStatuses = ['PENDING', 'APPROVED', 'SHIPPED', 'Hazırlanıyor', 'Ödeme Bekliyor'];
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,

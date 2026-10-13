@@ -763,6 +763,115 @@
   </div>
 
   <!-- ==========================================================================
+       1. ADIM: 'ÖDEME YÖNTEMİ' MODALI (modal-payment-method)
+       ========================================================================== -->
+  <div class="auth-modal-backdrop modal-payment-method" id="modal-payment-method" style="display: none;" onclick="closePaymentMethodModal()">
+    <div class="auth-modal-card payment-method-modal-card" style="max-width: 520px; width: 95%;" onclick="event.stopPropagation()">
+      <div class="auth-modal-header" style="border-bottom: 1px solid var(--border-light); padding-bottom: 14px;">
+        <div class="auth-modal-title-col">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 1.3rem;">💳</span>
+            <h3 class="auth-modal-title">Ödeme Yöntemi</h3>
+          </div>
+          <span class="auth-modal-subtitle">Siparişinizi tamamlamak için tercih ettiğiniz ödeme yöntemini seçin.</span>
+        </div>
+        <button type="button" class="btn-auth-modal-close" id="btn-close-payment-method-modal" onclick="closePaymentMethodModal()" aria-label="Kapat">✕</button>
+      </div>
+
+      <div class="auth-modal-body" style="padding: 20px 24px;">
+        <!-- Toplam Sipariş Tutarı Kutusu -->
+        <div class="payment-order-summary-box" style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 16px; margin-bottom: 18px;">
+          <div>
+            <span style="font-size: 0.85rem; color: #64748b; display: block;">Ödenecek Toplam Tutar</span>
+            <span style="font-size: 0.8rem; color: #16a34a; font-weight: 600;">%20 KDV Dahil</span>
+          </div>
+          <div style="font-size: 1.25rem; font-weight: 800; color: #0f172a;" id="payment-modal-grand-total">
+            0,00 ₺
+          </div>
+        </div>
+
+        <!-- 3 Farklı Ödeme Seçeneği (Kutu / Kart Şeklinde) -->
+        <div class="payment-methods-list" style="display: flex; flex-direction: column; gap: 12px;">
+
+          <!-- 1. Seçenek (Aktif): 'Cari Hesaba Yaz (Veresiye)' -->
+          <label class="payment-method-card active-method" id="card-method-current" onclick="selectPaymentMethodOption('CURRENT_ACCOUNT')" style="cursor: pointer; display: flex; align-items: flex-start; gap: 14px; padding: 16px; border: 2px solid #f97316; border-radius: 12px; background: #fffaf5; transition: all 0.2s ease;">
+            <input type="radio" name="paymentMethodSelect" value="CURRENT_ACCOUNT" id="radio-method-current" checked style="margin-top: 4px; accent-color: #f97316; width: 18px; height: 18px; cursor: pointer;">
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                <span style="font-weight: 700; font-size: 0.98rem; color: #0f172a;">Cari Hesaba Yaz (Veresiye)</span>
+                <span class="badge-b2b" style="background: #ffedd5; color: #ea580c; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 6px;">B2B Cari</span>
+              </div>
+              <p style="margin: 0; font-size: 0.85rem; color: #64748b; line-height: 1.4;">
+                Sipariş tutarı cari hesabınıza borç olarak yansıtılacaktır.
+              </p>
+            </div>
+          </label>
+
+          <!-- 2. Seçenek (Aktif): 'Havale / EFT ile Öde' -->
+          <label class="payment-method-card" id="card-method-bank" onclick="selectPaymentMethodOption('BANK_TRANSFER')" style="cursor: pointer; display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 2px solid #e2e8f0; border-radius: 12px; background: #ffffff; transition: all 0.2s ease;">
+            <div style="display: flex; align-items: flex-start; gap: 14px; width: 100%;">
+              <input type="radio" name="paymentMethodSelect" value="BANK_TRANSFER" id="radio-method-bank" style="margin-top: 4px; accent-color: #f97316; width: 18px; height: 18px; cursor: pointer;">
+              <div style="flex: 1;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                  <span style="font-weight: 700; font-size: 0.98rem; color: #0f172a;">Havale / EFT ile Öde</span>
+                  <span class="badge-bank" style="background: #e0f2fe; color: #0284c7; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 6px;">Banka Havalesi</span>
+                </div>
+                <p style="margin: 0; font-size: 0.85rem; color: #64748b; line-height: 1.4;">
+                  Ödemeyi banka hesabımıza gönderdiğinizde siparişiniz onaylanacaktır.
+                </p>
+              </div>
+            </div>
+
+            <!-- Dinamik IBAN Bilgileri Kutusu -->
+            <div id="bank-transfer-details" style="display: none; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px 14px; margin-top: 4px; font-size: 0.85rem;">
+              <div style="font-weight: 700; color: #1e293b; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                <span>🏛️</span>
+                <span id="bank-info-name">Ziraat Bankası</span>
+              </div>
+              <div style="color: #475569; margin-bottom: 4px;">
+                <strong>Alıcı:</strong> <span id="bank-info-holder">Ahmet Oto Otomotiv Ltd. Şti.</span>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; background: #ffffff; border: 1px solid #e2e8f0; padding: 6px 10px; border-radius: 6px; margin: 6px 0;">
+                <span style="font-family: monospace; font-weight: 700; color: #0f172a; font-size: 0.9rem;" id="bank-info-iban">TR33 0001 0001 2345 6789 0000 01</span>
+                <button type="button" class="btn-copy-iban" onclick="copyIbanText(event)" style="background: none; border: none; color: #f97316; font-weight: 700; font-size: 0.78rem; cursor: pointer; padding: 2px 6px;">Kopyala</button>
+              </div>
+              <div style="font-size: 0.78rem; color: #64748b; margin-top: 4px;">
+                ℹ️ Açıklama kısmına firma adınızı veya sipariş numaranızı yazınız.
+              </div>
+            </div>
+          </label>
+
+          <!-- 3. Seçenek (Pasif/Disabled): 'Kredi Kartı ile Öde' -->
+          <div class="payment-method-card disabled-method" id="card-method-card" style="opacity: 0.6; cursor: not-allowed; display: flex; align-items: flex-start; gap: 14px; padding: 16px; border: 2px solid #e2e8f0; border-radius: 12px; background: #f8fafc; user-select: none;">
+            <input type="radio" name="paymentMethodSelect" value="CREDIT_CARD" id="radio-method-card" disabled style="margin-top: 4px; width: 18px; height: 18px; cursor: not-allowed;">
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                <span style="font-weight: 700; font-size: 0.98rem; color: #64748b;">Kredi Kartı ile Öde</span>
+                <span class="badge-coming-soon" style="background: #e2e8f0; color: #64748b; border: 1px solid #cbd5e1; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 6px;">Çok Yakında</span>
+              </div>
+              <p style="margin: 0; font-size: 0.85rem; color: #94a3b8; line-height: 1.4;">
+                Online kredi kartı ile güvenli ödeme altyapısı.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="auth-modal-footer" style="padding: 16px 24px; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 10px; background: #ffffff; border-radius: 0 0 16px 16px;">
+        <button type="button" class="btn-cancel" onclick="closePaymentMethodModal()" style="padding: 10px 18px; border-radius: 8px; border: 1px solid #cbd5e1; background: #ffffff; color: #475569; font-weight: 600; cursor: pointer;">
+          Vazgeç
+        </button>
+        <button type="button" class="btn-complete-order" id="btn-complete-order" onclick="completeOrderWithPaymentMethod()" style="padding: 10px 24px; border-radius: 8px; border: none; background: #f97316; color: #ffffff; font-weight: 700; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);">
+          <span>Siparişi Tamamla</span>
+          <span>→</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==========================================================================
        2. ADIM: 'SİPARİŞLERİM' MODALI (modal-my-orders)
        ========================================================================== -->
   <div class="auth-modal-backdrop" id="modal-my-orders" onclick="closeMyOrdersModal()">
@@ -1155,7 +1264,7 @@
         const b = currentBrand.toLowerCase().trim();
         filtered = filtered.filter(p => {
           const brand = (p.vehicleBrand || '').toLowerCase().trim();
-          return brand === b || brand.includes(b) || b.includes(brand);
+          return brand === b || brand.includes(b) || b.includes(brand) || brand.includes('universal');
         });
       }
 
@@ -1815,23 +1924,178 @@
     }
 
     // --------------------------------------------------------------------------
-    // 9. SİPARİŞİ ONAYLA BUTONU (STEP 4: POST /api/store/orders & SWEETALERT2)
+    // 9. ÖDEME YÖNTEMİ MODALI & SİPARİŞİ TAMAMLA (PROMPT: STEP 1, STEP 2, STEP 3)
     // --------------------------------------------------------------------------
-    async function submitStoreOrder() {
+    let selectedPaymentMethod = 'CURRENT_ACCOUNT';
+
+    function openPaymentMethodModal() {
       if (cart.length === 0) {
         showToast('Sepetiniz boş! Lütfen önce parça ekleyiniz.', 'warning');
         return;
       }
 
-      const btnSubmit = document.getElementById('btn-submit-order');
-      btnSubmit.disabled = true;
-      btnSubmit.innerHTML = `
-        <div style="display:inline-block; width:18px; height:18px; border:2.5px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite;"></div>
-        <span>Sipariş İletiliyor...</span>
-      `;
+      if (!isLoggedIn()) {
+        openLoginModal();
+        showToast('Sipariş vermek için lütfen önce giriş yapınız.', 'warning');
+        return;
+      }
+
+      // Sepet çekmecesindeki toplam tutarı hesapla ve modal kutusuna yansıt (%20 KDV dahil)
+      const totalSubtotal = cart.reduce((acc, item) => acc + ((Number(item.discountedPrice) || 0) * (Number(item.qty) || 1)), 0);
+      const vatAmount = parseFloat((totalSubtotal * 0.20).toFixed(2));
+      const grandTotal = parseFloat((totalSubtotal + vatAmount).toFixed(2));
+      const grandTotalEl = document.getElementById('payment-modal-grand-total');
+      if (grandTotalEl) {
+        grandTotalEl.textContent = grandTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+      }
+
+      // Varsayılan olarak Cari Hesaba Yaz seçeneğini aktif et
+      selectPaymentMethodOption('CURRENT_ACCOUNT');
+
+      // Bayinin dinamik banka ve IBAN bilgilerini çek
+      loadDealerBankInfo();
+
+      const modal = document.getElementById('modal-payment-method');
+      if (modal) {
+        modal.classList.add('active');
+        modal.classList.add('open');
+        modal.style.display = 'flex';
+        modal.style.opacity = '1';
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function closePaymentMethodModal() {
+      const modal = document.getElementById('modal-payment-method');
+      if (modal) {
+        modal.classList.remove('active');
+        modal.classList.remove('open');
+        modal.style.display = 'none';
+        modal.style.opacity = '0';
+        document.body.style.overflow = '';
+      }
+    }
+
+    async function loadDealerBankInfo() {
+      try {
+        const res = await apiFetch('/store/bank-info');
+        if (res && res.success && res.data) {
+          const info = res.data;
+          const nameEl = document.getElementById('bank-info-name');
+          const holderEl = document.getElementById('bank-info-holder');
+          const ibanEl = document.getElementById('bank-info-iban');
+          if (nameEl && info.bankName) nameEl.textContent = info.bankName;
+          if (holderEl && info.accountHolder) holderEl.textContent = info.accountHolder;
+          if (ibanEl && info.iban) ibanEl.textContent = info.iban;
+        }
+      } catch (err) {
+        console.warn('[LOAD_DEALER_BANK_INFO_WARN]:', err);
+      }
+    }
+
+    function selectPaymentMethodOption(method) {
+      if (method === 'CREDIT_CARD') {
+        // Pasif / Disabled seçenek
+        return;
+      }
+
+      selectedPaymentMethod = method;
+
+      const cardCurrent = document.getElementById('card-method-current');
+      const cardBank = document.getElementById('card-method-bank');
+      const radioCurrent = document.getElementById('radio-method-current');
+      const radioBank = document.getElementById('radio-method-bank');
+      const bankDetails = document.getElementById('bank-transfer-details');
+
+      if (method === 'CURRENT_ACCOUNT') {
+        if (radioCurrent) radioCurrent.checked = true;
+        if (radioBank) radioBank.checked = false;
+
+        if (cardCurrent) {
+          cardCurrent.classList.add('active-method');
+          cardCurrent.style.borderColor = '#f97316';
+          cardCurrent.style.background = '#fffaf5';
+        }
+        if (cardBank) {
+          cardBank.classList.remove('active-method');
+          cardBank.style.borderColor = '#e2e8f0';
+          cardBank.style.background = '#ffffff';
+        }
+        if (bankDetails) {
+          bankDetails.style.display = 'none';
+        }
+      } else if (method === 'BANK_TRANSFER') {
+        if (radioBank) radioBank.checked = true;
+        if (radioCurrent) radioCurrent.checked = false;
+
+        if (cardBank) {
+          cardBank.classList.add('active-method');
+          cardBank.style.borderColor = '#f97316';
+          cardBank.style.background = '#fffaf5';
+        }
+        if (cardCurrent) {
+          cardCurrent.classList.remove('active-method');
+          cardCurrent.style.borderColor = '#e2e8f0';
+          cardCurrent.style.background = '#ffffff';
+        }
+        if (bankDetails) {
+          bankDetails.style.display = 'block';
+        }
+      }
+    }
+
+    function copyIbanText(evt) {
+      if (evt && evt.stopPropagation) {
+        evt.stopPropagation();
+      }
+      const ibanEl = document.getElementById('bank-info-iban');
+      if (!ibanEl) return;
+      const ibanVal = ibanEl.textContent.trim();
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(ibanVal).then(() => {
+          showToast('IBAN başarıyla kopyalandı!', 'success');
+        }).catch(() => {
+          showToast('IBAN: ' + ibanVal, 'info');
+        });
+      } else {
+        showToast('IBAN: ' + ibanVal, 'info');
+      }
+    }
+
+    // Sepetteki 'Siparişi Onayla' butonu doğrudan sipariş vermek yerine Ödeme Yöntemi Modalını açar
+    function submitStoreOrder() {
+      if (cart.length === 0) {
+        showToast('Sepetiniz boş! Lütfen önce parça ekleyiniz.', 'warning');
+        return;
+      }
+      if (!isLoggedIn()) {
+        openLoginModal();
+        showToast('Sipariş vermek için lütfen önce giriş yapınız.', 'warning');
+        return;
+      }
+      openPaymentMethodModal();
+    }
+
+    // Modal içindeki 'Siparişi Tamamla' butonuna basıldığında çalışan ana işlev
+    async function completeOrderWithPaymentMethod() {
+      if (cart.length === 0) {
+        showToast('Sepetiniz boş! Lütfen önce parça ekleyiniz.', 'warning');
+        closePaymentMethodModal();
+        return;
+      }
+
+      const btnComplete = document.getElementById('btn-complete-order');
+      if (btnComplete) {
+        btnComplete.disabled = true;
+        btnComplete.innerHTML = `
+          <div style="display:inline-block; width:18px; height:18px; border:2.5px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite;"></div>
+          <span>Sipariş Tamamlanıyor...</span>
+        `;
+      }
 
       try {
-        // Sepet verisini JSON formatına dönüştür (Genişletilmiş ve güvenli parça bilgileri)
+        // Sepet verisini JSON formatına dönüştür
         const payloadItems = cart.map(item => ({
           tenantProductId: item.tenantProductId,
           productId: item.productId,
@@ -1846,21 +2110,30 @@
 
         const res = await apiFetch('/store/orders', {
           method: 'POST',
-          body: { items: payloadItems }
+          body: {
+            paymentMethod: selectedPaymentMethod,
+            items: payloadItems
+          }
         });
 
         if (res && res.success) {
           const orderNum = (res.data && res.data.orderNumber) ? res.data.orderNumber : 'SP-' + Math.floor(100000 + Math.random() * 900000);
 
-          // Sepeti Boşalt
+          // Sepeti Boşalt (0'la)
           cart = [];
           saveCartToStorage();
           renderCartDrawer();
 
-          // Çekmeceyi Kapat
+          // Modalleri Kapat
+          closePaymentMethodModal();
           closeCartDrawer();
 
-          // SweetAlert2 Bildirimi Göster (Step 4 Şartı)
+          // Bilgilendirme Mesajı Metni (Ödeme Yöntemine Göre)
+          const methodDesc = selectedPaymentMethod === 'BANK_TRANSFER'
+            ? 'Havale / EFT transferiniz bayi tarafından incelenip onaylandığında parçalarınız sevkiyata çıkarılacaktır.'
+            : 'Sipariş tutarı cari hesabınıza borç olarak yansıtıldı ve siparişiniz hazırlanıyor.';
+
+          // SweetAlert2 Bildirimi Göster (Step 3 Şartı)
           if (typeof Swal !== 'undefined') {
             await Swal.fire({
               icon: 'success',
@@ -1871,20 +2144,23 @@
                   Sipariş Numaranız: <strong style="color: #0f172a; font-family: monospace; font-size: 16px;">#${orderNum}</strong>
                 </div>
                 <div style="font-size: 13px; color: #16a34a; margin-top: 10px; font-weight: 600;">
-                  Bayi onayının ardından parçalarınız hazırlanıp sevkiyata çıkarılacaktır.
+                  ${methodDesc}
                 </div>
               `,
-              confirmButtonText: 'Kataloğa Dön',
-              confirmButtonColor: '#16a34a',
+              confirmButtonText: 'Siparişlerime Git',
+              confirmButtonColor: '#f97316',
               allowOutsideClick: false
             });
           } else {
-            alert('Siparişiniz bayiye başarıyla iletildi! Sipariş No: #' + orderNum);
+            alert('Siparişiniz başarıyla iletildi! Sipariş No: #' + orderNum);
           }
 
           // Profili ve Ürünleri Güncelle
           await loadProfile();
           await loadProducts();
+
+          // 3. ADIM Şartı: Kullanıcıyı Profil > Siparişlerim sekmesine yönlendir / Siparişlerim modalını aç
+          openMyOrdersModal();
 
         } else {
           const errMsg = res && res.message ? res.message : 'Sipariş oluşturulamadı.';
@@ -1914,15 +2190,23 @@
           alert('Sipariş hatası: ' + err.message);
         }
       } finally {
-        btnSubmit.disabled = false;
-        btnSubmit.innerHTML = `
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-          <span>Siparişi Onayla</span>
-        `;
+        if (btnComplete) {
+          btnComplete.disabled = false;
+          btnComplete.innerHTML = `
+            <span>Siparişi Tamamla</span>
+            <span>→</span>
+          `;
+        }
       }
     }
+
+    // Window scope bindings (Inline HTML onclick için)
+    window.openPaymentMethodModal = openPaymentMethodModal;
+    window.closePaymentMethodModal = closePaymentMethodModal;
+    window.selectPaymentMethodOption = selectPaymentMethodOption;
+    window.copyIbanText = copyIbanText;
+    window.completeOrderWithPaymentMethod = completeOrderWithPaymentMethod;
+    window.submitStoreOrder = submitStoreOrder;
 
     // --------------------------------------------------------------------------
     // 10. LIGHTBOX GÖRSEL MODALI
@@ -2443,6 +2727,8 @@
         let statusBadge = '';
         if (st === 'PREPARING' || st === 'HAZIRLANIYOR') {
           statusBadge = '<span class="order-status-badge preparing">📦 Hazırlanıyor</span>';
+        } else if (st.includes('ÖDEME') || st.includes('ODEME')) {
+          statusBadge = '<span class="order-status-badge pending" style="background:#fffbeb; color:#b45309; border:1px solid #fde68a;">🏦 Ödeme Bekliyor</span>';
         } else if (st === 'SHIPPED' || st === 'KARGOLANDI') {
           statusBadge = '<span class="order-status-badge shipped">🚚 Kargolandı</span>';
         } else if (st === 'DELIVERED' || st === 'TESLIM_EDILDI' || st === 'COMPLETED' || st === 'APPROVED') {

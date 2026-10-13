@@ -407,18 +407,27 @@
               style="flex: 1; min-width: 240px; max-width: 360px;">
             <select class="table-search-input" id="filter-products-brand" style="width: 180px;">
               <option value="">Tüm Markalar</option>
+              <option value="Universal">Universal (Tüm Markalara Uyumlu)</option>
               <option value="Volkswagen">Volkswagen</option>
               <option value="Renault">Renault</option>
               <option value="Fiat">Fiat</option>
               <option value="Ford">Ford</option>
               <option value="BMW">BMW</option>
-              <option value="Mercedes">Mercedes-Benz</option>
-              <option value="Audi">Audi</option>
+              <option value="Mercedes-Benz">Mercedes-Benz</option>
               <option value="Toyota">Toyota</option>
               <option value="Hyundai">Hyundai</option>
-              <option value="Dacia">Dacia</option>
-              <option value="Peugeot">Peugeot</option>
+              <option value="Audi">Audi</option>
               <option value="Opel">Opel</option>
+              <option value="Peugeot">Peugeot</option>
+              <option value="Honda">Honda</option>
+              <option value="Nissan">Nissan</option>
+              <option value="Kia">Kia</option>
+              <option value="Skoda">Skoda</option>
+              <option value="Seat">Seat</option>
+              <option value="Citroen">Citroen</option>
+              <option value="Dacia">Dacia</option>
+              <option value="Volvo">Volvo</option>
+              <option value="Chery">Chery</option>
             </select>
             <select class="table-search-input" id="filter-products-category" style="width: 180px;">
               <option value="">Tüm Kategoriler</option>
@@ -625,7 +634,7 @@
   <!-- ==========================================================================
        YENİ ÜRÜN EKLE ÇEKMECESİ: <div class="drawer-overlay" id="product-drawer">
        ========================================================================== -->
-  <div class="drawer-overlay" id="product-drawer">
+  <div class="drawer-overlay modal-add-product modal-edit-product" id="product-drawer">
     <div class="drawer-content">
 
       <!-- Drawer Başlığı: 'Yeni Ürün Ekle' -->
@@ -635,7 +644,7 @@
       </div>
 
       <!-- Form: id="form-add-product" -->
-      <form class="drawer-form" id="form-add-product">
+      <form class="drawer-form modal-add-product modal-edit-product" id="form-add-product">
         <input type="hidden" id="prod-edit-id" value="">
         <div class="drawer-body">
 
@@ -657,18 +666,27 @@
             <label class="form-label" for="prod-brand">Araç Markası</label>
             <select class="form-input" id="prod-brand" name="vehicleBrand" required>
               <option value="" disabled selected>Seçiniz</option>
+              <option value="Universal (Tüm Markalara Uyumlu / Ortak Parça)">Universal (Tüm Markalara Uyumlu / Ortak Parça)</option>
               <option value="Volkswagen">Volkswagen</option>
-              <option value="Hyundai">Hyundai</option>
               <option value="Renault">Renault</option>
               <option value="Fiat">Fiat</option>
               <option value="Ford">Ford</option>
+              <option value="BMW">BMW</option>
+              <option value="Mercedes-Benz">Mercedes-Benz</option>
               <option value="Toyota">Toyota</option>
+              <option value="Hyundai">Hyundai</option>
+              <option value="Audi">Audi</option>
               <option value="Opel">Opel</option>
               <option value="Peugeot">Peugeot</option>
-              <option value="BMW">BMW</option>
-              <option value="Mercedes">Mercedes</option>
-              <option value="Audi">Audi</option>
-              <option value="Universal (Ortak Parça)">Universal (Ortak Parça)</option>
+              <option value="Honda">Honda</option>
+              <option value="Nissan">Nissan</option>
+              <option value="Kia">Kia</option>
+              <option value="Skoda">Skoda</option>
+              <option value="Seat">Seat</option>
+              <option value="Citroen">Citroen</option>
+              <option value="Dacia">Dacia</option>
+              <option value="Volvo">Volvo</option>
+              <option value="Chery">Chery</option>
             </select>
           </div>
 
@@ -1254,20 +1272,21 @@
           let statusBadgeHtml = '';
           let actionsHtml = '';
 
-          if (order.status === 'PENDING') {
+          if (order.status === 'PENDING' || order.status === 'Ödeme Bekliyor') {
+            const isTransfer = order.status === 'Ödeme Bekliyor' || order.paymentMethod === 'BANK_TRANSFER';
             statusBadgeHtml = `
-              <span class="badge-status-yellow">
-                <span class="badge-dot-yellow"></span>
-                Yeni Sipariş
+              <span class="badge-status-yellow" style="${isTransfer ? 'background: #fffbeb; color: #b45309; border: 1px solid #fde68a;' : ''}">
+                <span class="badge-dot-yellow" style="${isTransfer ? 'background: #d97706;' : ''}"></span>
+                ${isTransfer ? 'Ödeme Bekliyor' : 'Yeni Sipariş'}
               </span>
             `;
             actionsHtml = `
               <div class="table-actions">
-                <button type="button" class="btn-approve" onclick="approveOrder('${order.id}', '${orderNum}')">Siparişi Onayla</button>
+                <button type="button" class="btn-approve" onclick="approveOrder('${order.id}', '${orderNum}')">${isTransfer ? 'Ödemeyi Onayla' : 'Siparişi Onayla'}</button>
                 <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
               </div>
             `;
-          } else if (order.status === 'APPROVED') {
+          } else if (order.status === 'APPROVED' || order.status === 'Hazırlanıyor') {
             statusBadgeHtml = `
               <span class="badge-status-green" style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd;">
                 <span class="badge-dot-green" style="background: #0284c7;"></span>
@@ -1455,20 +1474,21 @@
               let statusBadgeHtml = '';
               let actionsHtml = '';
 
-              if (order.status === 'PENDING') {
+              if (order.status === 'PENDING' || order.status === 'Ödeme Bekliyor') {
+                const isTransfer = order.status === 'Ödeme Bekliyor' || order.paymentMethod === 'BANK_TRANSFER';
                 statusBadgeHtml = `
-                  <span class="badge-status-yellow">
-                    <span class="badge-dot-yellow"></span>
-                    Yeni Sipariş
+                  <span class="badge-status-yellow" style="${isTransfer ? 'background: #fffbeb; color: #b45309; border: 1px solid #fde68a;' : ''}">
+                    <span class="badge-dot-yellow" style="${isTransfer ? 'background: #d97706;' : ''}"></span>
+                    ${isTransfer ? 'Ödeme Bekliyor' : 'Yeni Sipariş'}
                   </span>
                 `;
                 actionsHtml = `
                   <div class="table-actions">
-                    <button type="button" class="btn-approve" onclick="approveOrder('${order.id}', '${orderNum}')">Siparişi Onayla</button>
+                    <button type="button" class="btn-approve" onclick="approveOrder('${order.id}', '${orderNum}')">${isTransfer ? 'Ödemeyi Onayla' : 'Siparişi Onayla'}</button>
                     <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
                   </div>
                 `;
-              } else if (order.status === 'APPROVED') {
+              } else if (order.status === 'APPROVED' || order.status === 'Hazırlanıyor') {
                 statusBadgeHtml = `
                   <span class="badge-status-green" style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd;">
                     <span class="badge-dot-green" style="background: #0284c7;"></span>
