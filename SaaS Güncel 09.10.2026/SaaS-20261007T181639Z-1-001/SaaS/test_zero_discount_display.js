@@ -87,7 +87,7 @@ async function runTest() {
   // hasActiveDiscount tanımı
   assert(storeHtml.includes('const hasActiveDiscount = customerDiscountRate > 0 && discountAmount > 0.001 && discountedPrice < listPrice;'),
     'hasActiveDiscount kuralı tanımlı olmalı');
-  assert(storeHtml.includes('${hasActiveDiscount ? `'),
+  assert(storeHtml.includes('${hasActiveDiscount ? `' /* } */),
     'İskonto rozeti ve üstü çizili fiyat SADECE hasActiveDiscount true iken basılmalı');
   console.log('  ✅ [PASS] store.html içindeki hasActiveDiscount mantığı doğrulandı.\n');
 

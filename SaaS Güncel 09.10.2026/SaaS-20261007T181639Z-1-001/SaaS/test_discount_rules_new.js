@@ -56,7 +56,7 @@ async function run() {
 
   // 4. ADIM: SweetAlert2 ve JS Fonksiyon Doğrulamaları
   assert(bayiHtml.includes('Swal.fire') && bayiHtml.includes('Bu iskonto kuralını veritabanından kalıcı olarak silmek üzeresiniz!'), '4. ADIM: deleteDiscountRule içinde SweetAlert2 onayı mevcut');
-  assert(bayiHtml.includes("fetch(`/api/tenant/discounts/${id}`") || bayiHtml.includes("fetch('/api/tenant/discounts/' + id"), '4. ADIM: deleteDiscountRule içinde DELETE isteği tanımlı');
+  assert(bayiHtml.includes("fetch(`/api/tenant/discounts/${id}`") /* ) */ || bayiHtml.includes("fetch('/api/tenant/discounts/' + id") /* ) */, '4. ADIM: deleteDiscountRule içinde DELETE isteği tanımlı');
 
   // 2. CSS Kontrolleri
   console.log('\n--- 2. CSS Tasarım ve Grid Kuralları Kontrolleri ---');

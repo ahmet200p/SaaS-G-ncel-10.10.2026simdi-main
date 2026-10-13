@@ -47,6 +47,11 @@ async function runTests() {
   });
 
   try {
+    let custCheck = await prisma.user.findUnique({ where: { email: 'kemal@kemaloto.com' } });
+    if (!custCheck) {
+      require('child_process').execSync('node prisma/seed.js', { stdio: 'ignore' });
+    }
+
     // 1. Müşteri (CUSTOMER) Giriş Denemesi
     console.log('\n--- 1. POST /api/auth/login ile Müşteri Girişi ---');
     const loginRes = await runHttp({

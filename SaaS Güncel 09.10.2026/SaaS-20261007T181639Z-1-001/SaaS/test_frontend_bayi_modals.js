@@ -70,7 +70,7 @@ async function runTests() {
 
   // 3. ADIM: Frontend SweetAlert2 Onayı ve Silme Fonksiyonu
   assert(bayiHtml.includes('Bu müşteriyi ve tüm bakiyesini/verilerini kalıcı olarak silmek üzeresiniz!'), '3. ADIM: SweetAlert2 detaylı onay mesajı mevcut');
-  assert(bayiHtml.includes("fetch(`/api/tenant/customers/${id}`"), '3. ADIM: deleteCustomer içinde fetch DELETE çağrısı mevcut');
+  assert(bayiHtml.includes("fetch(`/api/tenant/customers/${id}`") /* ) */, '3. ADIM: deleteCustomer içinde fetch DELETE çağrısı mevcut');
 
   // 4. ADIM: Tablo satır içi butonlar ve çift teyitli silme kontrolleri
   assert(bayiHtml.includes('>Tahsilat Gir</button>'), 'Tabloda "Tahsilat Gir" butonu mevcut');
@@ -80,7 +80,7 @@ async function runTests() {
 
   // 3. ADIM: SweetAlert2 ve confirm() Kullanılmadığı Kontrolleri
   assert(bayiHtml.includes('sweetalert2'), '3. ADIM: SweetAlert2 kütüphanesi bayi.html içinde dahil edilmiş');
-  assert(!bayiHtml.includes('confirm('), '3. ADIM: Tarayıcının default confirm() fonksiyonu tamamen kaldırıldı');
+  assert(!bayiHtml.includes('confirm(') /* ) */, '3. ADIM: Tarayıcının default confirm() fonksiyonu tamamen kaldırıldı');
   assert(bayiHtml.includes('Bu müşteriyi silmek üzeresiniz'), '3. ADIM: 1. Aşama silme onayı metni mevcut');
   assert(bayiHtml.includes('Son Uyarı! Müşterinin tüm bakiye ve sipariş verileri kalıcı olarak silinecektir'), '3. ADIM: 2. Aşama silme onayı metni mevcut');
 

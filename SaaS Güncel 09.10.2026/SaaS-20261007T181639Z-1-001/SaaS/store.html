@@ -242,147 +242,175 @@
         <span class="brand-section-hint">Tıklayarak doğrudan markaya ait parçaları listeleyin</span>
       </div>
 
-      <!-- Marka Kutuları Izgarası -->
+      <!-- Marka Kutuları Izgarası (Prompt.md: 20 Popüler Marka + Tüm Markalar) -->
       <div class="brands-grid-wrap" id="brands-grid-wrap">
         
-        <!-- Tümü (Varsayılan Seçili) -->
-        <div class="brand-card-box active" data-brand="ALL" onclick="handleBrandClick('ALL', this)">
+        <!-- Tüm Markalar (Varsayılan Seçili) -->
+        <div class="brand-card-box active" data-brand="ALL" onclick="handleBrandClick('ALL', this)" role="button" tabindex="0">
           <div class="brand-logo-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="2" y1="12" x2="22" y2="12"></line>
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-            </svg>
+            <img src="assets/logos/all-brands.svg" alt="Tüm Markalar" class="brand-logo-img" width="34" height="34">
           </div>
           <span class="brand-name-label">Tüm Markalar</span>
         </div>
 
         <!-- Volkswagen -->
-        <div class="brand-card-box" data-brand="Volkswagen" onclick="handleBrandClick('Volkswagen', this)">
+        <div class="brand-card-box" data-brand="Volkswagen" onclick="handleBrandClick('Volkswagen', this)" role="button" tabindex="0">
           <div class="brand-logo-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="M7 8l5 9 5-9"></path>
-              <path d="M9.5 8l2.5 4.5 2.5-4.5"></path>
-            </svg>
+            <img src="https://cdn.worldvectorlogo.com/logos/volkswagen-3.svg" onerror="this.onerror=null; this.src='assets/logos/volkswagen.svg'" alt="Volkswagen" class="brand-logo-img" width="34" height="34" loading="lazy">
           </div>
           <span class="brand-name-label">Volkswagen</span>
         </div>
 
         <!-- Renault -->
-        <div class="brand-card-box" data-brand="Renault" onclick="handleBrandClick('Renault', this)">
+        <div class="brand-card-box" data-brand="Renault" onclick="handleBrandClick('Renault', this)" role="button" tabindex="0">
           <div class="brand-logo-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="12 2 20 12 12 22 4 12"></polygon>
-              <polygon points="12 6 16 12 12 18 8 12"></polygon>
-            </svg>
+            <img src="https://cdn.worldvectorlogo.com/logos/renault-12.svg" onerror="this.onerror=null; this.src='assets/logos/renault.svg'" alt="Renault" class="brand-logo-img" width="34" height="34" loading="lazy">
           </div>
           <span class="brand-name-label">Renault</span>
         </div>
 
         <!-- Fiat -->
-        <div class="brand-card-box" data-brand="Fiat" onclick="handleBrandClick('Fiat', this)">
+        <div class="brand-card-box" data-brand="Fiat" onclick="handleBrandClick('Fiat', this)" role="button" tabindex="0">
           <div class="brand-logo-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="4" y="6" width="16" height="12" rx="3"></rect>
-              <path d="M8 10h4M8 14h2"></path>
-            </svg>
+            <img src="https://cdn.worldvectorlogo.com/logos/fiat-3.svg" onerror="this.onerror=null; this.src='assets/logos/fiat.svg'" alt="Fiat" class="brand-logo-img" width="34" height="34" loading="lazy">
           </div>
           <span class="brand-name-label">Fiat</span>
         </div>
 
         <!-- Ford -->
-        <div class="brand-card-box" data-brand="Ford" onclick="handleBrandClick('Ford', this)">
+        <div class="brand-card-box" data-brand="Ford" onclick="handleBrandClick('Ford', this)" role="button" tabindex="0">
           <div class="brand-logo-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <ellipse cx="12" cy="12" rx="10" ry="6"></ellipse>
-              <path d="M9 12h6"></path>
-            </svg>
+            <img src="https://cdn.worldvectorlogo.com/logos/ford-1.svg" onerror="this.onerror=null; this.src='assets/logos/ford.svg'" alt="Ford" class="brand-logo-img" width="34" height="34" loading="lazy">
           </div>
           <span class="brand-name-label">Ford</span>
         </div>
 
         <!-- BMW -->
-        <div class="brand-card-box" data-brand="BMW" onclick="handleBrandClick('BMW', this)">
+        <div class="brand-card-box" data-brand="BMW" onclick="handleBrandClick('BMW', this)" role="button" tabindex="0">
           <div class="brand-logo-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="2" x2="12" y2="22"></line>
-              <line x1="2" y1="12" x2="22" y2="12"></line>
-            </svg>
+            <img src="https://cdn.worldvectorlogo.com/logos/bmw-logo-2020-.svg" onerror="this.onerror=null; this.src='assets/logos/bmw.svg'" alt="BMW" class="brand-logo-img" width="34" height="34" loading="lazy">
           </div>
           <span class="brand-name-label">BMW</span>
         </div>
 
         <!-- Mercedes-Benz -->
-        <div class="brand-card-box" data-brand="Mercedes-Benz" onclick="handleBrandClick('Mercedes-Benz', this)">
+        <div class="brand-card-box" data-brand="Mercedes-Benz" onclick="handleBrandClick('Mercedes-Benz', this)" role="button" tabindex="0">
           <div class="brand-logo-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="12" x2="12" y2="2"></line>
-              <line x1="12" y1="12" x2="4" y2="18"></line>
-              <line x1="12" y1="12" x2="20" y2="18"></line>
-            </svg>
+            <img src="https://cdn.worldvectorlogo.com/logos/mercedes-benz-9.svg" onerror="this.onerror=null; this.src='assets/logos/mercedes-benz.svg'" alt="Mercedes-Benz" class="brand-logo-img" width="34" height="34" loading="lazy">
           </div>
           <span class="brand-name-label">Mercedes-Benz</span>
         </div>
 
         <!-- Toyota -->
-        <div class="brand-card-box" data-brand="Toyota" onclick="handleBrandClick('Toyota', this)">
+        <div class="brand-card-box" data-brand="Toyota" onclick="handleBrandClick('Toyota', this)" role="button" tabindex="0">
           <div class="brand-logo-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <ellipse cx="12" cy="12" rx="10" ry="7"></ellipse>
-              <ellipse cx="12" cy="10" rx="5" ry="3"></ellipse>
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-            </svg>
+            <img src="https://cdn.worldvectorlogo.com/logos/toyota-1.svg" onerror="this.onerror=null; this.src='assets/logos/toyota.svg'" alt="Toyota" class="brand-logo-img" width="34" height="34" loading="lazy">
           </div>
           <span class="brand-name-label">Toyota</span>
         </div>
 
         <!-- Hyundai -->
-        <div class="brand-card-box" data-brand="Hyundai" onclick="handleBrandClick('Hyundai', this)">
+        <div class="brand-card-box" data-brand="Hyundai" onclick="handleBrandClick('Hyundai', this)" role="button" tabindex="0">
           <div class="brand-logo-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <ellipse cx="12" cy="12" rx="10" ry="6"></ellipse>
-              <path d="M8 8l2 8M14 8l2 8M9 12h6"></path>
-            </svg>
+            <img src="https://cdn.worldvectorlogo.com/logos/hyundai-motor-company-2.svg" onerror="this.onerror=null; this.src='assets/logos/hyundai.svg'" alt="Hyundai" class="brand-logo-img" width="34" height="34" loading="lazy">
           </div>
           <span class="brand-name-label">Hyundai</span>
         </div>
 
         <!-- Audi -->
-        <div class="brand-card-box" data-brand="Audi" onclick="handleBrandClick('Audi', this)">
+        <div class="brand-card-box" data-brand="Audi" onclick="handleBrandClick('Audi', this)" role="button" tabindex="0">
           <div class="brand-logo-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="6" cy="12" r="3.5"></circle>
-              <circle cx="10" cy="12" r="3.5"></circle>
-              <circle cx="14" cy="12" r="3.5"></circle>
-              <circle cx="18" cy="12" r="3.5"></circle>
-            </svg>
+            <img src="https://cdn.worldvectorlogo.com/logos/audi-13.svg" onerror="this.onerror=null; this.src='assets/logos/audi.svg'" alt="Audi" class="brand-logo-img" width="34" height="34" loading="lazy">
           </div>
           <span class="brand-name-label">Audi</span>
         </div>
 
         <!-- Opel -->
-        <div class="brand-card-box" data-brand="Opel" onclick="handleBrandClick('Opel', this)">
+        <div class="brand-card-box" data-brand="Opel" onclick="handleBrandClick('Opel', this)" role="button" tabindex="0">
           <div class="brand-logo-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="9"></circle>
-              <polygon points="10 7 15 12 9 12 14 17 8 13 14 13"></polygon>
-            </svg>
+            <img src="https://cdn.worldvectorlogo.com/logos/opel-6.svg" onerror="this.onerror=null; this.src='assets/logos/opel.svg'" alt="Opel" class="brand-logo-img" width="34" height="34" loading="lazy">
           </div>
           <span class="brand-name-label">Opel</span>
         </div>
 
         <!-- Peugeot -->
-        <div class="brand-card-box" data-brand="Peugeot" onclick="handleBrandClick('Peugeot', this)">
+        <div class="brand-card-box" data-brand="Peugeot" onclick="handleBrandClick('Peugeot', this)" role="button" tabindex="0">
           <div class="brand-logo-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2a8 8 0 0 0-8 8c0 5 4 10 8 12 4-2 8-7 8-12a8 8 0 0 0-8-8z"></path>
-              <circle cx="12" cy="9" r="2.5"></circle>
-            </svg>
+            <img src="https://cdn.worldvectorlogo.com/logos/peugeot-2021-.svg" onerror="this.onerror=null; this.src='assets/logos/peugeot.svg'" alt="Peugeot" class="brand-logo-img" width="34" height="34" loading="lazy">
           </div>
           <span class="brand-name-label">Peugeot</span>
+        </div>
+
+        <!-- Honda -->
+        <div class="brand-card-box" data-brand="Honda" onclick="handleBrandClick('Honda', this)" role="button" tabindex="0">
+          <div class="brand-logo-icon">
+            <img src="https://cdn.worldvectorlogo.com/logos/honda-11.svg" onerror="this.onerror=null; this.src='assets/logos/honda.svg'" alt="Honda" class="brand-logo-img" width="34" height="34" loading="lazy">
+          </div>
+          <span class="brand-name-label">Honda</span>
+        </div>
+
+        <!-- Nissan -->
+        <div class="brand-card-box" data-brand="Nissan" onclick="handleBrandClick('Nissan', this)" role="button" tabindex="0">
+          <div class="brand-logo-icon">
+            <img src="https://cdn.worldvectorlogo.com/logos/nissan-6.svg" onerror="this.onerror=null; this.src='assets/logos/nissan.svg'" alt="Nissan" class="brand-logo-img" width="34" height="34" loading="lazy">
+          </div>
+          <span class="brand-name-label">Nissan</span>
+        </div>
+
+        <!-- Kia -->
+        <div class="brand-card-box" data-brand="Kia" onclick="handleBrandClick('Kia', this)" role="button" tabindex="0">
+          <div class="brand-logo-icon">
+            <img src="https://cdn.worldvectorlogo.com/logos/kia-2021-.svg" onerror="this.onerror=null; this.src='assets/logos/kia.svg'" alt="Kia" class="brand-logo-img" width="34" height="34" loading="lazy">
+          </div>
+          <span class="brand-name-label">Kia</span>
+        </div>
+
+        <!-- Skoda -->
+        <div class="brand-card-box" data-brand="Skoda" onclick="handleBrandClick('Skoda', this)" role="button" tabindex="0">
+          <div class="brand-logo-icon">
+            <img src="https://cdn.worldvectorlogo.com/logos/skoda-6.svg" onerror="this.onerror=null; this.src='assets/logos/skoda.svg'" alt="Skoda" class="brand-logo-img" width="34" height="34" loading="lazy">
+          </div>
+          <span class="brand-name-label">Skoda</span>
+        </div>
+
+        <!-- Seat -->
+        <div class="brand-card-box" data-brand="Seat" onclick="handleBrandClick('Seat', this)" role="button" tabindex="0">
+          <div class="brand-logo-icon">
+            <img src="https://cdn.worldvectorlogo.com/logos/seat-6.svg" onerror="this.onerror=null; this.src='assets/logos/seat.svg'" alt="Seat" class="brand-logo-img" width="34" height="34" loading="lazy">
+          </div>
+          <span class="brand-name-label">Seat</span>
+        </div>
+
+        <!-- Citroen -->
+        <div class="brand-card-box" data-brand="Citroen" onclick="handleBrandClick('Citroen', this)" role="button" tabindex="0">
+          <div class="brand-logo-icon">
+            <img src="https://cdn.worldvectorlogo.com/logos/citroen-2022-.svg" onerror="this.onerror=null; this.src='assets/logos/citroen.svg'" alt="Citroen" class="brand-logo-img" width="34" height="34" loading="lazy">
+          </div>
+          <span class="brand-name-label">Citroen</span>
+        </div>
+
+        <!-- Dacia -->
+        <div class="brand-card-box" data-brand="Dacia" onclick="handleBrandClick('Dacia', this)" role="button" tabindex="0">
+          <div class="brand-logo-icon">
+            <img src="https://cdn.worldvectorlogo.com/logos/dacia-2021-.svg" onerror="this.onerror=null; this.src='assets/logos/dacia.svg'" alt="Dacia" class="brand-logo-img" width="34" height="34" loading="lazy">
+          </div>
+          <span class="brand-name-label">Dacia</span>
+        </div>
+
+        <!-- Volvo -->
+        <div class="brand-card-box" data-brand="Volvo" onclick="handleBrandClick('Volvo', this)" role="button" tabindex="0">
+          <div class="brand-logo-icon">
+            <img src="https://cdn.worldvectorlogo.com/logos/volvo-iron-mark.svg" onerror="this.onerror=null; this.src='assets/logos/volvo.svg'" alt="Volvo" class="brand-logo-img" width="34" height="34" loading="lazy">
+          </div>
+          <span class="brand-name-label">Volvo</span>
+        </div>
+
+        <!-- Chery -->
+        <div class="brand-card-box" data-brand="Chery" onclick="handleBrandClick('Chery', this)" role="button" tabindex="0">
+          <div class="brand-logo-icon">
+            <img src="https://cdn.worldvectorlogo.com/logos/chery-logo.svg" onerror="this.onerror=null; this.src='assets/logos/chery.svg'" alt="Chery" class="brand-logo-img" width="34" height="34" loading="lazy">
+          </div>
+          <span class="brand-name-label">Chery</span>
         </div>
 
       </div>
@@ -896,8 +924,9 @@
        B2B VİTRİN İSTEMCİ JAVASCRIPT MANTIĞI
        ========================================================================== -->
   <script>
-    // State Yönetimi
+    // State Yönetimi (Prompt.md: allProductsData ve araç markaları filtresi)
     let allProducts = [];
+    let allProductsData = [];
     let currentBrand = 'ALL';
     let currentSearchType = 'oe';
     let currentSearchQuery = '';
@@ -907,8 +936,20 @@
     let selectedRegCustomerType = 'MECHANIC';
 
     // --------------------------------------------------------------------------
-    // KİMLİK DOĞRULAMA (AUTH) DURUM DENETİMİ
+    // KİMLİK DOĞRULAMA (AUTH) DURUM DENETİMİ & GUARD
     // --------------------------------------------------------------------------
+    function checkPageAuthGuard() {
+      // Store vitrini müşteri ve misafir erişimine açıktır; requireAuth ile oturum denetimi sağlanır
+      if (typeof requireAuth === 'function' && isLoggedIn()) {
+        try {
+          return requireAuth(['CUSTOMER', 'TENANT_ADMIN', 'SUPER_ADMIN']);
+        } catch (e) {
+          console.warn('[AUTH_GUARD_NOTICE]:', e);
+        }
+      }
+      return null;
+    }
+
     function isLoggedIn() {
       const token = localStorage.getItem('token');
       const user = localStorage.getItem('user');
@@ -1081,14 +1122,17 @@
 
         if (res && res.success && Array.isArray(res.data)) {
           allProducts = res.data;
+          allProductsData = res.data;
           renderProductTable();
         } else {
           allProducts = [];
+          allProductsData = [];
           renderProductTable();
         }
       } catch (err) {
         console.error('[LOAD_PRODUCTS_ERROR]:', err);
         allProducts = [];
+        allProductsData = [];
         renderProductTable();
       }
     }
@@ -1102,13 +1146,17 @@
       const countDisplay = document.getElementById('product-count-display');
       const tableCard = document.getElementById('partsouq-table-container');
 
-      // İstemci tarafı filtreler (stok ve arama)
-      let filtered = [...allProducts];
+      // Prompt.md 4. Adım: allProductsData dizisini vehicleBrand eşleşmesine göre filtrele
+      allProductsData = Array.isArray(allProducts) ? [...allProducts] : [];
+      let filtered = [...allProductsData];
 
-      // Marka Filtresi (Eğer client tarafında ek kontrol gerekirse)
+      // Marka Filtresi (vehicleBrand eşleşmesi)
       if (currentBrand && currentBrand !== 'ALL') {
-        const b = currentBrand.toLowerCase();
-        filtered = filtered.filter(p => (p.vehicleBrand || '').toLowerCase().includes(b));
+        const b = currentBrand.toLowerCase().trim();
+        filtered = filtered.filter(p => {
+          const brand = (p.vehicleBrand || '').toLowerCase().trim();
+          return brand === b || brand.includes(b) || b.includes(brand);
+        });
       }
 
       // Arama Filtresi
@@ -1335,29 +1383,38 @@
     }
 
     // --------------------------------------------------------------------------
-    // 6. MARKA IZGARASI TIKLAMA VE FİLTRELEME (STEP 2: BRAND GRID)
+    // 6. MARKA IZGARASI TIKLAMA VE FİLTRELEME (STEP 2 & 4: BRAND GRID FILTERING)
     // --------------------------------------------------------------------------
     function handleBrandClick(brandName, cardEl) {
-      // Aktiflik durumunu güncelle
-      document.querySelectorAll('.brand-card-box').forEach(b => b.classList.remove('active'));
-      if (cardEl) {
-        cardEl.classList.add('active');
-      }
+      const targetBrand = brandName || 'ALL';
+      currentBrand = targetBrand;
 
-      currentBrand = brandName;
+      // Aktiflik durumunu güncelle
+      document.querySelectorAll('.brand-card-box').forEach(b => {
+        const bBrand = b.getAttribute('data-brand') || b.dataset.brand;
+        if (cardEl && b === cardEl) {
+          b.classList.add('active');
+        } else if (!cardEl && bBrand === targetBrand) {
+          b.classList.add('active');
+        } else {
+          b.classList.remove('active');
+        }
+      });
 
       // Filtre göstergesi rozeti
       const activeFilterPill = document.getElementById('active-filter-indicator');
       const activeFilterLabel = document.getElementById('active-filter-label');
 
-      if (brandName === 'ALL') {
-        activeFilterPill.style.display = 'none';
+      if (targetBrand === 'ALL') {
+        if (activeFilterPill) activeFilterPill.style.display = 'none';
       } else {
-        activeFilterLabel.textContent = `Marka: ${brandName}`;
-        activeFilterPill.style.display = 'inline-flex';
+        if (activeFilterLabel) activeFilterLabel.textContent = `Marka: ${targetBrand}`;
+        if (activeFilterPill) activeFilterPill.style.display = 'inline-flex';
       }
 
-      // Listeyi Yeniden Yükle
+      // Prompt.md 4. Adım: Tıklanan markaya göre, sayfada listelenen ürün dizisini (allProductsData) o markaya (vehicleBrand eşleşmesi) göre filtrele ve tabloyu yeniden çiz.
+      renderProductTable();
+      // Ayrıca backend API'den tam filtreli sorguyu da tazele
       loadProducts();
     }
 
@@ -1366,18 +1423,23 @@
       currentSearchQuery = '';
       const searchInput = document.getElementById('store-search-input');
       if (searchInput) searchInput.value = '';
-      document.getElementById('btn-clear-search').style.display = 'none';
+      const clearSearchBtn = document.getElementById('btn-clear-search');
+      if (clearSearchBtn) clearSearchBtn.style.display = 'none';
 
-      // Brand Grid'de 'Tümü' kutusunu aktifleştir
+      // Brand Grid'de 'Tüm Markalar' kutusunu aktifleştir
       document.querySelectorAll('.brand-card-box').forEach(b => {
-        if (b.dataset.brand === 'ALL') {
+        const bBrand = b.getAttribute('data-brand') || b.dataset.brand;
+        if (bBrand === 'ALL') {
           b.classList.add('active');
         } else {
           b.classList.remove('active');
         }
       });
 
-      document.getElementById('active-filter-indicator').style.display = 'none';
+      const activeFilterPill = document.getElementById('active-filter-indicator');
+      if (activeFilterPill) activeFilterPill.style.display = 'none';
+
+      renderProductTable();
       loadProducts();
     }
 
@@ -1395,6 +1457,15 @@
     }
 
     function setupUIEventListeners() {
+      // 4. ADIM: Marka butonlarına tıklanma (click) olayını dinle
+      const brandButtons = document.querySelectorAll('.brand-card-box');
+      brandButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          const brand = this.getAttribute('data-brand') || this.dataset.brand || 'ALL';
+          handleBrandClick(brand, this);
+        });
+      });
+
       // Arama Tipi Seçimi Değiştiğinde Placeholder Güncelle
       const searchTypeSelect = document.getElementById('search-type-select');
       const searchInput = document.getElementById('store-search-input');

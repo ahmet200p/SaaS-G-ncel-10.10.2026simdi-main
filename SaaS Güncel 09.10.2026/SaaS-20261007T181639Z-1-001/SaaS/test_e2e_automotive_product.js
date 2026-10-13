@@ -251,6 +251,10 @@ async function runTests() {
     // 7. Store API Uç Noktasında Arama ve Otomotiv Alanlarının Dönmesi
     // ------------------------------------------------------------------------
     console.log('\n--- 7. GET /api/store/products Müşteri Arama & Otomotiv Alanları ---');
+    let custCheck = await prisma.user.findUnique({ where: { email: 'kemal@kemaloto.com' } });
+    if (!custCheck) {
+      require('child_process').execSync('node prisma/seed.js', { stdio: 'ignore' });
+    }
     const custLoginRes = await runHttp({
       hostname: '127.0.0.1',
       port: port,
@@ -294,9 +298,9 @@ async function runTests() {
     // 4. ADIM: Frontend JS - Veri Gönderimi ve Tablo Görünümü Denetimi
     assert(bayiHtml.includes('MARKA &amp; GRUP') || bayiHtml.includes('MARKA & GRUP'), 'bayi.html tablosunda MARKA & GRUP sütun başlığı mevcut');
     assert(bayiHtml.includes('loadProducts'), 'bayi.html içinde loadProducts fonksiyonu tanımlı');
-    assert(bayiHtml.includes("formData.append('vehicleBrand'"), 'FormData içine vehicleBrand eklenmeli');
-    assert(bayiHtml.includes("formData.append('compatibleModels'"), 'FormData içine compatibleModels eklenmeli');
-    assert(bayiHtml.includes("formData.append('partGroup'"), 'FormData içine partGroup eklenmeli');
+    assert(bayiHtml.includes("formData.append('vehicleBrand'") /* ) */, 'FormData içine vehicleBrand eklenmeli');
+    assert(bayiHtml.includes("formData.append('compatibleModels'") /* ) */, 'FormData içine compatibleModels eklenmeli');
+    assert(bayiHtml.includes("formData.append('partGroup'") /* ) */, 'FormData içine partGroup eklenmeli');
     assert(bayiHtml.includes('id="btn-add-product"') && bayiHtml.includes('>Yeni Ürün Ekle</button>'), 'bayi.html içinde temiz Yeni Ürün Ekle butonu mevcut');
     console.log('  ✅ [PASS] bayi.html 4. ADIM: "MARKA & GRUP" sütunu, loadProducts fonksiyonu, FormData alanları ve "Yeni Ürün Ekle" butonu doğrulandı.');
 

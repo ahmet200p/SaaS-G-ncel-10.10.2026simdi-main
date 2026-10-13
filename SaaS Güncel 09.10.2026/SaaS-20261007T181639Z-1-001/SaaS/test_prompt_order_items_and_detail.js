@@ -7,8 +7,8 @@ console.log('--- STARTING PROMPT.MD COMPLIANCE TEST ---');
 const tenantRoutes = fs.readFileSync('routes/tenant.js', 'utf8');
 const apiJs = fs.readFileSync('assets/js/api.js', 'utf8');
 
-assert(tenantRoutes.includes('items: {'), 'tenant.js items ilişkisi include edilmeli');
-assert(tenantRoutes.includes('tenantProduct: {'), 'tenant.js tenantProduct ilişkisi include edilmeli');
+assert(tenantRoutes.includes('items: {') /* } */, 'tenant.js items ilişkisi include edilmeli');
+assert(tenantRoutes.includes('tenantProduct: {') /* } */, 'tenant.js tenantProduct ilişkisi include edilmeli');
 assert(tenantRoutes.includes('product: item.tenantProduct?.product'), 'tenant.js item içine doğrudan product bağlanmalı');
 
 assert(apiJs.includes('/tenant/orders') && apiJs.includes('product: prod'), 'api.js mock/fallback katmanında da product bağlanmalı');
@@ -18,7 +18,7 @@ console.log('✓ 1. ADIM (Backend Relations & Product Mapping) BAŞARILI');
 const bayiHtml = fs.readFileSync('bayi.html', 'utf8');
 
 assert(bayiHtml.includes('itemsCount > 0'), 'bayi.html içinde itemsCount kontrolü olmalı');
-assert(bayiHtml.includes('Kalem (Toplam'), 'bayi.html "X Kalem (Toplam Y Adet)" formatını içermeli');
+assert(bayiHtml.includes('Kalem (Toplam') /* ) */, 'bayi.html "X Kalem (Toplam Y Adet)" formatını içermeli');
 assert(bayiHtml.includes('totalQty'), 'bayi.html toplam adet miktarını hesaplamalı');
 console.log('✓ 2. ADIM (Frontend Tablo Render Kalem & Adet Sayısı) BAŞARILI');
 

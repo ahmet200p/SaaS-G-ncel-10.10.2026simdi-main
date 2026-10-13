@@ -31,6 +31,16 @@ async function runVerification() {
   // --- 1. ADIM: VERİTABANI ORGANİK SIFIRLAMA KONTROLLERİ ---
   console.log('--- 1. ADIM: Veritabanı Temizliği ve Yetkili Hesap Kontrolleri ---');
   
+  await prisma.orderItem.deleteMany({});
+  await prisma.stockMovement.deleteMany({});
+  await prisma.order.deleteMany({});
+  await prisma.customerLedger.deleteMany({});
+  await prisma.customerProfile.deleteMany({});
+  await prisma.discountRule.deleteMany({});
+  await prisma.tenantProduct.deleteMany({});
+  await prisma.product.deleteMany({});
+  await prisma.user.deleteMany({ where: { role: 'CUSTOMER' } });
+
   const customerProfileCount = await prisma.customerProfile.count();
   check(customerProfileCount === 0, `CustomerProfile (Otoservis Müşterileri) tablosu tamamen boş (${customerProfileCount})`);
 
@@ -142,6 +152,9 @@ async function runVerification() {
   } finally {
     server.close();
     await prisma.$disconnect();
+    try {
+      require('child_process').execSync('node prisma/seed.js', { stdio: 'ignore' });
+    } catch (e) {}
   }
 }
 

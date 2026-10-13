@@ -72,7 +72,7 @@ async function runTests() {
 
   // 2. ADIM KONTROLLERİ: Dinamik Hesaplama ve Renklendirme Mantığı
   console.log('\n--- 2. ADIM: JavaScript Dinamik Hesaplama ve Renk Kuralları Kontrolleri ---');
-  assert(bayiHtml.includes("addEventListener('input'"), '2. ADIM: Tutar inputuna input event listener eklenmiş');
+  assert(bayiHtml.includes("addEventListener('input'") /* ) */, '2. ADIM: Tutar inputuna input event listener eklenmiş');
   assert(bayiHtml.includes('updatePaymentModalBalancePreview'), '2. ADIM: updatePaymentModalBalancePreview canlı hesaplama fonksiyonu tanımlı');
   assert(bayiHtml.includes('activePaymentCustomerBalance + enteredAmount'), '2. ADIM: "Yeni Bakiye = Mevcut Bakiye + Girilen Tutar" formülü işletiliyor');
 

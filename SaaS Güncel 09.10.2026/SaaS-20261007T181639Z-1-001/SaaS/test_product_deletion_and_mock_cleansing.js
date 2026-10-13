@@ -79,7 +79,7 @@ async function runTests() {
   // 3. BAYI.HTML: deleteProduct fonksiyonunun DOM ve önbellek davranışı
   test('bayi.html içindeki deleteProduct DOM satırını ve önbelleği anında temizlemeli', () => {
     const bayiHtml = fs.readFileSync(path.join(__dirname, 'bayi.html'), 'utf-8');
-    assert(bayiHtml.includes("tr[data-tenant-product-id="), 'deleteProduct DOM elementini temizlemeli');
+    assert(bayiHtml.includes("tr[data-tenant-product-id=") /* ] */, 'deleteProduct DOM elementini temizlemeli');
     assert(bayiHtml.includes('cachedCatalog = (cachedCatalog || []).filter'), 'cachedCatalog güncellenmeli');
     assert(bayiHtml.includes('renderCatalogTable([])'), 'Ürün kalmadığında boş durum tablosu gösterilmeli');
     assert(!bayiHtml.includes('<option value="Kemal Usta Oto Servis">Kemal Usta Oto Servis</option>'), 'bayi.html içinde Kemal Usta statik option kaldırıldı');
@@ -143,7 +143,7 @@ async function runTests() {
     const storeHtml = fs.readFileSync(path.join(__dirname, 'store.html'), 'utf-8');
     assert(!storeHtml.includes('Hoş Geldin, Kemal Usta'), 'store.html içinde Hoş Geldin Kemal Usta olmamalı');
     assert(!storeHtml.includes('Kemal Oto Servis • Cari No: 1042'), 'store.html içinde Kemal Oto Servis olmamalı');
-    assert(!storeHtml.includes("showToast('Kemal Usta Otomotiv"), 'store.html içinde Kemal Usta toast olmamalı');
+    assert(!storeHtml.includes("showToast('Kemal Usta Otomotiv") /* ) */, 'store.html içinde Kemal Usta toast olmamalı');
   });
 
   // 6. ADMIN.HTML: Demir Otomotiv statik row temizliği ve boş liste kontrolü

@@ -136,8 +136,20 @@ async function runTests() {
       const tenantId = loginRes.data.user?.tenantId || (loginRes.data.tenant && loginRes.data.tenant.id);
       let cust = await prisma.customerProfile.findFirst({ where: { tenantId } });
       if (!cust) {
+        let custUser = await prisma.user.findFirst({ where: { role: 'CUSTOMER', tenantId } });
+        if (!custUser) {
+          custUser = await prisma.user.create({
+            data: {
+              email: `servis_dash_${Date.now()}@oto.com`,
+              password: 'hashedpassword',
+              role: 'CUSTOMER',
+              tenantId
+            }
+          });
+        }
         cust = await prisma.customerProfile.create({
           data: {
+            userId: custUser.id,
             tenantId,
             companyName: 'Test Servis A.Ş.',
             phone: '05551112233'
@@ -151,7 +163,8 @@ async function runTests() {
           prod = await prisma.product.create({
             data: {
               name: 'Fren Balatası',
-              oeNumber: 'OE-12345',
+              oeNumber: `OE-12345-${Date.now()}`,
+              category: 'Fren Sistemi',
               defaultPrice: 500
             }
           });

@@ -1,35 +1,26 @@
-"Müşteri vitrini (store.html) sayfasındaki 'Giriş Yapmış Kullanıcı' bölümünü (Header sağ üst köşe) B2B2C standartlarına uygun, interaktif bir Profil Menüsüne dönüştürmeni istiyorum. Lütfen şu 3 adımı uygula:
+"Müşteri vitrini (store.html) sayfasındaki 'ARAÇ MARKALARI' (Brand Grid) bölümünü daha gerçekçi ve kapsamlı bir hale getirmek için şu 4 adımı uygula:
 
-1. ADIM: Profil Dropdown (Açılır Menü) Tasarımı
+1. ADIM: Gerçek Logoların Entegrasyonu
 
-Sağ üst köşedeki Kullanıcı Adı (Örn: 'Kemal Usta') ve Profil İkonunun olduğu div'i tıklanabilir (dropdown-toggle) bir butona dönüştür.
+Şu an kullanılan jenerik, basit çizgi/ikon şeklindeki sahte marka logolarını HTML'den tamamen temizle.
 
-Bu butona tıklandığında (veya üzerine gelindiğinde - hover) hemen altında şık, gölgeli bir açılır menü (Dropdown) belirtsin.
+Bunların yerine markaların orijinal, tanınabilir logolarını (SVG veya şık PNG formatında) ekle. (Harici bir public CDN olan cdn.worldvectorlogo.com bağlantılarını kullanarak veya FontAwesome'ın marka ikonları yerine doğrudan renkli/gerçek marka görsellerini <img> etiketiyle çekerek bu profesyonelliği sağla).
 
-Açılır menü içerisine şu linkleri (veya butonları) ekle:
+2. ADIM: Marka Çeşitliliğini Artırma
 
-📦 Siparişlerim (Geçmiş siparişleri listeleyecek modalı açar)
+Ekrandaki sınırlı listeyi genişlet. Pazardaki popüler araçların tümünü kapsayacak şekilde şu markaları listeye ekle:
+Volkswagen, Renault, Fiat, Ford, BMW, Mercedes-Benz, Toyota, Hyundai, Audi, Opel, Peugeot, Honda, Nissan, Kia, Skoda, Seat, Citroen, Dacia, Volvo, Chery.
 
-⚙️ Hesap Ayarları (Firma/Şifre değiştirme modalını açar)
+3. ADIM: Responsive Izgara (Grid) Tasarımı
 
-🚪 Çıkış Yap (Log out - kırmızı renkte)
+Marka sayısı 20'yi bulacağı için mevcut tasarımı şık bir CSS Grid yapısına çevir.
 
-2. ADIM: 'Siparişlerim' Modalı (Geçmiş Siparişler)
+Masaüstünde yan yana 7 veya 8 kutu, mobilde ise yan yana 3 veya 4 kutu sığacak şekilde grid-template-columns ayarlarını yap.
 
-Sayfaya modal-my-orders adında yeni bir geniş modal ekle.
+Kutulara tıklanabilirlik hissi vermek için :hover durumunda hafif bir yukarı kalkma (transform: translateY(-2px)) veya çerçeve renginin turuncuya dönmesi gibi modern bir UX efekti ekle.
 
-'Siparişlerim' seçeneğine tıklandığında bu modal açılsın.
+4. ADIM: JavaScript Filtreleme Bağlantısı
 
-İçerisinde, müşterinin daha önce verdiği siparişlerin listelendiği temiz bir tablo olsun (Sipariş No, Tarih, Tutar, Durum - Örn: Hazırlanıyor, Kargolandı).
+HTML'deki bu marka butonlarına data-brand="Volkswagen" gibi etiketler ekle.
 
-Backend Bağlantısı: GET /api/store/my-orders endpoint'ine istek atarak kullanıcının kendi token/session'ına ait geçmiş siparişleri çekip bu tabloyu dinamik doldursun.
-
-3. ADIM: 'Hesap Ayarları' Modalı
-
-Sayfaya modal-account-settings adında yeni bir modal ekle.
-
-Kullanıcı buraya girdiğinde adını, telefon numarasını veya e-postasını güncelleyebileceği form alanları bulunsun.
-
-Varsa vergi numarası ve adres gibi detayları da buradan değiştirebilsin (PUT /api/store/profile gibi bir endpoint'e bağlansın).
-
-Not: Sayfadaki genel Bakiye Göstergesi (+22.950,00 ₺) sabit olarak header'da kalmaya devam etsin, sadece ismin olduğu kısım açılır menüye dönüşsün."
+JS dosyasında bu butonlara tıklanma (click) olayını dinle. Tıklanan markaya göre, sayfada listelenen ürün dizisini (allProductsData) o markaya (vehicleBrand eşleşmesi) göre filtrele ve tabloyu yeniden çiz. 'Tüm Markalar' butonuna basıldığında filtreyi sıfırla."

@@ -293,7 +293,7 @@ router.post('/login', loginLimiter, async (req, res) => {
       id: user.id,
       email: user.email,
       role: user.role,
-      tenantId: effectiveTenantId
+      tenantId: user.tenantId || effectiveTenantId
     };
 
     // 8. JWT İmzalanması

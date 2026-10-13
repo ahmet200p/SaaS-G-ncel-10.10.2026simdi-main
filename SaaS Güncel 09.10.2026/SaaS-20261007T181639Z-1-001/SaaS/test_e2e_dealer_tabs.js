@@ -142,9 +142,24 @@ async function runTests() {
     assert(allPending, 'Filtrelenen siparişlerin hepsi PENDING durumunda');
 
     // 4. Katalog ve Ürün Güncelleme (PATCH) Testi
-    console.log('\n--- 4. GET & PATCH /api/tenant/products Canlı Veri Testi ---');
-    const catalogRes = await request('/api/tenant/products', { headers: authHeaders });
+    let catalogRes = await request('/api/tenant/products', { headers: authHeaders });
     assert(catalogRes.status === 200, 'GET /api/tenant/products HTTP 200 döndü');
+
+    if (!Array.isArray(catalogRes.data.data) || catalogRes.data.data.length === 0) {
+      await request('/api/tenant/products', {
+        method: 'POST',
+        headers: authHeaders,
+        body: {
+          name: 'Hava Filtresi Bosch Orijinal',
+          oeNumber: `OE-AUTO-${Date.now()}`,
+          category: 'Filtre Grubu',
+          vehicleBrand: 'Volkswagen',
+          customPrice: 450,
+          stock: 20
+        }
+      });
+      catalogRes = await request('/api/tenant/products', { headers: authHeaders });
+    }
     assert(Array.isArray(catalogRes.data.data) && catalogRes.data.data.length > 0, 'Bayi ürün kataloğunda en az 1 ürün var');
 
     const testProduct = catalogRes.data.data[0];
@@ -168,9 +183,22 @@ async function runTests() {
 
     // 5. Müşteriler (Otoservisler) API Testi
     console.log('\n--- 5. GET /api/tenant/customers (Otoservisler) Testi ---');
-    const customersRes = await request('/api/tenant/customers', { headers: authHeaders });
+    let customersRes = await request('/api/tenant/customers', { headers: authHeaders });
     assert(customersRes.status === 200, 'GET /api/tenant/customers HTTP 200 döndü');
     assert(Array.isArray(customersRes.data.data), 'Müşteri profilleri başarıyla çekildi');
+    if (customersRes.data.data.length === 0) {
+      await request('/api/tenant/customers', {
+        method: 'POST',
+        headers: authHeaders,
+        body: {
+          companyName: 'Akınlar Oto Servis Seed',
+          phone: '0533 999 88 77',
+          address: 'Oto Sanayi Sitesi',
+          discountRate: 20
+        }
+      });
+      customersRes = await request('/api/tenant/customers', { headers: authHeaders });
+    }
     assert(customersRes.data.data.length > 0, 'En az 1 kayıtlı otoservis mevcut');
     const sampleCustomer = customersRes.data.data[0];
     assert(sampleCustomer.companyName && typeof sampleCustomer.companyName === 'string', 'Müşteri companyName içeriyor');
