@@ -23,11 +23,9 @@ router.use(verifyToken, checkSuperAdmin);
  */
 router.get('/stats', async (req, res) => {
   try {
-    const [activeTenants, totalProducts, totalCustomers] = await Promise.all([
-      prisma.tenant.count({ where: { isActive: true } }),
-      prisma.product.count(),
-      prisma.customerProfile.count()
-    ]);
+    const activeTenants = await prisma.tenant.count({ where: { isActive: true } });
+    const totalProducts = await prisma.product.count();
+    const totalCustomers = await prisma.customerProfile.count();
 
     return res.status(200).json({
       success: true,
@@ -458,15 +456,13 @@ router.get('/products', async (req, res) => {
       ];
     }
 
-    const [totalCount, products] = await Promise.all([
-      prisma.product.count({ where }),
-      prisma.product.findMany({
-        where,
-        skip,
-        take: limitNum,
-        orderBy: { createdAt: 'desc' }
-      })
-    ]);
+    const totalCount = await prisma.product.count({ where });
+    const products = await prisma.product.findMany({
+      where,
+      skip,
+      take: limitNum,
+      orderBy: { createdAt: 'desc' }
+    });
 
     return res.status(200).json({
       success: true,
@@ -791,50 +787,50 @@ router.put('/settings', async (req, res) => {
  */
 router.get('/admins', async (req, res) => {
   try {
-    const [admins, availableUsers, tenants] = await Promise.all([
-      prisma.user.findMany({
-        where: {
-          role: { in: ['SUPER_ADMIN', 'TENANT_ADMIN'] }
-        },
-        select: {
-          id: true,
-          email: true,
-          role: true,
-          tenantId: true,
-          createdAt: true,
-          updatedAt: true,
-          tenant: {
-            select: {
-              id: true,
-              name: true,
-              subdomain: true
-            }
+    const admins = await prisma.user.findMany({
+      where: {
+        role: { in: ['SUPER_ADMIN', 'TENANT_ADMIN'] }
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        tenantId: true,
+        createdAt: true,
+        updatedAt: true,
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            subdomain: true
           }
-        },
-        orderBy: { createdAt: 'desc' }
-      }),
-      prisma.user.findMany({
-        where: {
-          role: 'CUSTOMER'
-        },
-        select: {
-          id: true,
-          email: true,
-          role: true,
-          customerProfile: {
-            select: {
-              companyName: true
-            }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const availableUsers = await prisma.user.findMany({
+      where: {
+        role: 'CUSTOMER'
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        customerProfile: {
+          select: {
+            companyName: true
           }
-        },
-        orderBy: { email: 'asc' }
-      }),
-      prisma.tenant.findMany({
-        where: { isActive: true },
-        select: { id: true, name: true, subdomain: true },
-        orderBy: { name: 'asc' }
-      })
-    ]);
+        }
+      },
+      orderBy: { email: 'asc' }
+    });
+
+    const tenants = await prisma.tenant.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, subdomain: true },
+      orderBy: { name: 'asc' }
+    });
 
     return res.status(200).json({
       success: true,

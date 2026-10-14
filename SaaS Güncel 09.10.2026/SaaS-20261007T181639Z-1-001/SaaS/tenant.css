@@ -746,6 +746,28 @@ body {
   border-radius: 50%;
 }
 
+/* Durum: İptal / Reddedildi (Kırmızı Etiket) */
+.badge-status-red {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.badge-dot-red {
+  width: 6px;
+  height: 6px;
+  background-color: #ef4444;
+  border-radius: 50%;
+}
+
 /* İşlem Butonları */
 .table-actions {
   display: flex;
@@ -753,9 +775,9 @@ body {
   gap: 8px;
 }
 
-/* 'Siparişi Onayla' (Turuncu buton) */
+/* 'Siparişi Onayla' (Yeşil buton) */
 .btn-approve {
-  background-color: var(--tenant-color);
+  background-color: #10b981;
   color: var(--white);
   border: none;
   padding: 8px 14px;
@@ -768,13 +790,38 @@ body {
   align-items: center;
   gap: 6px;
   transition: var(--transition);
-  box-shadow: 0 2px 6px var(--tenant-glow);
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
   white-space: nowrap;
 }
 
 .btn-approve:hover {
-  background-color: var(--tenant-dark);
-  box-shadow: 0 4px 10px var(--tenant-glow);
+  background-color: #059669;
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.35);
+  transform: translateY(-1px);
+}
+
+/* 'Siparişi Reddet' (Kırmızı buton) */
+.btn-reject {
+  background-color: #ef4444;
+  color: var(--white);
+  border: none;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: var(--transition);
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
+  white-space: nowrap;
+}
+
+.btn-reject:hover {
+  background-color: #dc2626;
+  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.35);
   transform: translateY(-1px);
 }
 

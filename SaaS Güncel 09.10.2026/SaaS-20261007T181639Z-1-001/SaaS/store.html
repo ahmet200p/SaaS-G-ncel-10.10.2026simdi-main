@@ -181,6 +181,30 @@
                 </div>
               </button>
             </div>
+          <!-- 🔔 Bildirim Çanı (Sipariş Durumu Takip Merkezi) -->
+          <div class="notification-dropdown-wrap" id="notification-dropdown-wrap">
+            <button type="button" class="btn-notification-bell" id="btn-notification-bell" onclick="toggleNotificationDropdown(event)" title="Sipariş Bildirimleri" aria-label="Sipariş Bildirimleri">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+              <span class="notification-badge-dot" id="notification-badge-dot" style="display: none;"></span>
+              <span class="notification-counter-badge" id="notification-counter-badge" style="display: none;">0</span>
+            </button>
+
+            <!-- Bildirim Açılır Kartı (Dropdown Menu) -->
+            <div class="notification-dropdown-card" id="notification-dropdown-card" style="display: none;" onclick="event.stopPropagation()">
+              <div class="notification-dropdown-header">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 16px;">🔔</span>
+                  <span style="font-weight: 700; font-size: 0.92rem; color: var(--text-headline);">Sipariş Bildirimleri</span>
+                </div>
+                <button type="button" class="btn-mark-all-read" onclick="markAllNotificationsAsRead()" title="Tümünü Okundu İşaretle">Tümünü Oku</button>
+              </div>
+              <div class="notification-dropdown-body" id="notification-dropdown-body">
+                <div class="notification-empty-text">Yeni bir sipariş bildiriminiz bulunmuyor.</div>
+              </div>
+            </div>
           </div>
 
           <!-- Bakiye Durumu (Yeşil Renkte Sabit Bakiye Rozeti) -->
@@ -1136,6 +1160,10 @@
       // Canlı Verileri Çek
       await loadProfile();
       await loadProducts();
+      if (typeof syncLiveNotifications === 'function') {
+        syncLiveNotifications(true);
+        setInterval(() => syncLiveNotifications(true), 15000);
+      }
     });
 
     // --------------------------------------------------------------------------
@@ -2128,38 +2156,59 @@
           closePaymentMethodModal();
           closeCartDrawer();
 
-          // Bilgilendirme Mesajı Metni (Ödeme Yöntemine Göre)
-          const methodDesc = selectedPaymentMethod === 'BANK_TRANSFER'
-            ? 'Havale / EFT transferiniz bayi tarafından incelenip onaylandığında parçalarınız sevkiyata çıkarılacaktır.'
-            : 'Sipariş tutarı cari hesabınıza borç olarak yansıtıldı ve siparişiniz hazırlanıyor.';
+          // 1. ADIM: Havale/EFT'ye Özel Kurumsal Başarı Mesajı (SweetAlert2)
+          if (selectedPaymentMethod === 'BANK_TRANSFER') {
+            const bankTransferHtml = 'Siparişiniz sistemimize ulaşmıştır. Havale/EFT işleminizin hesaplarımıza yansıması ve muhasebe departmanımızın onayının ardından, ürünleriniz özenle hazırlanarak tarafınıza sevk edilecektir.<br><br><small><b>Önemli Not:</b> Transfer işleminizi gerçekleştirirken açıklama kısmına <b>Firma Adınızı</b> veya sistemin size atadığı <b>Sipariş Numaranızı</b> yazmayı unutmayınız.</small>';
 
-          // SweetAlert2 Bildirimi Göster (Step 3 Şartı)
-          if (typeof Swal !== 'undefined') {
-            await Swal.fire({
-              icon: 'success',
-              title: 'Siparişiniz Başarıyla Alındı!',
-              text: 'Siparişiniz bayiye başarıyla iletildi.',
-              html: `
-                <div style="font-size: 15px; color: #334155; margin-top: 8px;">
-                  Sipariş Numaranız: <strong style="color: #0f172a; font-family: monospace; font-size: 16px;">#${orderNum}</strong>
-                </div>
-                <div style="font-size: 13px; color: #16a34a; margin-top: 10px; font-weight: 600;">
-                  ${methodDesc}
-                </div>
-              `,
-              confirmButtonText: 'Siparişlerime Git',
-              confirmButtonColor: '#f97316',
-              allowOutsideClick: false
-            });
+            if (typeof Swal !== 'undefined') {
+              await Swal.fire({
+                icon: 'success',
+                title: 'Siparişiniz Başarıyla Alınmıştır',
+                html: bankTransferHtml,
+                confirmButtonText: 'Siparişlerime Git',
+                confirmButtonColor: '#f97316',
+                allowOutsideClick: false
+              });
+            } else {
+              alert('Siparişiniz Başarıyla Alınmıştır! Sipariş No: #' + orderNum);
+            }
           } else {
-            alert('Siparişiniz başarıyla iletildi! Sipariş No: #' + orderNum);
+            // Standart Cari Hesap veya Diğer Ödeme Seçenekleri
+            const methodDesc = 'Sipariş tutarı cari hesabınıza borç olarak yansıtıldı ve siparişiniz hazırlanıyor.';
+            if (typeof Swal !== 'undefined') {
+              await Swal.fire({
+                icon: 'success',
+                title: 'Siparişiniz Başarıyla Alındı!',
+                text: 'Siparişiniz bayiye başarıyla iletildi.',
+                html: `
+                  <div style="font-size: 15px; color: #334155; margin-top: 8px;">
+                    Sipariş Numaranız: <strong style="color: #0f172a; font-family: monospace; font-size: 16px;">#${orderNum}</strong>
+                  </div>
+                  <div style="font-size: 13px; color: #16a34a; margin-top: 10px; font-weight: 600;">
+                    ${methodDesc}
+                  </div>
+                `,
+                confirmButtonText: 'Siparişlerime Git',
+                confirmButtonColor: '#f97316',
+                allowOutsideClick: false
+              });
+            } else {
+              alert('Siparişiniz başarıyla iletildi! Sipariş No: #' + orderNum);
+            }
           }
 
           // Profili ve Ürünleri Güncelle
-          await loadProfile();
-          await loadProducts();
+          try {
+            await loadProfile();
+            await loadProducts();
+          } catch (e) {
+            console.warn('[PROFILE_LOAD_WARN]:', e);
+          }
 
-          // 3. ADIM Şartı: Kullanıcıyı Profil > Siparişlerim sekmesine yönlendir / Siparişlerim modalını aç
+          // 2. ADIM: Yönlendirme (Redirect)
+          // Müşteri SweetAlert2 modalındaki 'Siparişlerime Git' butonuna tıkladığında sepet modalını kapat ve doğrudan Siparişlerim penceresini aç
+          closePaymentMethodModal();
+          closeCartDrawer();
           openMyOrdersModal();
 
         } else {
@@ -2722,21 +2771,31 @@
         const total = parseFloat(ord.totalAmount || ord.subtotal || 0);
         const totalFormatted = total.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
 
-        // Durum Rozeti
-        const st = (ord.status || 'PENDING').toUpperCase();
+        // Durum Rozeti (Step 3: Ödeme Bekliyor, Onay Bekliyor, Siparişiniz Hazırlanıyor, İptal Edildi + Ret Sebebi)
+        const st = (ord.status || 'PENDING_APPROVAL').toUpperCase();
+        const payMethod = (ord.paymentMethod || '').toUpperCase();
+        const isBankTransfer = payMethod === 'BANK_TRANSFER';
         let statusBadge = '';
-        if (st === 'PREPARING' || st === 'HAZIRLANIYOR') {
-          statusBadge = '<span class="order-status-badge preparing">📦 Hazırlanıyor</span>';
+
+        if (isBankTransfer && (st === 'PENDING_APPROVAL' || st === 'PENDING' || st.includes('ÖDEME') || st.includes('ODEME') || st.includes('WAITING'))) {
+          statusBadge = '<span class="order-status-badge pending" style="background:#fffbeb; color:#b45309; border:1px solid #fde68a; font-weight:700; display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:9999px;">🏦 Ödeme Bekleniyor</span>';
+        } else if (st === 'PENDING_APPROVAL' || st === 'PENDING') {
+          statusBadge = '<span class="order-status-badge pending" style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-weight:700; display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:9999px;">⏳ Bayi Onayı Bekleniyor</span>';
+        } else if (st === 'PROCESSING' || st === 'APPROVED' || st === 'HAZIRLANIYOR' || st === 'PREPARING') {
+          statusBadge = '<span class="order-status-badge preparing" style="background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; font-weight:700; display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:9999px;">📦 Siparişiniz Hazırlanıyor</span>';
+        } else if (st === 'REJECTED' || st === 'CANCELLED' || st === 'IPTAL') {
+          statusBadge = '<span class="order-status-badge cancelled" style="background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; font-weight:700; display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:9999px;">❌ İptal Edildi</span>';
+          if (ord.rejectionReason) {
+            statusBadge += `<div style="font-size:0.75rem; color:#dc2626; margin-top:5px; line-height:1.3; font-weight:600; background:#fef2f2; border:1px dashed #fca5a5; padding:5px 8px; border-radius:4px; max-width:220px; text-align:left; margin-left:auto; margin-right:auto;"><strong>Ret Sebebi:</strong> ${escapeHtml(ord.rejectionReason)}</div>`;
+          }
         } else if (st.includes('ÖDEME') || st.includes('ODEME')) {
-          statusBadge = '<span class="order-status-badge pending" style="background:#fffbeb; color:#b45309; border:1px solid #fde68a;">🏦 Ödeme Bekliyor</span>';
+          statusBadge = '<span class="order-status-badge pending" style="background:#fffbeb; color:#b45309; border:1px solid #fde68a; font-weight:700; display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:9999px;">🏦 Ödeme Bekleniyor</span>';
         } else if (st === 'SHIPPED' || st === 'KARGOLANDI') {
-          statusBadge = '<span class="order-status-badge shipped">🚚 Kargolandı</span>';
-        } else if (st === 'DELIVERED' || st === 'TESLIM_EDILDI' || st === 'COMPLETED' || st === 'APPROVED') {
-          statusBadge = '<span class="order-status-badge delivered">✅ Teslim Edildi</span>';
-        } else if (st === 'CANCELLED' || st === 'IPTAL') {
-          statusBadge = '<span class="order-status-badge cancelled">❌ İptal Edildi</span>';
+          statusBadge = '<span class="order-status-badge shipped" style="font-weight:700; display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:9999px;">🚚 Kargolandı</span>';
+        } else if (st === 'DELIVERED' || st === 'TESLIM_EDILDI' || st === 'COMPLETED') {
+          statusBadge = '<span class="order-status-badge delivered" style="font-weight:700; display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:9999px;">✅ Teslim Edildi</span>';
         } else {
-          statusBadge = '<span class="order-status-badge pending">⏳ Beklemede</span>';
+          statusBadge = `<span class="order-status-badge pending" style="padding:4px 10px; border-radius:9999px; font-weight:600;">${escapeHtml(ord.status)}</span>`;
         }
 
         return `
@@ -2829,6 +2888,16 @@
             ${rows}
           </tbody>
         </table>
+        ${order.rejectionReason ? `
+          <div style="margin-top: 14px; padding: 12px 16px; background: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid #ef4444; border-radius: 8px; color: #991b1b; font-size: 0.88rem;">
+            <div style="font-weight: 700; display: flex; align-items: center; gap: 6px;">
+              <span>❌ Sipariş Reddedildi (İptal)</span>
+            </div>
+            <div style="margin-top: 4px; font-size: 0.84rem; color: #b91c1c;">
+              <strong>Ret Sebebi:</strong> ${escapeHtml(order.rejectionReason)}
+            </div>
+          </div>
+        ` : ''}
         <div style="margin-top: 14px; padding: 12px 14px; background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 4px; align-items: flex-end;">
           <div style="font-size: 0.85rem; color: var(--text-muted);">Ara Toplam: <strong>${subtotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</strong></div>
           <div style="font-size: 0.85rem; color: var(--text-muted);">KDV (%20): <strong>${vatAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</strong></div>
@@ -3093,6 +3162,230 @@
       }
     }
 
+    // ==========================================================================
+    // 16. BİLDİRİM ÇANI VE SİPARİŞ DURUM CANLI TAKİBİ (STEP 4)
+    // ==========================================================================
+    let userNotificationsCache = [];
+    let knownOrderStatuses = {};
+
+    function toggleNotificationDropdown(e) {
+      if (e) e.stopPropagation();
+      const menu = document.getElementById('notification-dropdown-card');
+      if (!menu) return;
+      const isOpen = menu.style.display === 'block';
+      menu.style.display = isOpen ? 'none' : 'block';
+      closeUserDropdown();
+    }
+
+    function closeNotificationDropdown() {
+      const menu = document.getElementById('notification-dropdown-card');
+      if (menu) menu.style.display = 'none';
+    }
+
+    document.addEventListener('click', (e) => {
+      const wrap = document.getElementById('notification-dropdown-wrap');
+      if (wrap && !wrap.contains(e.target)) {
+        closeNotificationDropdown();
+      }
+    });
+
+    async function syncLiveNotifications(isSilent = true) {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        let res;
+        try {
+          res = await apiFetch('/store/my-orders');
+        } catch (e) {
+          res = await apiFetch('/store/orders');
+        }
+
+        let orders = [];
+        if (res && res.success && Array.isArray(res.data)) {
+          orders = res.data;
+        } else if (Array.isArray(res)) {
+          orders = res;
+        } else if (res && res.orders && Array.isArray(res.orders)) {
+          orders = res.orders;
+        }
+
+        const readNotifIds = JSON.parse(localStorage.getItem('read_notifications') || '[]');
+        const notifications = [];
+
+        orders.forEach(ord => {
+          const st = (ord.status || '').toUpperCase();
+          const orderNum = ord.orderNumber || ord.id || 'SP';
+
+          if (st === 'PROCESSING' || st === 'APPROVED' || st === 'HAZIRLANIYOR') {
+            notifications.push({
+              id: `notif-${ord.id}-PROCESSING`,
+              orderId: ord.id || ord.orderNumber,
+              orderNum: orderNum,
+              type: 'approved',
+              icon: '📦',
+              title: 'Siparişiniz Onaylandı!',
+              desc: `Sipariş #${orderNum} bayi tarafından onaylandı ve hazırlık aşamasına alındı.`,
+              time: ord.updatedAt || ord.createdAt,
+              isRead: readNotifIds.includes(`notif-${ord.id}-PROCESSING`)
+            });
+          } else if (st === 'REJECTED' || st === 'CANCELLED') {
+            const reason = ord.rejectionReason || 'Bayi tarafından iptal edildi.';
+            notifications.push({
+              id: `notif-${ord.id}-REJECTED`,
+              orderId: ord.id || ord.orderNumber,
+              orderNum: orderNum,
+              type: 'rejected',
+              icon: '❌',
+              title: 'Siparişiniz Reddedildi',
+              desc: `Sipariş #${orderNum} şu sebeple reddedildi: "${reason}"`,
+              time: ord.updatedAt || ord.createdAt,
+              isRead: readNotifIds.includes(`notif-${ord.id}-REJECTED`)
+            });
+          } else if (st === 'SHIPPED') {
+            notifications.push({
+              id: `notif-${ord.id}-SHIPPED`,
+              orderId: ord.id || ord.orderNumber,
+              orderNum: orderNum,
+              type: 'shipped',
+              icon: '🚚',
+              title: 'Siparişiniz Kargolandı',
+              desc: `Sipariş #${orderNum} kargoya teslim edildi.`,
+              time: ord.updatedAt || ord.createdAt,
+              isRead: readNotifIds.includes(`notif-${ord.id}-SHIPPED`)
+            });
+          }
+
+          // Canlı durum değişikliği kontrolü (Toast)
+          if (knownOrderStatuses[ord.id]) {
+            const prevStatus = knownOrderStatuses[ord.id];
+            if (prevStatus !== st) {
+              if (st === 'PROCESSING' || st === 'APPROVED') {
+                if (typeof Swal !== 'undefined') {
+                  Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: `Sipariş #${orderNum} Onaylandı!`,
+                    text: 'Bayiniz siparişi hazırlamaya başladı.',
+                    timer: 5000,
+                    showConfirmButton: false
+                  });
+                } else if (typeof showToast === 'function') {
+                  showToast(`Sipariş #${orderNum} onaylandı!`, 'success');
+                }
+              } else if (st === 'REJECTED') {
+                if (typeof Swal !== 'undefined') {
+                  Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'error',
+                    title: `Sipariş #${orderNum} Reddedildi!`,
+                    text: `Sebep: ${ord.rejectionReason || 'İptal edildi.'}`,
+                    timer: 7000,
+                    showConfirmButton: false
+                  });
+                } else if (typeof showToast === 'function') {
+                  showToast(`Sipariş #${orderNum} reddedildi: ${ord.rejectionReason}`, 'danger');
+                }
+              }
+            }
+          }
+          knownOrderStatuses[ord.id] = st;
+        });
+
+        userNotificationsCache = notifications;
+        renderNotificationsDropdown();
+
+      } catch (err) {
+        if (!isSilent) console.error('[SYNC_NOTIFICATIONS_ERROR]:', err);
+      }
+    }
+
+    function renderNotificationsDropdown() {
+      const bodyEl = document.getElementById('notification-dropdown-body');
+      const dotEl = document.getElementById('notification-badge-dot');
+      const counterEl = document.getElementById('notification-counter-badge');
+      const bellBtn = document.getElementById('btn-notification-bell');
+
+      if (!bodyEl) return;
+
+      const unreadCount = userNotificationsCache.filter(n => !n.isRead).length;
+
+      if (unreadCount > 0) {
+        if (dotEl) dotEl.style.display = 'block';
+        if (counterEl) {
+          counterEl.textContent = unreadCount > 9 ? '9+' : String(unreadCount);
+          counterEl.style.display = 'flex';
+        }
+        if (bellBtn) bellBtn.classList.add('has-unread');
+      } else {
+        if (dotEl) dotEl.style.display = 'none';
+        if (counterEl) counterEl.style.display = 'none';
+        if (bellBtn) bellBtn.classList.remove('has-unread');
+      }
+
+      if (userNotificationsCache.length === 0) {
+        bodyEl.innerHTML = '<div class="notification-empty-text">Yeni bir sipariş bildiriminiz bulunmuyor.</div>';
+        return;
+      }
+
+      bodyEl.innerHTML = userNotificationsCache.map(notif => {
+        let timeStr = '';
+        if (notif.time) {
+          try {
+            timeStr = new Date(notif.time).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+          } catch (e) {}
+        }
+
+        return `
+          <div class="notification-item ${notif.isRead ? '' : 'unread'} ${notif.type}" onclick="handleNotificationClick('${escapeHtml(notif.id)}', '${escapeHtml(notif.orderId)}')">
+            <span class="notification-item-icon">${notif.icon}</span>
+            <div class="notification-item-content">
+              <div class="notification-item-title">${escapeHtml(notif.title)}</div>
+              <div class="notification-item-desc">${escapeHtml(notif.desc)}</div>
+              ${timeStr ? `<div class="notification-item-time">${timeStr}</div>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function handleNotificationClick(notifId, orderId) {
+      markNotificationAsRead(notifId);
+      closeNotificationDropdown();
+      openMyOrdersModal();
+      if (orderId) {
+        setTimeout(() => {
+          viewOrderDetail(orderId);
+        }, 300);
+      }
+    }
+
+    function markNotificationAsRead(notifId) {
+      let readNotifIds = JSON.parse(localStorage.getItem('read_notifications') || '[]');
+      if (!readNotifIds.includes(notifId)) {
+        readNotifIds.push(notifId);
+        localStorage.setItem('read_notifications', JSON.stringify(readNotifIds));
+      }
+      const item = userNotificationsCache.find(n => n.id === notifId);
+      if (item) item.isRead = true;
+      renderNotificationsDropdown();
+    }
+
+    function markAllNotificationsAsRead() {
+      const allIds = userNotificationsCache.map(n => n.id);
+      localStorage.setItem('read_notifications', JSON.stringify(allIds));
+      userNotificationsCache.forEach(n => { n.isRead = true; });
+      renderNotificationsDropdown();
+    }
+
+    window.toggleNotificationDropdown = toggleNotificationDropdown;
+    window.closeNotificationDropdown = closeNotificationDropdown;
+    window.markAllNotificationsAsRead = markAllNotificationsAsRead;
+    window.handleNotificationClick = handleNotificationClick;
+    window.syncLiveNotifications = syncLiveNotifications;
+
     // Escape Tuşu ile Çekmeceyi ve Modalları Kapat
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
@@ -3103,6 +3396,7 @@
         closeMyOrdersModal();
         closeAccountSettingsModal();
         closeUserDropdown();
+        closeNotificationDropdown();
       }
     });
   </script>

@@ -343,12 +343,14 @@
           <div class="filter-pills" id="orders-filter-pills">
             <button type="button" class="filter-pill active" data-status="ALL"
               onclick="filterOrdersByStatus('ALL')">Tümü</button>
-            <button type="button" class="filter-pill" data-status="PENDING"
-              onclick="filterOrdersByStatus('PENDING')">Bekleyenler</button>
-            <button type="button" class="filter-pill" data-status="APPROVED"
-              onclick="filterOrdersByStatus('APPROVED')">Hazırlananlar</button>
+            <button type="button" class="filter-pill" data-status="PENDING_APPROVAL"
+              onclick="filterOrdersByStatus('PENDING_APPROVAL')">Onay Bekleyenler</button>
+            <button type="button" class="filter-pill" data-status="PROCESSING"
+              onclick="filterOrdersByStatus('PROCESSING')">Hazırlananlar</button>
             <button type="button" class="filter-pill" data-status="SHIPPED"
               onclick="filterOrdersByStatus('SHIPPED')">Kargolananlar</button>
+            <button type="button" class="filter-pill" data-status="REJECTED"
+              onclick="filterOrdersByStatus('REJECTED')">İptal / Reddedilenler</button>
           </div>
           <div style="display: flex; gap: 10px; align-items: center;">
             <input type="text" class="table-search-input" id="search-orders-input"
@@ -1272,21 +1274,22 @@
           let statusBadgeHtml = '';
           let actionsHtml = '';
 
-          if (order.status === 'PENDING' || order.status === 'Ödeme Bekliyor') {
+          if (order.status === 'PENDING_APPROVAL' || order.status === 'PENDING' || order.status === 'Ödeme Bekliyor') {
             const isTransfer = order.status === 'Ödeme Bekliyor' || order.paymentMethod === 'BANK_TRANSFER';
             statusBadgeHtml = `
               <span class="badge-status-yellow" style="${isTransfer ? 'background: #fffbeb; color: #b45309; border: 1px solid #fde68a;' : ''}">
                 <span class="badge-dot-yellow" style="${isTransfer ? 'background: #d97706;' : ''}"></span>
-                ${isTransfer ? 'Ödeme Bekliyor' : 'Yeni Sipariş'}
+                ${isTransfer ? 'Ödeme Bekliyor' : 'Onay Bekliyor'}
               </span>
             `;
             actionsHtml = `
               <div class="table-actions">
-                <button type="button" class="btn-approve" onclick="approveOrder('${order.id}', '${orderNum}')">${isTransfer ? 'Ödemeyi Onayla' : 'Siparişi Onayla'}</button>
+                <button type="button" class="btn-approve" onclick="approveOrder('${order.id}', '${orderNum}')" title="Siparişi Onayla ve Hazırla">Onayla</button>
+                <button type="button" class="btn-reject" onclick="rejectOrder('${order.id}', '${orderNum}')" title="Siparişi Reddet / İptal Et">Reddet</button>
                 <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
               </div>
             `;
-          } else if (order.status === 'APPROVED' || order.status === 'Hazırlanıyor') {
+          } else if (order.status === 'PROCESSING' || order.status === 'APPROVED' || order.status === 'Hazırlanıyor') {
             statusBadgeHtml = `
               <span class="badge-status-green" style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd;">
                 <span class="badge-dot-green" style="background: #0284c7;"></span>
@@ -1295,7 +1298,19 @@
             `;
             actionsHtml = `
               <div class="table-actions">
-                <button type="button" class="btn-approve" style="background: #10b981; cursor: default;" disabled>Onaylandı ✓</button>
+                <button type="button" class="btn-approve" style="background: #0284c7;" onclick="shipOrder('${order.id}', '${orderNum}')">Kargoya Ver 🚚</button>
+                <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
+              </div>
+            `;
+          } else if (order.status === 'REJECTED' || order.status === 'CANCELLED') {
+            statusBadgeHtml = `
+              <span class="badge-status-red" title="${escapeHtml(order.rejectionReason || 'Bayi tarafından reddedildi')}">
+                <span class="badge-dot-red"></span>
+                İptal Edildi
+              </span>
+            `;
+            actionsHtml = `
+              <div class="table-actions">
                 <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
               </div>
             `;
@@ -1303,12 +1318,12 @@
             statusBadgeHtml = `
               <span class="badge-status-green">
                 <span class="badge-dot-green"></span>
-                ${escapeHtml(order.status === 'SHIPPED' ? 'Kargoda' : order.status)}
+                ${escapeHtml(order.status === 'SHIPPED' ? 'Kargolandı 🚚' : order.status)}
               </span>
             `;
             actionsHtml = `
               <div class="table-actions">
-                <button type="button" class="btn-approve" style="background: #0284c7; cursor: default;" disabled>Kargolandı 🚚</button>
+                <button type="button" class="btn-approve" style="background: #10b981; cursor: default;" disabled>Kargolandı ✓</button>
                 <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
               </div>
             `;
@@ -1349,12 +1364,12 @@
       window.approveOrder = async function (orderId, orderNum) {
         try {
           const res = await apiFetch(`/tenant/orders/${orderId}/status`, {
-            method: 'PATCH',
-            body: { status: 'APPROVED' }
+            method: 'PUT',
+            body: { status: 'PROCESSING' }
           });
 
           if (res && res.success) {
-            showToast(`Sipariş #${orderNum} başarıyla onaylandı ve hazırlık aşamasına alındı!`);
+            showToast(`Sipariş #${orderNum} onaylandı ve hazırlık aşamasına (PROCESSING) alındı!`);
             await loadDashboard();
             if (typeof loadOrdersTab === 'function') await loadOrdersTab();
           } else {
@@ -1365,10 +1380,64 @@
         }
       };
 
+      window.rejectOrder = async function (orderId, orderNum) {
+        try {
+          let reason = '';
+          if (window.Swal) {
+            const result = await Swal.fire({
+              title: 'Siparişi Reddet',
+              html: `<strong>#${escapeHtml(orderNum)}</strong> numaralı siparişi reddetmek istediğinize emin misiniz?<br><span style="font-size:12px; color:#64748b;">Müşteri vitrininde görüntülenecek ret sebebini yazınız:</span>`,
+              input: 'textarea',
+              inputPlaceholder: 'Örn: Cari limitiniz dolmuştur, lütfen ödeme yapınız.',
+              inputValue: 'Cari limitiniz dolmuştur, lütfen ödeme yapınız.',
+              inputAttributes: {
+                autocapitalize: 'off',
+                rows: 3
+              },
+              showCancelButton: true,
+              confirmButtonColor: '#ef4444',
+              cancelButtonColor: '#64748b',
+              confirmButtonText: 'Siparişi Reddet',
+              cancelButtonText: 'Vazgeç',
+              inputValidator: (value) => {
+                if (!value || !value.trim()) {
+                  return 'Lütfen bir ret sebebi belirtiniz!';
+                }
+              }
+            });
+
+            if (!result.isConfirmed) return;
+            reason = result.value.trim();
+          } else {
+            const promptVal = prompt(`#${orderNum} numaralı sipariş için ret gerekçesini giriniz:`, 'Cari limitiniz dolmuştur, lütfen ödeme yapınız.');
+            if (promptVal === null) return;
+            reason = promptVal.trim() || 'Cari limitiniz dolmuştur, lütfen ödeme yapınız.';
+          }
+
+          const res = await apiFetch(`/tenant/orders/${orderId}/status`, {
+            method: 'PUT',
+            body: {
+              status: 'REJECTED',
+              rejectionReason: reason
+            }
+          });
+
+          if (res && res.success) {
+            showToast(`Sipariş #${orderNum} iptal edildi ve ret gerekçesi kaydedildi.`, 'warning');
+            await loadDashboard();
+            if (typeof loadOrdersTab === 'function') await loadOrdersTab();
+          } else {
+            showToast((res && res.message) ? res.message : 'Sipariş reddedilemedi.', 'danger');
+          }
+        } catch (err) {
+          showToast('Reddetme hatası: ' + err.message, 'danger');
+        }
+      };
+
       window.shipOrder = async function (orderId, orderNum) {
         try {
           const res = await apiFetch(`/tenant/orders/${orderId}/status`, {
-            method: 'PATCH',
+            method: 'PUT',
             body: { status: 'SHIPPED' }
           });
 
@@ -1474,21 +1543,22 @@
               let statusBadgeHtml = '';
               let actionsHtml = '';
 
-              if (order.status === 'PENDING' || order.status === 'Ödeme Bekliyor') {
+              if (order.status === 'PENDING_APPROVAL' || order.status === 'PENDING' || order.status === 'Ödeme Bekliyor') {
                 const isTransfer = order.status === 'Ödeme Bekliyor' || order.paymentMethod === 'BANK_TRANSFER';
                 statusBadgeHtml = `
                   <span class="badge-status-yellow" style="${isTransfer ? 'background: #fffbeb; color: #b45309; border: 1px solid #fde68a;' : ''}">
                     <span class="badge-dot-yellow" style="${isTransfer ? 'background: #d97706;' : ''}"></span>
-                    ${isTransfer ? 'Ödeme Bekliyor' : 'Yeni Sipariş'}
+                    ${isTransfer ? 'Ödeme Bekliyor' : 'Onay Bekliyor'}
                   </span>
                 `;
                 actionsHtml = `
                   <div class="table-actions">
-                    <button type="button" class="btn-approve" onclick="approveOrder('${order.id}', '${orderNum}')">${isTransfer ? 'Ödemeyi Onayla' : 'Siparişi Onayla'}</button>
+                    <button type="button" class="btn-approve" onclick="approveOrder('${order.id}', '${orderNum}')" title="Siparişi Onayla ve Hazırla">Onayla</button>
+                    <button type="button" class="btn-reject" onclick="rejectOrder('${order.id}', '${orderNum}')" title="Siparişi Reddet / İptal Et">Reddet</button>
                     <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
                   </div>
                 `;
-              } else if (order.status === 'APPROVED' || order.status === 'Hazırlanıyor') {
+              } else if (order.status === 'PROCESSING' || order.status === 'APPROVED' || order.status === 'Hazırlanıyor') {
                 statusBadgeHtml = `
                   <span class="badge-status-green" style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd;">
                     <span class="badge-dot-green" style="background: #0284c7;"></span>
@@ -1501,11 +1571,23 @@
                     <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
                   </div>
                 `;
+              } else if (order.status === 'REJECTED' || order.status === 'CANCELLED') {
+                statusBadgeHtml = `
+                  <span class="badge-status-red" title="${escapeHtml(order.rejectionReason || 'Bayi tarafından reddedildi')}">
+                    <span class="badge-dot-red"></span>
+                    İptal Edildi
+                  </span>
+                `;
+                actionsHtml = `
+                  <div class="table-actions">
+                    <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
+                  </div>
+                `;
               } else {
                 statusBadgeHtml = `
                   <span class="badge-status-green">
                     <span class="badge-dot-green"></span>
-                    ${escapeHtml(order.status === 'SHIPPED' ? 'Kargolandı' : order.status)}
+                    ${escapeHtml(order.status === 'SHIPPED' ? 'Kargolandı 🚚' : order.status)}
                   </span>
                 `;
                 actionsHtml = `
@@ -1516,8 +1598,15 @@
                 `;
               }
 
+              const reasonNotice = order.rejectionReason
+                ? `<div style="font-size: 11px; color: #dc2626; margin-top: 4px; line-height: 1.2;"><strong>Ret:</strong> ${escapeHtml(order.rejectionReason)}</div>`
+                : '';
+
               tr.innerHTML = `
-                <td><span class="order-number">#${orderNum}</span></td>
+                <td>
+                  <span class="order-number">#${orderNum}</span>
+                  ${reasonNotice}
+                </td>
                 <td>
                   <div class="customer-info">
                     <span class="customer-name">${customerName}</span>
@@ -1666,9 +1755,27 @@
           dateStr = d.toLocaleDateString('tr-TR') + ' ' + d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
         }
 
-        const statusText = order.status === 'PENDING' ? 'Yeni Sipariş (Bekliyor)' : (order.status === 'APPROVED' ? 'Hazırlanıyor (Onaylandı)' : (order.status === 'SHIPPED' ? 'Kargolandı 🚚' : order.status));
-        const statusColor = order.status === 'PENDING' ? '#d97706' : (order.status === 'APPROVED' ? '#0284c7' : '#10b981');
-        const statusBg = order.status === 'PENDING' ? '#fef3c7' : (order.status === 'APPROVED' ? '#e0f2fe' : '#d1fae5');
+        let statusText = 'Onay Bekliyor ⏳';
+        let statusColor = '#d97706';
+        let statusBg = '#fef3c7';
+
+        if (order.status === 'PENDING_APPROVAL' || order.status === 'PENDING') {
+          statusText = 'Onay Bekliyor ⏳';
+          statusColor = '#d97706';
+          statusBg = '#fef3c7';
+        } else if (order.status === 'PROCESSING' || order.status === 'APPROVED' || order.status === 'Hazırlanıyor') {
+          statusText = 'Hazırlanıyor 📦';
+          statusColor = '#0284c7';
+          statusBg = '#e0f2fe';
+        } else if (order.status === 'REJECTED' || order.status === 'CANCELLED') {
+          statusText = 'İptal / Reddedildi ❌';
+          statusColor = '#dc2626';
+          statusBg = '#fee2e2';
+        } else if (order.status === 'SHIPPED') {
+          statusText = 'Kargolandı 🚚';
+          statusColor = '#10b981';
+          statusBg = '#d1fae5';
+        }
 
         let rowsHtml = '';
         if (items.length === 0) {
@@ -1751,6 +1858,12 @@
                   </span>
                 </div>
               </div>
+
+              ${order.rejectionReason ? `
+                <div style="margin-top: 12px; padding: 10px 14px; background: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid #ef4444; border-radius: 6px; font-size: 13px; color: #991b1b;">
+                  <strong>Ret Sebebi (Gerekçe):</strong> ${escapeHtml(order.rejectionReason)}
+                </div>
+              ` : ''}
             </div>
 
             <!-- Kalemler Tablosu (Görsel/OE No, Parça Adı, Adet, Birim Fiyat, Ara Toplam) -->
@@ -1802,12 +1915,15 @@
 
         if (footerEl) {
           footerEl.innerHTML = `
-            ${order.status === 'PENDING' ? `
-              <button type="button" class="btn-primary" style="background: #10b981; border-color: #10b981;" onclick="approveOrder('${order.id}', '${orderNum}'); hideModal(document.getElementById('modal-order-detail'));">
+            ${(order.status === 'PENDING_APPROVAL' || order.status === 'PENDING') ? `
+              <button type="button" class="btn-primary" style="background: #10b981; border-color: #10b981;" onclick="hideModal(document.getElementById('modal-order-detail')); approveOrder('${order.id}', '${orderNum}');">
                 Siparişi Onayla ✓
               </button>
-            ` : (order.status === 'APPROVED' ? `
-              <button type="button" class="btn-primary" style="background: #0284c7; border-color: #0284c7;" onclick="shipOrder('${order.id}', '${orderNum}'); hideModal(document.getElementById('modal-order-detail'));">
+              <button type="button" class="btn-reject" onclick="hideModal(document.getElementById('modal-order-detail')); rejectOrder('${order.id}', '${orderNum}');">
+                Siparişi Reddet ✕
+              </button>
+            ` : (order.status === 'PROCESSING' || order.status === 'APPROVED' ? `
+              <button type="button" class="btn-primary" style="background: #0284c7; border-color: #0284c7;" onclick="hideModal(document.getElementById('modal-order-detail')); shipOrder('${order.id}', '${orderNum}');">
                 Kargoya Ver 🚚
               </button>
             ` : '')}

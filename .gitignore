@@ -1,0 +1,24 @@
+# ==============================================================================
+# Multi-Tenant B2B SaaS - Git Ignore Configuration (Repository Root)
+# ==============================================================================
+
+# Hassas Ortam Değişkenleri ve Gizli Anahtarlar (GÜVENLİK)
+.env
+*.env
+.env.*
+!.env.example
+**/.env
+**/*.env
+!**/.env.example
+
+# Bağımlılıklar
+node_modules/
+**/node_modules/
+
+# Veritabanı ve Geçici Dosyalar
+*.db
+*.db-journal
+dev.db
+*.log
+uploads/*
+!uploads/.gitkeep

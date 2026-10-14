@@ -2,10 +2,9 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const jwt = require('jsonwebtoken');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('./lib/prisma');
 const app = require('./app');
 
-const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'b2b-super-secret-key-2026';
 
 let server;

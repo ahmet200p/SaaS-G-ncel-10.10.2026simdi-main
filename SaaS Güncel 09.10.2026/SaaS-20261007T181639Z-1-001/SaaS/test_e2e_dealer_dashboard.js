@@ -87,7 +87,7 @@ async function runTests() {
     assert(schemaContent.includes('tenantId       String'), 'Order modelinde tenantId alanı mevcut');
     assert(schemaContent.includes('customerId     String'), 'Order modelinde customerId alanı mevcut');
     assert(schemaContent.includes('totalAmount    Float'), 'Order modelinde totalAmount (Float) alanı mevcut');
-    assert(schemaContent.includes('status         String          @default("PENDING")'), 'Order modelinde status (varsayılan PENDING) alanı mevcut');
+    assert(schemaContent.includes('@default("PENDING")') || schemaContent.includes('@default("PENDING_APPROVAL")'), 'Order modelinde status (varsayılan PENDING veya PENDING_APPROVAL) alanı mevcut');
     assert(schemaContent.includes('createdAt      DateTime        @default(now())'), 'Order modelinde createdAt (DateTime) alanı mevcut');
 
     // Sunucuyu başlat
@@ -131,8 +131,7 @@ async function runTests() {
     assert(ordersRes.data && Array.isArray(ordersRes.data.data), 'Siparişler bir dizi olarak döndü');
 
     if (ordersRes.data.data.length === 0) {
-      const { PrismaClient } = require('@prisma/client');
-      const prisma = new PrismaClient();
+      const prisma = require('./lib/prisma');
       const tenantId = loginRes.data.user?.tenantId || (loginRes.data.tenant && loginRes.data.tenant.id);
       let cust = await prisma.customerProfile.findFirst({ where: { tenantId } });
       if (!cust) {

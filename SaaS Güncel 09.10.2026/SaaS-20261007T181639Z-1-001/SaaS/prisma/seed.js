@@ -19,29 +19,33 @@ async function main() {
   console.log('🌱 Prisma Başlangıç Verileri (Seed) Yükleniyor...');
   console.log('====================================================');
 
-  // 1. Şifrelerin Bcrypt ile Hashlenmesi (Standart test şifresi: 123456)
+  // 1. Şifrelerin Bcrypt ile Hashlenmesi (4. ADIM: Güvenli Rastgele Parola Üretimi)
   const saltRounds = 10;
-  const commonPassword = 'password123'; // veya 123456
-  const hashedPassword = await bcrypt.hash('123456', saltRounds);
+  const crypto = require('crypto');
+  const rawAdminPassword = process.env.ADMIN_INITIAL_PASSWORD ||
+    crypto.randomBytes(12).toString('base64').replace(/[^a-zA-Z0-9]/g, 'X') + 'A1!';
+  const hashedAdminPassword = await bcrypt.hash(rawAdminPassword, saltRounds);
+  const commonHashedPassword = await bcrypt.hash('123456', saltRounds);
+  const hashedPassword = commonHashedPassword;
 
-  console.log('🔒 Test şifreleri bcrypt ile başarıyla hash\'lendi.');
+  console.log('🔒 Başlangıç şifreleri bcrypt ile başarıyla hash\'lendi.');
 
   // 2. Süper Admin Kullanıcısı Oluşturma
-  // admin@sistem.com / 123456 / SUPER_ADMIN
   const superAdmin = await prisma.user.upsert({
     where: { email: 'admin@sistem.com' },
     update: {
-      password: hashedPassword,
+      password: hashedAdminPassword,
       role: 'SUPER_ADMIN'
     },
     create: {
       email: 'admin@sistem.com',
-      password: hashedPassword,
+      password: hashedAdminPassword,
       role: 'SUPER_ADMIN'
     }
   });
 
   console.log(`👑 Süper Admin oluşturuldu: ${superAdmin.email} (Rol: ${superAdmin.role})`);
+  console.log(`🔑 İlk Kurulum Süper Admin Şifresi: ${rawAdminPassword}`);
 
   // 3. 'Ahmet Oto' Adlı Bayi (Tenant) Oluşturma
   // Subdomain: ahmetoto, Tema: #f97316 (Turuncu)

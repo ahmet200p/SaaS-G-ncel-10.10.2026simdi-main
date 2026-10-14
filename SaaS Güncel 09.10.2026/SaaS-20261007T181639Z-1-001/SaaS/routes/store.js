@@ -414,14 +414,10 @@ router.post('/orders', async (req, res) => {
     // Çakışmasız Benzersiz Sipariş Numarası Üret (Örn: SP-KXZ91A-4821)
     const orderNumber = `SP-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    // Ödeme Yöntemi ve Başlangıç Statüsü (Cari: 'Hazırlanıyor', Havale: 'Ödeme Bekliyor')
+    // Ödeme Yöntemi ve Başlangıç Statüsü
+    // Güvenli B2B Onay Akışı: Tüm yeni siparişlerin varsayılan durumu kesinlikle PENDING_APPROVAL (Onay Bekliyor) olmalıdır.
     const paymentMethod = req.body.paymentMethod || (req.body.paymentMethodSelect ? req.body.paymentMethodSelect : null);
-    let orderStatus = 'PENDING';
-    if (paymentMethod === 'CURRENT_ACCOUNT') {
-      orderStatus = 'Hazırlanıyor';
-    } else if (paymentMethod === 'BANK_TRANSFER') {
-      orderStatus = 'Ödeme Bekliyor';
-    }
+    const orderStatus = 'PENDING_APPROVAL';
 
     // 5. Prisma Transaction (Atomik Sipariş Oluşturma, KDV, Güvenli Stok Düşme, Stok Denetimi ve Cari Bakiye Defteri)
     const createdOrder = await prisma.$transaction(async (tx) => {

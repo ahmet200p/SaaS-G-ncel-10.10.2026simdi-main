@@ -2,9 +2,12 @@
 // Multi-Tenant B2B Yedek Parça SaaS - Sunucu Başlatıcı (server.js)
 // ============================================================================
 
+const config = require('./config');
+// 3. ADIM: Çalışma zamanı Fail-Safe denetimi
+config.validateJwtSecret();
+
 const app = require('./app');
 const prisma = require('./lib/prisma');
-const config = require('./config');
 
 const PORT = config.PORT;
 
@@ -13,8 +16,14 @@ const ensureInitialData = async () => {
   try {
     const adminCount = await prisma.user.count({ where: { role: 'SUPER_ADMIN' } });
     if (adminCount === 0) {
+      const crypto = require('crypto');
       const bcrypt = require('bcryptjs');
-      const hash = await bcrypt.hash('123456', 10);
+
+      // 4. ADIM: Statik şifreler yerine crypto ile rastgele en az 16 haneli güçlü şifre üret
+      const rawAdminPassword = process.env.ADMIN_INITIAL_PASSWORD ||
+        crypto.randomBytes(12).toString('base64').replace(/[^a-zA-Z0-9]/g, 'X') + 'A1!';
+      const hash = await bcrypt.hash(rawAdminPassword, 10);
+
       await prisma.user.create({
         data: {
           email: 'admin@sistem.com',
@@ -22,7 +31,13 @@ const ensureInitialData = async () => {
           role: 'SUPER_ADMIN'
         }
       });
-      console.log('👑 Varsayılan Süper Admin (admin@sistem.com) veritabanına eklendi.');
+
+      console.log('====================================================');
+      console.log('👑 İLK KURULUM: Yeni Süper Admin Hesabı Oluşturuldu');
+      console.log(`📧 E-posta: admin@sistem.com`);
+      console.log(`🔑 Geçici Güvenli Şifre: ${rawAdminPassword}`);
+      console.log('⚠️ Bu şifre yalnızca ilk kurulumda bir kez gösterilmiştir.');
+      console.log('====================================================');
     }
 
     const settings = await prisma.systemSettings.findUnique({ where: { id: 1 } });
@@ -74,8 +89,11 @@ const ensureInitialData = async () => {
   }
 };
 
+const { startServer } = require('./dev_pg_server');
+
 // Sunucuyu Dinlemeye Başla
 const server = app.listen(PORT, async () => {
+  await startServer();
   await ensureInitialData();
   console.log(`====================================================`);
   console.log(`🚀 Multi-Tenant B2B SaaS Sunucusu Başarıyla Başlatıldı!`);

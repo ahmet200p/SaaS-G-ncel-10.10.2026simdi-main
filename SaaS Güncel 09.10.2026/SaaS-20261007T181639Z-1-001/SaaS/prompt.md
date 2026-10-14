@@ -1,39 +1,20 @@
-"Müşteri vitrini (store.html) sayfasındaki sepet sürecini B2B (toptancı-tamirci) gerçeklerine uygun hale getirmek için ödeme adımını yeniden kurgulamanı istiyorum. Şu an 'Siparişi Onayla' butonuna basıldığında sipariş direkt geçiliyor, ancak bunun yerine bir 'Ödeme Yöntemi' seçimi sunmalıyız. Lütfen şu adımları uygula:
+"Müşteri vitrini (store.html) sayfasında 'Havale / EFT ile Öde' seçeneğiyle sipariş verildiğinde çıkan standart 'Sipariş alındı' bildirimini daha kurumsal ve bilgilendirici bir yapıya dönüştürmek istiyorum. Lütfen ödeme işlemi tamamlandığında (API'den başarılı yanıt döndüğünde) çalışan JavaScript kodunu şu şekilde güncelle:
 
-1. ADIM: Ödeme Seçenekleri Modalı Tasarımı
+1. ADIM: Havale/EFT'ye Özel Kurumsal Başarı Mesajı (SweetAlert2)
 
-Sepetteki 'Siparişi Onayla' butonuna tıklandığında, siparişi hemen API'ye göndermek yerine modal-payment-method adında şık bir ekran (Modal) aç.
+Eğer kullanıcının seçtiği ödeme yöntemi BANK_TRANSFER (Havale/EFT) ise, sipariş başarıyla oluşturulduktan sonra ekrana standart mesaj yerine şu özelliklerde şık bir SweetAlert2 (success) modalı çıkart:
 
-Bu modalda alt alta duran 3 farklı ödeme seçeneği (kutu/kart şeklinde) oluştur:
+Başlık (Title): Siparişiniz Başarıyla Alınmıştır
 
-1. Seçenek (Aktif): 'Cari Hesaba Yaz (Veresiye)'
+İçerik (HTML):
+'Siparişiniz sistemimize ulaşmıştır. Havale/EFT işleminizin hesaplarımıza yansıması ve muhasebe departmanımızın onayının ardından, ürünleriniz özenle hazırlanarak tarafınıza sevk edilecektir.<br><br><small><b>Önemli Not:</b> Transfer işleminizi gerçekleştirirken açıklama kısmına <b>Firma Adınızı</b> veya sistemin size atadığı <b>Sipariş Numaranızı</b> yazmayı unutmayınız.</small>'
 
-Açıklaması: "Sipariş tutarı cari hesabınıza borç olarak yansıtılacaktır."
+Onay Butonu Metni: 'Siparişlerime Git'
 
-2. Seçenek (Aktif): 'Havale / EFT ile Öde'
+2. ADIM: Yönlendirme (Redirect)
 
-Açıklaması: "Ödemeyi banka hesabımıza gönderdiğinizde siparişiniz onaylanacaktır."
+Müşteri SweetAlert2 modalındaki 'Siparişlerime Git' butonuna tıkladığında, sepet modalını kapat ve doğrudan sağ üstteki Profil > 'Siparişlerim' penceresini (veya ilgili sayfayı) otomatik olarak aç.
 
-3. Seçenek (Pasif/Disabled): 'Kredi Kartı ile Öde'
+3. ADIM: Statü Uyumu
 
-Kutunun rengi soluk olsun ve üzerine veya yanına şık bir "Çok Yakında" rozeti (badge) ekle. Bu seçeneğe tıklanamasın.
-
-2. ADIM: Sipariş Oluşturma (Havale ve Cari Mantığı)
-
-Kullanıcı **'Cari Hesaba Yaz'**ı seçip altındaki 'Siparişi Tamamla' butonuna basarsa:
-
-POST /api/store/orders isteğine paymentMethod: 'CURRENT_ACCOUNT' verisini ekle.
-
-Sipariş bayi paneline 'Hazırlanıyor' statüsünde düşsün.
-
-Kullanıcı 'Havale / EFT' seçeneğini seçerse:
-
-Kutunun altında dinamik olarak bayinin IBAN bilgileri (API'den veya tenant ayarlarından çekilen) belirtsin.
-
-Kullanıcı siparişi tamamladığında POST /api/store/orders isteğine paymentMethod: 'BANK_TRANSFER' verisini ekle.
-
-Sipariş bayi paneline 'Ödeme Bekliyor' statüsünde düşsün.
-
-3. ADIM: Başarı Ekranı ve Yönlendirme
-
-Sipariş API'ye başarılı bir şekilde iletildiğinde SweetAlert2 ile "Siparişiniz Başarıyla Alındı" mesajı göster, sepeti sıfırla ve kullanıcıyı Profil > Siparişlerim sekmesine yönlendir."
+Siparişlerim tablosuna gidildiğinde, bu siparişin durumunun turuncu/sarı tonlarında şık bir rozetle 'Ödeme Bekleniyor' veya 'Onay Bekliyor' olarak listelendiğinden emin ol."

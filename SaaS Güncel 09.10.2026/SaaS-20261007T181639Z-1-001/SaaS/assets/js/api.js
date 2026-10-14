@@ -899,11 +899,11 @@
     // 7d. GET /tenant/dashboard-stats & GET /tenant/stats
     if ((cleanEndpoint === '/tenant/dashboard-stats' || cleanEndpoint === '/tenant/stats') && method === 'GET') {
       const orders = store.orders || [];
-      const pendingCount = orders.filter(o => o.status === 'PENDING').length;
+      const pendingCount = orders.filter(o => o.status === 'PENDING' || o.status === 'PENDING_APPROVAL' || o.status === 'Ödeme Bekliyor').length;
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
       const todayRevenue = orders
-        .filter(o => new Date(o.createdAt) >= todayStart && o.status !== 'CANCELLED')
+        .filter(o => new Date(o.createdAt) >= todayStart && o.status !== 'CANCELLED' && o.status !== 'REJECTED')
         .reduce((sum, o) => sum + (parseFloat(o.totalAmount) || 0), 0);
       const customerCount = (store.customers || []).length;
       const recentOrders = orders.slice(0, 5).map(o => {
@@ -1062,18 +1062,37 @@
       return { success: false, message: 'Sipariş bulunamadı.' };
     }
 
-    // 7g. PATCH /tenant/orders/:id/status
-    if (cleanEndpoint.startsWith('/tenant/orders/') && cleanEndpoint.endsWith('/status') && method === 'PATCH') {
+    // 7g. PUT & PATCH /tenant/orders/:id/status
+    if (cleanEndpoint.startsWith('/tenant/orders/') && cleanEndpoint.endsWith('/status') && (method === 'PATCH' || method === 'PUT')) {
       const parts = cleanEndpoint.split('/');
       const orderId = parts[3];
       const newStatus = body.status;
+      const rejectionReason = body.rejectionReason || body.reason || null;
       const order = (store.orders || []).find(o => o.id === orderId);
       if (order && newStatus) {
+        const oldStatus = order.status;
         order.status = newStatus;
+        if (rejectionReason) {
+          order.rejectionReason = rejectionReason;
+        }
+        // Eğer sipariş iptal/red edildiyse ve önceden reddedilmemişse, cari bakiye ve stok iade et
+        if (newStatus === 'REJECTED' && oldStatus !== 'REJECTED' && oldStatus !== 'CANCELLED') {
+          if (!order.rejectionReason) order.rejectionReason = 'Bayi tarafından reddedildi.';
+          if (store.customers && store.customers[0] && order.totalAmount) {
+            store.customers[0].balance = parseFloat(Math.max(0, store.customers[0].balance - order.totalAmount).toFixed(2));
+          }
+          if (Array.isArray(order.items)) {
+            order.items.forEach(it => {
+              const tc = (store.tenantCatalog || []).find(c => c.id === it.tenantProductId || c.productId === it.productId);
+              if (tc && it.quantity) tc.stock = (tc.stock || 0) + it.quantity;
+            });
+          }
+        }
         saveMockStore(store);
+        const statusLabel = newStatus === 'PROCESSING' ? 'Hazırlanıyor' : (newStatus === 'REJECTED' ? 'İptal Edildi' : newStatus);
         return {
           success: true,
-          message: `Sipariş #${order.orderNumber || order.id} durumu "${newStatus}" olarak güncellendi.`,
+          message: `Sipariş #${order.orderNumber || order.id} durumu "${statusLabel}" olarak güncellendi.`,
           data: order
         };
       }
@@ -1389,12 +1408,7 @@
       const totalAmount = parseFloat((subtotal + vatAmount).toFixed(2));
 
       const paymentMethod = body.paymentMethod || null;
-      let orderStatus = 'PENDING';
-      if (paymentMethod === 'CURRENT_ACCOUNT') {
-        orderStatus = 'Hazırlanıyor';
-      } else if (paymentMethod === 'BANK_TRANSFER') {
-        orderStatus = 'Ödeme Bekliyor';
-      }
+      const orderStatus = 'PENDING_APPROVAL';
 
       const newOrder = {
         id: `ord-${Date.now().toString(36)}`,

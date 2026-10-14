@@ -12,10 +12,8 @@
  *    Bayi Yöneticisi (ahmet@ahmetoto.com) yetkili hesaplarını korur / eksikse oluşturur.
  */
 
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('./lib/prisma');
 const bcrypt = require('bcryptjs');
-
-const prisma = new PrismaClient();
 
 async function cleanTestData() {
   console.log('====================================================');

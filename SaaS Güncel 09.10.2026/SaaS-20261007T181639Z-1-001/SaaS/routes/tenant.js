@@ -14,11 +14,23 @@ router.use(verifyToken, checkTenantAdmin);
 
 /**
  * Tenant ID Çözümleyici Yardımcı:
- * TENANT_ADMIN ise req.user.tenantId döner.
- * SUPER_ADMIN ise query (?tenantId=...) veya body'deki tenantId'ye erişim izni verir.
+ * GÜVENLİK (IDOR Koruması):
+ * - TENANT_ADMIN ise her koşulda TAVİZSİZ req.user.tenantId döner.
+ * - Sadece SUPER_ADMIN yetkisindeki kullanıcılar query (?tenantId=...) veya body'deki tenantId'ye erişebilir.
  */
 const resolveTenantId = (req, res) => {
-  const tenantId = req.user.tenantId || req.query.tenantId || req.body.tenantId;
+  if (req.user && req.user.role === 'TENANT_ADMIN') {
+    if (!req.user.tenantId) {
+      res.status(403).json({
+        success: false,
+        message: 'Oturum açmış bayi yöneticisinin bayi kimliği (tenantId) bulunamadı.'
+      });
+      return null;
+    }
+    return req.user.tenantId;
+  }
+
+  const tenantId = req.user?.tenantId || req.query.tenantId || req.body.tenantId;
   if (!tenantId) {
     res.status(400).json({
       success: false,
@@ -875,27 +887,26 @@ router.put('/customers/:id', async (req, res) => {
  */
 router.delete('/customers/:id', async (req, res) => {
   try {
+    const tenantId = resolveTenantId(req, res);
+    if (!tenantId) return;
+
     const rawId = req.params.id;
     const customerId = String(rawId);
 
-    // Müşteriyi ID ile bul
-    const customer = await prisma.customerProfile.findUnique({
-      where: { id: customerId }
+    // Müşteriyi ID ve tenantId ile bul (3. ADIM: IDOR Koruması & Tenant Sahiplik Kontrolü)
+    const whereClause = { id: customerId };
+    if (req.user.role !== 'SUPER_ADMIN') {
+      whereClause.tenantId = tenantId;
+    }
+
+    const customer = await prisma.customerProfile.findFirst({
+      where: whereClause
     });
 
     if (!customer) {
       return res.status(404).json({
         success: false,
         message: 'Müşteri profili bulunamadı veya bayinize ait değil.'
-      });
-    }
-
-    // Yetkilendirme kontrolü (Veri İzolasyonu)
-    const reqTenantId = req.user && req.user.tenantId;
-    if (reqTenantId && req.user.role !== 'SUPER_ADMIN' && customer.tenantId !== reqTenantId) {
-      return res.status(403).json({
-        success: false,
-        message: 'Bu müşteriyi silme yetkiniz bulunmamaktadır.'
       });
     }
 
@@ -965,12 +976,15 @@ const handleGetTenantStats = async (req, res) => {
     const tenantId = resolveTenantId(req, res);
     if (!tenantId) return;
 
-    // 1. pendingCount: status: 'PENDING' olan siparişlerin sayısı
+    // 1. pendingCount: status: 'PENDING_APPROVAL' veya 'PENDING' olan siparişlerin sayısı
     const pendingCount = await prisma.order.count({
-      where: { tenantId: tenantId, status: 'PENDING' }
+      where: {
+        tenantId: tenantId,
+        status: { in: ['PENDING_APPROVAL', 'PENDING', 'Ödeme Bekliyor'] }
+      }
     });
 
-    // 2. todayRevenue: Sadece bugünün tarihine ait olan (ve iptal edilmemiş) siparişlerin totalAmount toplamı
+    // 2. todayRevenue: Sadece bugünün tarihine ait olan (ve iptal/red edilmemiş) siparişlerin totalAmount toplamı
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date();
@@ -980,7 +994,7 @@ const handleGetTenantStats = async (req, res) => {
       where: {
         tenantId: tenantId,
         createdAt: { gte: todayStart, lte: todayEnd },
-        status: { not: 'CANCELLED' }
+        status: { notIn: ['CANCELLED', 'REJECTED'] }
       },
       _sum: { totalAmount: true }
     });
@@ -1219,19 +1233,32 @@ router.get('/orders/:id', async (req, res) => {
 });
 
 /**
- * @route   PATCH /api/tenant/orders/:id/status
- * @desc    Gelen siparişin durumunu günceller (PENDING -> APPROVED -> SHIPPED).
+ * @route   PUT /api/tenant/orders/:id/status & PATCH /api/tenant/orders/:id/status
+ * @desc    Gelen siparişin durumunu günceller (PENDING_APPROVAL -> PROCESSING veya REJECTED).
  * @access  Protected (TENANT_ADMIN - İlgili Bayi)
  */
-router.patch('/orders/:id/status', async (req, res) => {
+const updateOrderStatus = async (req, res) => {
   try {
     const tenantId = resolveTenantId(req, res);
     if (!tenantId) return;
 
     const orderId = req.params.id;
     const { status } = req.body;
+    const rejectionReason = (req.body.rejectionReason || req.body.reason || '').trim();
 
-    const validStatuses = ['PENDING', 'APPROVED', 'SHIPPED', 'Hazırlanıyor', 'Ödeme Bekliyor'];
+    const validStatuses = [
+      'PENDING_APPROVAL',
+      'PROCESSING',
+      'REJECTED',
+      'PENDING',
+      'APPROVED',
+      'SHIPPED',
+      'COMPLETED',
+      'CANCELLED',
+      'Hazırlanıyor',
+      'Ödeme Bekliyor'
+    ];
+
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
@@ -1240,7 +1267,11 @@ router.patch('/orders/:id/status', async (req, res) => {
     }
 
     const existingOrder = await prisma.order.findFirst({
-      where: { id: orderId, tenantId: tenantId }
+      where: { id: orderId, tenantId: tenantId },
+      include: {
+        items: true,
+        customer: true
+      }
     });
 
     if (!existingOrder) {
@@ -1250,9 +1281,93 @@ router.patch('/orders/:id/status', async (req, res) => {
       });
     }
 
+    // Ret Durumu (REJECTED): Eğer sipariş daha önce reddedilmemişse, stok ve cari bakiye iade edilir
+    if (status === 'REJECTED') {
+      const finalRejectionReason = rejectionReason || 'Bayi tarafından ret edildi (Sebep belirtilmedi).';
+
+      const updatedOrder = await prisma.$transaction(async (tx) => {
+        // 1. Siparişi REJECTED ve rejectionReason ile güncelle
+        const ord = await tx.order.update({
+          where: { id: orderId },
+          data: {
+            status: 'REJECTED',
+            rejectionReason: finalRejectionReason
+          },
+          include: {
+            customer: {
+              select: { companyName: true, phone: true }
+            },
+            items: true
+          }
+        });
+
+        // 2. Eğer daha önce iptal edilmemişse stokları geri yükle ve cari bakiyeyi düzelt
+        if (existingOrder.status !== 'REJECTED' && existingOrder.status !== 'CANCELLED') {
+          // A. Stokları geri yükle
+          for (const item of (existingOrder.items || [])) {
+            await tx.tenantProduct.update({
+              where: { id: item.tenantProductId },
+              data: {
+                stock: { increment: item.quantity }
+              }
+            });
+
+            await tx.stockMovement.create({
+              data: {
+                tenantId: tenantId,
+                tenantProductId: item.tenantProductId,
+                orderId: existingOrder.id,
+                quantityChange: item.quantity,
+                type: 'RETURN',
+                note: `Sipariş #${existingOrder.orderNumber} ret edildiği için stok iadesi yapıldı. Sebep: ${finalRejectionReason}`
+              }
+            });
+          }
+
+          // B. Cari hesaba yazılmış borcu iptal et / kredilendir
+          if (existingOrder.customer && existingOrder.totalAmount > 0) {
+            const currentBal = parseFloat(existingOrder.customer.balance) || 0;
+            const newBal = parseFloat(Math.max(0, currentBal - existingOrder.totalAmount).toFixed(2));
+
+            await tx.customerProfile.update({
+              where: { id: existingOrder.customerId },
+              data: {
+                balance: newBal
+              }
+            });
+
+            await tx.customerLedger.create({
+              data: {
+                tenantId: tenantId,
+                customerId: existingOrder.customerId,
+                type: 'CREDIT',
+                amount: existingOrder.totalAmount,
+                balanceAfter: newBal,
+                description: `Sipariş #${existingOrder.orderNumber} iptali / ret sebebiyle cari bakiye iadesi`
+              }
+            });
+          }
+        }
+
+        return ord;
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: `Sipariş #${updatedOrder.orderNumber || updatedOrder.id} başarıyla reddedildi ve iptal edildi.`,
+        data: updatedOrder
+      });
+    }
+
+    // Diğer Durumlar (PROCESSING, APPROVED, SHIPPED vb.)
+    const updateData = { status: status };
+    if (rejectionReason) {
+      updateData.rejectionReason = rejectionReason;
+    }
+
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
-      data: { status: status },
+      data: updateData,
       include: {
         customer: {
           select: { companyName: true, phone: true }
@@ -1261,9 +1376,11 @@ router.patch('/orders/:id/status', async (req, res) => {
       }
     });
 
+    const statusLabel = status === 'PROCESSING' ? 'Hazırlanıyor' : (status === 'APPROVED' ? 'Onaylandı' : status);
+
     return res.status(200).json({
       success: true,
-      message: `Sipariş #${updatedOrder.orderNumber || updatedOrder.id} durumu "${status}" olarak güncellendi.`,
+      message: `Sipariş #${updatedOrder.orderNumber || updatedOrder.id} durumu "${statusLabel}" olarak güncellendi.`,
       data: updatedOrder
     });
 
@@ -1274,7 +1391,10 @@ router.patch('/orders/:id/status', async (req, res) => {
       message: 'Sipariş durumu güncellenirken sunucu hatası oluştu.'
     });
   }
-});
+};
+
+router.put('/orders/:id/status', updateOrderStatus);
+router.patch('/orders/:id/status', updateOrderStatus);
 
 // ============================================================================
 // 4. DENETİM VE GEÇMİŞ HAREKET DEFTERLERİ (AUDIT LOGS)

@@ -9,20 +9,20 @@ try {
 const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
 const config = require('../config');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, isSuperAdmin, checkSuperAdmin } = require('../middleware/auth');
 const { loginLimiter } = require('../middleware/rateLimiter');
 
 /**
  * @route   POST /api/auth/register
- * @desc    Yeni kullanıcı kaydı (Süper Admin veya Bayi panelinden yeni kullanıcı eklerken)
- * @access  Public / Panel
+ * @desc    Yeni müşteri/kullanıcı kaydı (Herkese açık vitrin kaydı)
+ * @access  Public
  */
 router.post('/register', async (req, res) => {
   try {
     const {
       email,
       password,
-      role,
+      // GÜVENLİK (Mass Assignment Önleme): role parametresi KESİNLİKLE kabul edilmez, dışarıdan gelse bile yok sayılır.
       tenantId,
       subdomain,
       fullName,
@@ -84,15 +84,15 @@ router.post('/register', async (req, res) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // 5. Rol ve Müşteri Tipi Belirleme (B2B MECHANIC vs B2C RETAIL)
-    const validRoles = ['SUPER_ADMIN', 'TENANT_ADMIN', 'CUSTOMER'];
-    const assignedRole = role && validRoles.includes(role.toUpperCase())
-      ? role.toUpperCase()
-      : 'CUSTOMER';
+    // 5. Rol ve Müşteri Tipi Belirleme (Mass Assignment Koruması)
+    // 1. ADIM: Herkese açık kayıt uç noktasında rol parametresi dışarıdan ASLA alınmaz; doğrudan CUSTOMER olarak sabitlenir (hardcode).
+    const assignedRole = 'CUSTOMER';
 
+    // 2. ADIM: Tamirci (B2B MECHANIC) vs Bireysel (B2C RETAIL) Ayrımı
+    // Bu ayrım yalnızca CustomerProfile tablosundaki detayları ve onay sürecini etkiler; kullanıcının erişim yetkisi (Role: CUSTOMER) değişmez.
     const validTypes = ['MECHANIC', 'RETAIL'];
-    const assignedCustomerType = customerType && validTypes.includes(customerType.toUpperCase())
-      ? customerType.toUpperCase()
+    const assignedCustomerType = customerType && validTypes.includes(String(customerType).toUpperCase())
+      ? String(customerType).toUpperCase()
       : 'MECHANIC';
 
     const displayName = (fullName || name || cleanEmail.split('@')[0]).trim();
@@ -105,7 +105,7 @@ router.post('/register', async (req, res) => {
         data: {
           email: cleanEmail,
           password: hashedPassword,
-          role: assignedRole,
+          role: 'CUSTOMER', // GÜVENLİK: Dışarıdan yetki yükseltme engellenmiştir.
           name: displayName,
           tenantId: targetTenantId
         }
@@ -172,6 +172,92 @@ router.post('/register', async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Kayıt işlemi sırasında bir sunucu hatası oluştu.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// ============================================================================
+// 3. ADIM: YETKİLİ OLUŞTURMA ROTALARININ (ADMIN CREATION) GÜVENLİĞE ALINMASI
+// ============================================================================
+/**
+ * @route   POST /api/auth/register-admin
+ * @desc    Yeni yetkili (TENANT_ADMIN / SUPER_ADMIN) oluşturma rotası.
+ *          KESİNLİKLE geçerli bir Süper Admin token'ı (verifyToken, isSuperAdmin) gerektirir.
+ * @access  Protected (SUPER_ADMIN)
+ */
+router.post('/register-admin', verifyToken, isSuperAdmin, async (req, res) => {
+  try {
+    const { email, password, role = 'TENANT_ADMIN', tenantId, name, fullName } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Yönetici e-posta ve şifre alanları zorunludur.'
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Şifre en az 6 karakter uzunluğunda olmalıdır.'
+      });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const existingUser = await prisma.user.findUnique({
+      where: { email: cleanEmail }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bu e-posta adresi ile kayıtlı bir kullanıcı zaten mevcut.'
+      });
+    }
+
+    const validAdminRoles = ['SUPER_ADMIN', 'TENANT_ADMIN'];
+    const targetRole = validAdminRoles.includes(role) ? role : 'TENANT_ADMIN';
+
+    if (targetRole === 'TENANT_ADMIN' && !tenantId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bayi yöneticisi (TENANT_ADMIN) için yetkilendirilecek bayi kimliği (tenantId) zorunludur.'
+      });
+    }
+
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const displayName = (fullName || name || cleanEmail.split('@')[0]).trim();
+
+    const newAdmin = await prisma.user.create({
+      data: {
+        email: cleanEmail,
+        password: hashedPassword,
+        role: targetRole,
+        name: displayName,
+        tenantId: targetRole === 'TENANT_ADMIN' ? tenantId : null
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        tenantId: true,
+        createdAt: true
+      }
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: `${targetRole === 'SUPER_ADMIN' ? 'Süper Admin' : 'Bayi Yöneticisi'} hesabı başarıyla oluşturuldu.`,
+      data: newAdmin
+    });
+  } catch (error) {
+    console.error('[AUTH_REGISTER_ADMIN_ERROR]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Yetkili kullanıcı oluşturulurken sunucu hatası oluştu.',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }

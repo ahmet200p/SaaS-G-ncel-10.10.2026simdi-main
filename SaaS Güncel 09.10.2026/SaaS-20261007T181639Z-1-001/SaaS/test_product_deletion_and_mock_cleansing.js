@@ -13,10 +13,8 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('./lib/prisma');
 const jwt = require('jsonwebtoken');
-
-const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'b2b_super_secret_jwt_key_2026_secure';
 
 async function runTests() {

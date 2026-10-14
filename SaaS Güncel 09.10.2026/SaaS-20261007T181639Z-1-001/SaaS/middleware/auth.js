@@ -10,18 +10,7 @@ const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization || req.headers.Authorization;
 
   // 1. Authorization başlığı ve Bearer formatı kontrolü
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    // Doğrudan frontend fetch çağrıları için toleranslı silme desteği
-    if (req.method === 'DELETE' && (req.baseUrl.includes('tenant') || (req.originalUrl && req.originalUrl.includes('/customers/')))) {
-      req.user = {
-        id: 'usr-default-tenant',
-        email: 'ahmet@ahmetoto.com',
-        role: 'TENANT_ADMIN',
-        tenantId: null
-      };
-      return next();
-    }
-
+  if (!authHeader || typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({
       success: false,
       message: 'Erişim engellendi: Yetkilendirme tokenı (Bearer Token) bulunamadı.'
@@ -30,27 +19,36 @@ const verifyToken = (req, res, next) => {
 
   // 2. Token metnini ayıkla
   const token = authHeader.split(' ')[1];
+  if (!token || !token.trim()) {
+    return res.status(401).json({
+      success: false,
+      message: 'Erişim engellendi: Geçersiz token biçimi.'
+    });
+  }
 
-  // Geliştirme ortamı ve bağımsız/offline oturumlar için hibrit token desteği
-  if (token && token.startsWith('standalone_jwt_')) {
+  // 3. ADIM: Çevresel (Environment) İzolasyon
+  // Mock/sahte test yetkilendirmeleri SADECE ve İSTİSNASIZ olarak process.env.NODE_ENV === 'test' durumunda çalışabilir.
+  // Canlı (production) veya geliştirme (development) ortamlarında hiçbir sahte token asla kabul edilmez.
+  if (process.env.NODE_ENV === 'test' && token.startsWith('mock_test_token_')) {
     const parts = token.split('_');
-    const rolePart = parts[2] ? parts[2].toUpperCase() : 'SUPER_ADMIN';
+    const rolePart = parts[3] ? parts[3].toUpperCase() : 'CUSTOMER';
     const role = rolePart === 'SUPER' ? 'SUPER_ADMIN' : (rolePart === 'TENANT' ? 'TENANT_ADMIN' : rolePart);
     req.user = {
-      id: 'usr-standalone-' + role.toLowerCase(),
-      email: role === 'SUPER_ADMIN' ? 'admin@sistem.com' : 'ahmet@ahmetoto.com',
+      id: 'usr-mock-test',
+      email: 'mock@test.com',
       role: role,
-      tenantId: role === 'SUPER_ADMIN' ? null : 'c5aeb622-3650-4205-8f1c-38b9cf11f928'
+      tenantId: role === 'SUPER_ADMIN' ? null : 'test-tenant-id'
     };
     return next();
   }
 
+  // 2. ADIM: Katı JWT Doğrulaması (Strict Verification)
+  // Sisteme gelen her bir token İSTİSNASIZ olarak jwt.verify(token, secret) metodundan geçmek zorundadır.
   try {
-    // 3. JWT doğrulaması
-    const secret = config.JWT_SECRET;
+    const secret = process.env.JWT_SECRET || config.JWT_SECRET;
     const decoded = jwt.verify(token, secret);
 
-    // 4. Çözülen kullanıcı bilgilerini req.user objesine ekle
+    // Kullanıcı rolü ve verileri SADECE doğrulanmış (verified) payload üzerinden okunur.
     req.user = {
       id: decoded.id,
       email: decoded.email,
@@ -67,6 +65,7 @@ const verifyToken = (req, res, next) => {
       });
     }
 
+    // İmzası hatalı, süresi dolmuş, sahte veya manipüle edilmiş tüm tokenlar anında durdurulur
     return res.status(403).json({
       success: false,
       message: 'Geçersiz veya bozuk yetkilendirme tokenı.'
@@ -114,7 +113,7 @@ const checkTenantAdmin = (req, res, next) => {
     });
   }
 
-  if (!req.user.tenantId && req.user.role !== 'SUPER_ADMIN' && req.method !== 'DELETE') {
+  if (!req.user.tenantId && req.user.role !== 'SUPER_ADMIN') {
     return res.status(403).json({
       success: false,
       message: 'Erişim reddedildi: Bu işlem için geçerli bir bayi (tenant) üyeliği gereklidir.'
@@ -153,10 +152,15 @@ const checkCustomer = (req, res, next) => {
   next();
 };
 
+const isSuperAdmin = checkSuperAdmin;
+const isTenantAdmin = checkTenantAdmin;
+
 module.exports = {
   verifyToken,
   checkSuperAdmin,
+  isSuperAdmin,
   checkTenantAdmin,
+  isTenantAdmin,
   checkCustomer,
   authorizeRoles
 };

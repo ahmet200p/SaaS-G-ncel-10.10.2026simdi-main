@@ -213,10 +213,10 @@ async function runTests() {
     assert(orderCurrentRes.data.success === true, 'Sipariş başarılı olmalı');
     const orderCurrent = orderCurrentRes.data.data;
     assert.strictEqual(orderCurrent.paymentMethod, 'CURRENT_ACCOUNT', 'Sipariş paymentMethod CURRENT_ACCOUNT olmalı');
-    assert.strictEqual(orderCurrent.status, 'Hazırlanıyor', 'Cari hesaba yazılan siparişin durumu "Hazırlanıyor" olmalı');
-    console.log(`  ✅ [PASS] 4.3: Cari Sipariş (#${orderCurrent.orderNumber}) Durumu: "${orderCurrent.status}", Yöntem: "${orderCurrent.paymentMethod}"`);
+    assert.strictEqual(orderCurrent.status, 'PENDING_APPROVAL', 'Cari hesaba yazılan siparişin başlangıç durumu "PENDING_APPROVAL" olmalı');
+    console.log(`  ✅ [PASS] 4.3: Cari Sipariş (#${orderCurrent.orderNumber}) Başlangıç Durumu: "${orderCurrent.status}", Yöntem: "${orderCurrent.paymentMethod}"`);
 
-    // 4.4. Test: Havale / EFT ile Sipariş (BANK_TRANSFER) -> Durum: 'Ödeme Bekliyor'
+    // 4.4. Test: Havale / EFT ile Sipariş (BANK_TRANSFER) -> Başlangıç Durumu: 'PENDING_APPROVAL'
     console.log('\n  -> 4.4: Havale / EFT (BANK_TRANSFER) ile Sipariş Oluşturuluyor...');
     const orderBankRes = await makeRequest(`${baseUrl}/api/store/orders`, 'POST', {
       paymentMethod: 'BANK_TRANSFER',
@@ -234,16 +234,16 @@ async function runTests() {
     assert(orderBankRes.data.success === true, 'Sipariş başarılı olmalı');
     const orderBank = orderBankRes.data.data;
     assert.strictEqual(orderBank.paymentMethod, 'BANK_TRANSFER', 'Sipariş paymentMethod BANK_TRANSFER olmalı');
-    assert.strictEqual(orderBank.status, 'Ödeme Bekliyor', 'Havale/EFT siparişinin durumu "Ödeme Bekliyor" olmalı');
-    console.log(`  ✅ [PASS] 4.4: Havale/EFT Sipariş (#${orderBank.orderNumber}) Durumu: "${orderBank.status}", Yöntem: "${orderBank.paymentMethod}"`);
+    assert.strictEqual(orderBank.status, 'PENDING_APPROVAL', 'Havale/EFT siparişinin başlangıç durumu "PENDING_APPROVAL" olmalı');
+    console.log(`  ✅ [PASS] 4.4: Havale/EFT Sipariş (#${orderBank.orderNumber}) Başlangıç Durumu: "${orderBank.status}", Yöntem: "${orderBank.paymentMethod}"`);
 
-    // 4.5. Test: Bayi Panelinden Sipariş Durum Güncelleme (PATCH /orders/:id/status)
-    const patchRes = await makeRequest(`${baseUrl}/api/tenant/orders/${orderBank.id}/status`, 'PATCH', {
-      status: 'Hazırlanıyor'
+    // 4.5. Test: Bayi Panelinden Sipariş Durum Güncelleme (PUT /orders/:id/status -> PROCESSING)
+    const putRes = await makeRequest(`${baseUrl}/api/tenant/orders/${orderBank.id}/status`, 'PUT', {
+      status: 'PROCESSING'
     }, token);
-    assert(patchRes.status === 200, 'PATCH /api/tenant/orders/:id/status HTTP 200 dönmeli');
-    assert(patchRes.data.data.status === 'Hazırlanıyor', 'Güncellenen durum Hazırlanıyor olmalı');
-    console.log('  ✅ [PASS] 4.5: Bayi panelinden durum güncellemesi (Ödeme Bekliyor -> Hazırlanıyor) doğrulandı.');
+    assert(putRes.status === 200, 'PUT /api/tenant/orders/:id/status HTTP 200 dönmeli');
+    assert.strictEqual(putRes.data.data.status, 'PROCESSING', 'Güncellenen durum PROCESSING olmalı');
+    console.log('  ✅ [PASS] 4.5: Bayi panelinden durum güncellemesi (PENDING_APPROVAL -> PROCESSING) doğrulandı.');
 
   } finally {
     await new Promise(resolve => server.close(resolve));

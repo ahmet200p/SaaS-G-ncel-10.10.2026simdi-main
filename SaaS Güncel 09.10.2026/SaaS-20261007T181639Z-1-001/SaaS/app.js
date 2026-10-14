@@ -4,6 +4,10 @@
 // ============================================================================
 
 require('dotenv').config();
+const config = require('./config');
+// 3. ADIM: JWT Anahtarı İçin Çalışma Zamanı (Runtime) Koruması (Fail-Safe)
+config.validateJwtSecret();
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
