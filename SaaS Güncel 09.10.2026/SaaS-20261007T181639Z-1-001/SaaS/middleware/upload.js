@@ -27,13 +27,30 @@ const storage = multer.diskStorage({
   }
 });
 
-// Sadece Resim Formatlarını Kabul Et (image/*)
+// Sadece Güvenli Resim Formatlarını ve Uzantılarını Kabul Et (Whitelisting)
+const allowedExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
+const allowedMimeTypes = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif'
+]);
+
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype && file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('Yalnızca resim formatları (image/*) kabul edilir!'), false);
+  const ext = path.extname(file.originalname || '').toLowerCase();
+  const mime = (file.mimetype || '').toLowerCase();
+
+  // 1. Güvenli uzantı kontrolü (SVG ve çalıştırılabilir betikler XSS/RCE koruması için engellenir)
+  if (!allowedExtensions.has(ext)) {
+    return cb(new Error('Yalnızca güvenli resim uzantıları (.jpg, .jpeg, .png, .webp, .gif) kabul edilir!'), false);
   }
+
+  // 2. MIME türü doğrulama
+  if (!allowedMimeTypes.has(mime)) {
+    return cb(new Error('Yalnızca geçerli resim formatları (JPEG, PNG, WebP, GIF) kabul edilir!'), false);
+  }
+
+  cb(null, true);
 };
 
 const upload = multer({

@@ -28,6 +28,7 @@ try {
 }
 
 const app = express();
+app.disable('x-powered-by');
 
 // ----------------------------------------------------------------------------
 // 1. TEMEL ARA YAZILIMLAR (MIDDLEWARES)
@@ -42,11 +43,12 @@ if (compressionMiddleware) {
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-Slug', 'x-tenant-slug']
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Payload Boyut Sınırı (DoS Koruması)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Statik Dosya Sunumu (Frontend HTML, CSS, JS dosyaları)
 app.use(express.static(path.join(__dirname)));

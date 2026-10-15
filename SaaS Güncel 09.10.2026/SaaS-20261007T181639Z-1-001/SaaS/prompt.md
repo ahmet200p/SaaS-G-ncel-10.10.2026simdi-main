@@ -1,20 +1,31 @@
-"Müşteri vitrini (store.html) sayfasında 'Havale / EFT ile Öde' seçeneğiyle sipariş verildiğinde çıkan standart 'Sipariş alındı' bildirimini daha kurumsal ve bilgilendirici bir yapıya dönüştürmek istiyorum. Lütfen ödeme işlemi tamamlandığında (API'den başarılı yanıt döndüğünde) çalışan JavaScript kodunu şu şekilde güncelle:
+"Sistem mimarisinde 'SaaS Admin/Bayi Paneli' ile 'Müşteri Vitrini (Storefront)' arasındaki bağlantıları tamamen ayırmamız (Decoupling) gerekiyor. Müşterilerin, bayinin kendi domaini veya subdomaini üzerinden siteye girmesi, SEO uyumlu bir deneyim yaşaması ve çıkış yaptıklarında ana SaaS paneline yönlendirilmemesi için şu 5 adımı eksiksiz, güvenlik standartlarına uyarak uygula:
 
-1. ADIM: Havale/EFT'ye Özel Kurumsal Başarı Mesajı (SweetAlert2)
+1. ADIM: Çıkış (Logout) Yönlendirmesinin Ayrıştırılması
 
-Eğer kullanıcının seçtiği ödeme yöntemi BANK_TRANSFER (Havale/EFT) ise, sipariş başarıyla oluşturulduktan sonra ekrana standart mesaj yerine şu özelliklerde şık bir SweetAlert2 (success) modalı çıkart:
+store.html (Müşteri Vitrini) içindeki çıkış yapma fonksiyonunu güncelle. Kullanıcı çıkış yaptığında token'ı sil, ancak onu genel SaaS login.html sayfasına YÖNLENDİRME.
 
-Başlık (Title): Siparişiniz Başarıyla Alınmıştır
+Bunun yerine, sayfanın kendisini yenile (reload) veya bayinin vitrin ana sayfasına (/ veya store.html) ziyaretçi (guest) statüsünde geri at.
 
-İçerik (HTML):
-'Siparişiniz sistemimize ulaşmıştır. Havale/EFT işleminizin hesaplarımıza yansıması ve muhasebe departmanımızın onayının ardından, ürünleriniz özenle hazırlanarak tarafınıza sevk edilecektir.<br><br><small><b>Önemli Not:</b> Transfer işleminizi gerçekleştirirken açıklama kısmına <b>Firma Adınızı</b> veya sistemin size atadığı <b>Sipariş Numaranızı</b> yazmayı unutmayınız.</small>'
+2. ADIM: Ziyaretçi Modu ve SEO Uyumluluğu (Public Access)
 
-Onay Butonu Metni: 'Siparişlerime Git'
+store.html sayfası açıldığında, eğer kullanıcıda bir token yoksa (giriş yapmamışsa) sayfayı engelleme veya login'e atma. Sayfa açılmaya devam etsin (Google SEO botları için bu şarttır).
 
-2. ADIM: Yönlendirme (Redirect)
+Güvenlik Kuralı: Ziyaretçi modunda katalog ve ürünler listelensin ancak 'B2B Fiyatı', 'Stok Durumu' ve 'Sepete Ekle' butonları gizlensin. Bunların yerine 'Fiyatları görmek için giriş yapın veya kayıt olun' uyarısı gösterilsin.
 
-Müşteri SweetAlert2 modalındaki 'Siparişlerime Git' butonuna tıkladığında, sepet modalını kapat ve doğrudan sağ üstteki Profil > 'Siparişlerim' penceresini (veya ilgili sayfayı) otomatik olarak aç.
+3. ADIM: Kimlik Doğrulama (Auth) Rotalarının İzolasyonu
 
-3. ADIM: Statü Uyumu
+Backend tarafında müşteri ve bayi girişlerini ayır.
 
-Siparişlerim tablosuna gidildiğinde, bu siparişin durumunun turuncu/sarı tonlarında şık bir rozetle 'Ödeme Bekleniyor' veya 'Onay Bekliyor' olarak listelendiğinden emin ol."
+POST /api/auth/tenant-login (Bayi yöneticileri için) ve POST /api/auth/customer-login (Ustalar/Tamirciler için) şeklinde iki ayrı rota oluştur.
+
+Müşteri (Customer) token'ı oluşturulurken payload içine kesinlikle role: 'CUSTOMER' ve müşterinin kayıtlı olduğu bayinin ID'sini (tenantId) ekle.
+
+4. ADIM: Çapraz Yetki İhlali (Privilege Escalation) Koruması
+
+middleware/auth.js dosyasını güncelle. role: 'CUSTOMER' olan bir token'ın, bayi yönetimine ait hiçbir rotaya (/api/tenant/...) erişemeyeceğini katı bir şekilde denetle. Müşteri token'ı ile bayi paneline istek atılırsa anında 403 Forbidden döndür.
+
+5. ADIM: Tenant Algılama (Subdomain/Slug Resolution)
+
+Müşteri vitrini frontend'i (Örn: store.html), sayfa yüklendiğinde hangi bayinin mağazasında olduğunu URL'den (Örn: ahmetoto.saas.com subdomain'inden veya ?tenant=ahmetoto parametresinden) dinamik olarak algılasın.
+
+API'ye atılan tüm ürün çekme isteklerinde (GET /api/store/products) bu bayi kimliğini (Örn: X-Tenant-Slug header'ı ile) göndersin ki backend hangi bayinin vitrinini ve ürünlerini göstereceğini bilsin."

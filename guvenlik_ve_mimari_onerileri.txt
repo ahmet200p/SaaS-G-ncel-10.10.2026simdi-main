@@ -1,0 +1,140 @@
+================================================================================
+B2B MULTI-TENANT OTOMOTİV YEDEK PARÇA SAAS MİMARİSİ
+GÜVENLİK VE MİMARİ İYİLEŞTİRME ÖNERİLERİ (MODERN TOPLULUK PAKETLERİ İLE)
+Tarih: Ekim 2026
+Teknoloji Yığını: Node.js, Express, Prisma ORM, PostgreSQL, Redis, Modern Vanilla/Frontend
+================================================================================
+
+Bu dokümanda, mevcut B2B Yedek Parça SaaS sisteminizi kurumsal standartlara,
+yüksek güvenliğe ve uzun yıllar güncel kalabilecek modern açık kaynak topluluk
+kütüphanelerine taşıyacak stratejik öneriler ve paket listesi yer almaktadır.
+
+--------------------------------------------------------------------------------
+1. KİMLİK DOĞRULAMA, OTURUM VE ŞİFRE GÜVENLİĞİ
+--------------------------------------------------------------------------------
+1.1. Şifreleme Algoritması: Argon2id
+  - Tavsiye Edilen Paket: `argon2` (npm install argon2)
+  - Neden?: Argon2, Şifre Hashing Yarışması (PHC) birincisi olup RFC 9106 standardıdır. Bellek-yoğun (memory-hard) çalışarak GPU ve ASIC tabanlı kırma donanımlarına karşı bcrypt'ten çok daha yüksek koruma sağlar.
+  - Uygulama:
+    ```javascript
+    const argon2 = require('argon2');
+    const hash = await argon2.hash(password, { type: argon2.argon2id });
+    const valid = await argon2.verify(hash, password);
+    ```
+
+1.2. Çift Token (Access + Refresh Token) ve HTTP-Only Cookie Mimarisi
+  - Tavsiye Edilen Paket: `cookie-parser`, `ioredis`
+  - Neden?: localStorage içerisinde saklanan JWT token'lar herhangi bir XSS açığında anında çalınabilir.
+  - Öneri:
+    * 15 Dakikalık Access Token (Authorization: Bearer header veya bellek)
+    * 7 Günlük Refresh Token (HttpOnly, Secure, SameSite=Strict cookie içinde)
+    * Kullanıcı şifresini değiştirdiğinde veya çıkış yaptığında Redis üzerindeki token oturumu iptal edilir (Revocation List).
+
+1.3. Hız Sınırlaması ve Brute-Force Koruması (DDoS & Rate Limiting)
+  - Tavsiye Edilen Paketler: `express-rate-limit`, `rate-limit-redis`
+  - Neden?: Giriş, kayıt ve SMS/e-posta sıfırlama rotalarına bot saldırılarını ve kaynak tüketimini önler.
+  - Örnek Yapı:
+    * /api/auth/login: 15 dakikada en fazla 5 hatalı deneme.
+    * /api/auth/register: 1 saatte aynı IP'den en fazla 3 kayıt.
+    * /api/store/*: Dakikada en fazla 120 istek (Vitrin gezintisi).
+
+--------------------------------------------------------------------------------
+2. İSTEK DOĞRULAMA (VALIDATION) VE MASS-ASSIGNMENT KORUMASI
+--------------------------------------------------------------------------------
+2.1. Zod ile Şema ve Tip Güvenliği
+  - Tavsiye Edilen Paket: `zod` (npm install zod)
+  - Neden?: Express rotalarına gelen req.body, req.params ve req.query alanlarını katı şemalarla doğrular. İstemciden gelen fazladan veya zararlı alanları (rol manipülasyonu, tenantId enjeksiyonu) anında filtreler.
+  - Örnek:
+    ```javascript
+    const { z } = require('zod');
+    const returnRequestSchema = z.object({
+      reason: z.string().min(3).max(100),
+      customerNote: z.string().max(500).optional()
+    });
+    ```
+
+--------------------------------------------------------------------------------
+3. HTTP GÜVENLİK BAŞLIKLARI VE CORS YÖNETİMİ
+--------------------------------------------------------------------------------
+3.1. Helmet Güvenlik Başlıkları
+  - Tavsiye Edilen Paket: `helmet` (npm install helmet)
+  - Neden?: X-Content-Type-Options, Strict-Transport-Security (HSTS), X-Frame-Options (Clickjacking önleme) ve Referrer-Policy gibi OWASP standart başlıklarını tek satırda enjekte eder.
+
+3.2. Dinamik Çok Kiracılı CORS Whitelist
+  - Tavsiye Edilen Paket: `cors`
+  - Neden?: Sabit '*' yerine, yalnızca ana domain ve veritabanında aktif olan kiracı alt alan adlarına (subdomainPrefix.sistem.com) izin veren fonksiyonel origin kontrolü:
+    ```javascript
+    cors({
+      origin: async (origin, callback) => {
+        if (!origin) return callback(null, true);
+        const isAllowed = await checkTenantDomainAllowed(origin);
+        callback(null, isAllowed);
+      },
+      credentials: true
+    });
+    ```
+
+3.3. HTTP Parametre Kirliliği ve XSS Filtreleme
+  - Tavsiye Edilen Paketler: `hpp`, `isomorphic-dompurify`
+
+--------------------------------------------------------------------------------
+4. GÜVENLİ DOSYA VE GÖRSEL YÖNETİMİ (PARÇA VE LOGO FOTOĞRAFLARI)
+--------------------------------------------------------------------------------
+4.1. Sihirli Bayt (Magic Bytes) İmzası Doğrulama
+  - Tavsiye Edilen Paket: `file-type` (npm install file-type)
+  - Neden?: Dosya uzantısı (.jpg, .png) yerine ikili (binary) header'ı okuyarak PHP, JS, SVG ve çalıştırılabilir kod içeren sahte dosyaların yüklenmesini engeller.
+
+4.2. Sharp ile Görsel Temizleme ve WebP Dönüşümü
+  - Tavsiye Edilen Paket: `sharp` (npm install sharp)
+  - Neden?:
+    * Yüklenen görselleri yeniden encode ederek içerisindeki zararlı polimorfik scriptleri yok eder.
+    * EXIF meta verilerini (konum, kamera modeli vb.) silerek gizlilik sağlar.
+    * %70-%80 boyut tasarrufu sağlayan modern .webp veya .avif formatına dönüştürür.
+
+4.3. Nesne Depolama (Object Storage - S3 / R2 / MinIO)
+  - Tavsiye Edilen Paket: `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`
+  - Neden?: Görselleri web sunucusunun diskinde tutmak yerine Cloudflare R2 veya MinIO üzerine Presigned URL ile doğrudan yüklemek, sunucu CPU/RAM yükünü sıfıra indirir.
+
+--------------------------------------------------------------------------------
+5. ASENKRON İŞ KUYRUĞU (JOB QUEUE) VE ÖNBELLEK (CACHING)
+--------------------------------------------------------------------------------
+5.1. BullMQ ile Arka Plan Görevleri
+  - Tavsiye Edilen Paket: `bullmq`, `ioredis`
+  - Kullanım Alanları:
+    * Sipariş oluşturulduğunda bayiye anlık WhatsApp/SMS bildirimi gönderme.
+    * İade talebi onaylandığında muhasebe ve e-posta entegrasyonu.
+    * Stok 5 adedin altına düştüğünde kritik stok uyarısı tetikleme.
+    * Toplu Excel ürün import işlemlerinin sunucuyu dondurmadan kuyrukta işlenmesi.
+
+5.2. Redis Cache-Aside Deseni
+  - Sık aranan OE parça numaraları, araç marka/model hiyerarşisi ve bayi ayarları Redis'te 5-15 dakika TTL ile önbelleğe alınmalıdır.
+
+--------------------------------------------------------------------------------
+6. FİNANS VE STOK HASSASİYETİ (DECIMAL ARITHMETIC)
+--------------------------------------------------------------------------------
+6.1. Decimal.js ile Kuruş Yuvarlama Koruması
+  - Tavsiye Edilen Paket: `decimal.js`
+  - Neden?: KDV hesaplamaları (%20), iskonto oranları ve cari hesap bakiyelerinde kayan nokta (float) sapmalarını engeller.
+
+6.2. PDF Fatura ve Sipariş Fişi Üretimi
+  - Tavsiye Edilen Paket: `pdfmake` veya `@react-pdf/renderer`
+  - Neden?: Teslim edilen ve iade edilen siparişlerde yasal irsaliye ve mutabakat fişlerinin tek tıkla indirilebilmesi.
+
+--------------------------------------------------------------------------------
+7. GÖZLEMLENEBİLİRLİK, LOGLAMA VE SAĞLIK İZLEME (OBSERVABILITY)
+--------------------------------------------------------------------------------
+7.1. Pino Yapılandırılmış Loglama
+  - Tavsiye Edilen Paket: `pino`, `pino-http`
+  - Neden?: console.log'a kıyasla 5 kata kadar daha hızlıdır. Logları JSON olarak üretir; Grafana Loki, Datadog veya ELK stack ile kolayca taranır.
+
+7.2. Prometheus Metrikleri ve Healthcheck
+  - Tavsiye Edilen Paket: `prom-client`
+  - Endpoint: `/api/health` ve `/metrics` (CPU, bellek, PostgreSQL bağlantı havuzu doluluğu, HTTP response latency).
+
+================================================================================
+ÖZET PAKET ENTEGRASYON LİSTESİ:
+1. Güvenlik & Doğrulama:  argon2, zod, helmet, express-rate-limit, rate-limit-redis
+2. Dosya & Medya:         file-type, sharp, @aws-sdk/client-s3
+3. Kuyruk & Cache:        bullmq, ioredis
+4. Loglama & İzleme:      pino, pino-http, prom-client
+================================================================================

@@ -10,14 +10,14 @@ const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
 const config = require('../config');
 const { verifyToken, isSuperAdmin, checkSuperAdmin } = require('../middleware/auth');
-const { loginLimiter } = require('../middleware/rateLimiter');
+const { loginLimiter, registerLimiter, passwordResetLimiter } = require('../middleware/rateLimiter');
 
 /**
  * @route   POST /api/auth/register
  * @desc    Yeni müşteri/kullanıcı kaydı (Herkese açık vitrin kaydı)
  * @access  Public
  */
-router.post('/register', async (req, res) => {
+router.post('/register', registerLimiter, async (req, res) => {
   try {
     const {
       email,
@@ -293,11 +293,11 @@ router.post('/login', loginLimiter, async (req, res) => {
       }
     });
 
-    // 2.1 Doğrudan bulunamadıysa ve girilen email SystemSettings'teki adminEmail veya varsayılan admin ile eşleşiyorsa Süper Admin'i getir
+    // 2.1 Doğrudan bulunamadıysa ve SystemSettings'teki dinamik adminEmail ile eşleşiyorsa Süper Admin'i getir
     if (!user) {
       const settings = await prisma.systemSettings.findUnique({ where: { id: 1 } });
-      const currentAdminEmail = (settings && settings.adminEmail) ? settings.adminEmail.toLowerCase().trim() : 'admin@sistem.com';
-      if (cleanEmail === currentAdminEmail || cleanEmail === 'admin@sistem.com' || cleanEmail === 'ahmet@sistem.com') {
+      const currentAdminEmail = (settings && settings.adminEmail) ? settings.adminEmail.toLowerCase().trim() : null;
+      if (currentAdminEmail && cleanEmail === currentAdminEmail) {
         user = await prisma.user.findFirst({
           where: { role: 'SUPER_ADMIN' },
           include: {
@@ -321,13 +321,10 @@ router.post('/login', loginLimiter, async (req, res) => {
     // 4. Şifre doğrulaması (bcrypt.compare)
     const isPasswordMatch = await bcrypt.compare(password, user.password);
     if (!isPasswordMatch) {
-      // Test ve geriye dönük uyumluluk kontrolü (düz metin fallback)
-      if (password !== user.password) {
-        return res.status(401).json({
-          success: false,
-          message: 'Hatalı e-posta adresi veya şifre!'
-        });
-      }
+      return res.status(401).json({
+        success: false,
+        message: 'Hatalı e-posta adresi veya şifre!'
+      });
     }
 
     // 5. CUSTOMER Rol Kontrolü ve CustomerProfile / tenantId İlişkisi
@@ -422,6 +419,266 @@ router.post('/login', loginLimiter, async (req, res) => {
 });
 
 /**
+ * 3. ADIM: Kimlik Doğrulama (Auth) Rotalarının İzolasyonu
+ * @route   POST /api/auth/tenant-login
+ * @desc    Bayi yöneticileri için izole kimlik doğrulama rotası
+ *          role: 'CUSTOMER' olan kullanıcılar 403 Forbidden ile kesinlikle engellenir.
+ * @access  Public
+ */
+router.post('/tenant-login', loginLimiter, async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Lütfen e-posta ve şifrenizi eksiksiz giriniz.'
+      });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+
+    let user = await prisma.user.findUnique({
+      where: { email: cleanEmail },
+      include: { tenant: true }
+    });
+
+    if (!user) {
+      const settings = await prisma.systemSettings.findUnique({ where: { id: 1 } });
+      const currentAdminEmail = (settings && settings.adminEmail) ? settings.adminEmail.toLowerCase().trim() : null;
+      if (currentAdminEmail && cleanEmail === currentAdminEmail) {
+        user = await prisma.user.findFirst({
+          where: { role: 'SUPER_ADMIN' },
+          include: { tenant: true }
+        });
+      }
+    }
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Hatalı e-posta adresi veya şifre!'
+      });
+    }
+
+    const isPasswordMatch = await bcrypt.compare(password, user.password);
+    if (!isPasswordMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Hatalı e-posta adresi veya şifre!'
+      });
+    }
+
+    // Role İzolasyonu: CUSTOMER rolü bayi paneli girişinden kesinlikle men edilir
+    if (user.role === 'CUSTOMER') {
+      return res.status(403).json({
+        success: false,
+        message: 'Bu alana sadece bayi yöneticileri giriş yapabilir. Müşteriler müşteri vitrinini kullanmalıdır.'
+      });
+    }
+
+    if (user.role !== 'TENANT_ADMIN' && user.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({
+        success: false,
+        message: 'Bu alana erişim yetkiniz bulunmamaktadır.'
+      });
+    }
+
+    // Bayi aktiflik kontrolü
+    if (user.role === 'TENANT_ADMIN' && user.tenantId) {
+      const tenant = user.tenant || await prisma.tenant.findUnique({
+        where: { id: user.tenantId }
+      });
+
+      if (!tenant || !tenant.isActive) {
+        return res.status(403).json({
+          success: false,
+          message: 'Bu bayi Kurumumuz tarafından pasife alınmıştır lütfen müşteri temsilcisi ile iletişime geçiniz.'
+        });
+      }
+      user.tenant = tenant;
+    }
+
+    const payload = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      tenantId: user.tenantId || null
+    };
+
+    const token = jwt.sign(payload, config.JWT_SECRET, { expiresIn: config.JWT_EXPIRES_IN });
+
+    const userPayload = {
+      id: user.id,
+      email: user.email,
+      name: user.name || (user.role === 'SUPER_ADMIN' ? 'Süper Admin' : 'Bayi Yöneticisi'),
+      role: user.role,
+      tenantId: user.tenantId || null,
+      tenant: user.tenant || null
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: 'Bayi yöneticisi girişi başarılı.',
+      token,
+      role: user.role,
+      user: userPayload,
+      data: {
+        token,
+        role: user.role,
+        user: userPayload
+      }
+    });
+
+  } catch (error) {
+    console.error('[AUTH_TENANT_LOGIN_ERROR]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Bayi girişi sırasında sunucu hatası oluştu.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+/**
+ * 3. ADIM: Kimlik Doğrulama (Auth) Rotalarının İzolasyonu
+ * @route   POST /api/auth/customer-login
+ * @desc    Ustalar / Tamirciler / Otoservis müşterileri için izole kimlik doğrulama rotası
+ *          Payload içine kesinlikle role: 'CUSTOMER' ve müşterinin kayıtlı olduğu bayinin ID'sini (tenantId) ekler.
+ *          Yönetici rolleri (SUPER_ADMIN, TENANT_ADMIN) 403 Forbidden ile bu rotadan men edilir.
+ * @access  Public
+ */
+router.post('/customer-login', loginLimiter, async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Lütfen e-posta ve şifrenizi eksiksiz giriniz.'
+      });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+
+    const user = await prisma.user.findUnique({
+      where: { email: cleanEmail },
+      include: {
+        tenant: true,
+        customerProfile: {
+          include: { tenant: true }
+        }
+      }
+    });
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Hatalı e-posta adresi veya şifre!'
+      });
+    }
+
+    const isPasswordMatch = await bcrypt.compare(password, user.password);
+    if (!isPasswordMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Hatalı e-posta adresi veya şifre!'
+      });
+    }
+
+    // Role İzolasyonu: SADECE CUSTOMER rolü kabul edilir
+    if (user.role !== 'CUSTOMER') {
+      return res.status(403).json({
+        success: false,
+        message: 'Bu giriş alanı sadece müşterilere / tamircilere aittir. Bayi yöneticileri bayi girişini kullanmalıdır.'
+      });
+    }
+
+    // CustomerProfile ve tenantId kontrolü
+    if (!user.customerProfile) {
+      user.customerProfile = await prisma.customerProfile.findUnique({
+        where: { userId: user.id },
+        include: { tenant: true }
+      });
+    }
+
+    if (!user.customerProfile) {
+      return res.status(404).json({
+        success: false,
+        message: 'Müşteri profili bulunamadı. Lütfen bayiniz ile iletişime geçiniz.'
+      });
+    }
+
+    const effectiveTenantId = user.tenantId || (user.customerProfile ? user.customerProfile.tenantId : null);
+
+    if (!user.tenantId && effectiveTenantId) {
+      user.tenantId = effectiveTenantId;
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { tenantId: effectiveTenantId }
+      }).catch(err => console.warn('[CUSTOMER_AUTH_SYNC_TENANT_WARN]:', err));
+    }
+
+    // Bayi aktiflik kontrolü
+    if (effectiveTenantId) {
+      const tenant = user.tenant || (user.customerProfile ? user.customerProfile.tenant : null) || await prisma.tenant.findUnique({
+        where: { id: effectiveTenantId }
+      });
+
+      if (!tenant || !tenant.isActive) {
+        return res.status(403).json({
+          success: false,
+          message: 'Bu bayi Kurumumuz tarafından pasife alınmıştır lütfen müşteri temsilcisi ile iletişime geçiniz.'
+        });
+      }
+      user.tenant = tenant;
+    }
+
+    // 3. ADIM KURALI: Müşteri (Customer) token'ı oluşturulurken payload içine
+    // KESİNLİKLE role: 'CUSTOMER' ve müşterinin kayıtlı olduğu bayinin ID'sini (tenantId) ekle.
+    const payload = {
+      id: user.id,
+      email: user.email,
+      role: 'CUSTOMER',
+      tenantId: effectiveTenantId
+    };
+
+    const token = jwt.sign(payload, config.JWT_SECRET, { expiresIn: config.JWT_EXPIRES_IN });
+
+    const userPayload = {
+      id: user.id,
+      email: user.email,
+      name: (user.customerProfile && user.customerProfile.companyName) || user.name || 'Müşteri',
+      role: 'CUSTOMER',
+      tenantId: effectiveTenantId,
+      tenant: user.tenant || null,
+      customerProfile: user.customerProfile
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: 'Müşteri girişi başarılı.',
+      token,
+      role: 'CUSTOMER',
+      user: userPayload,
+      data: {
+        token,
+        role: 'CUSTOMER',
+        user: userPayload
+      }
+    });
+
+  } catch (error) {
+    console.error('[AUTH_CUSTOMER_LOGIN_ERROR]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Müşteri girişi sırasında sunucu hatası oluştu.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+/**
  * @route   GET /api/auth/me
  * @desc    Mevcut oturum açmış kullanıcının JWT bilgilerini döner
  * @access  Protected (verifyToken)
@@ -466,7 +723,7 @@ router.get('/me', verifyToken, async (req, res) => {
  * @desc    Kullanıcıya parola sıfırlama anahtarı üretir (EKSİK-05)
  * @access  Public
  */
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', passwordResetLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) {
@@ -521,7 +778,7 @@ router.post('/forgot-password', async (req, res) => {
  * @desc    Sıfırlama anahtarını doğrulayarak yeni şifreyi kaydeder (EKSİK-05)
  * @access  Public
  */
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', passwordResetLimiter, async (req, res) => {
   try {
     const { resetToken, newPassword } = req.body;
     if (!resetToken || !newPassword) {

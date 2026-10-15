@@ -113,6 +113,16 @@ const checkTenantAdmin = (req, res, next) => {
     });
   }
 
+  // 4. ADIM: Çapraz Yetki İhlali (Privilege Escalation) Koruması
+  // role: 'CUSTOMER' olan bir token'ın, bayi yönetimine ait hiçbir rotaya (/api/tenant/...) erişemeyeceğini katı bir şekilde denetle.
+  // Müşteri token'ı ile bayi paneline istek atılırsa anında 403 Forbidden döndür.
+  if (req.user.role === 'CUSTOMER') {
+    return res.status(403).json({
+      success: false,
+      message: 'Erişim reddedildi: Müşteri hesabı ile bayi yönetim paneline ve rotalarına erişilemez.'
+    });
+  }
+
   if (!req.user.tenantId && req.user.role !== 'SUPER_ADMIN') {
     return res.status(403).json({
       success: false,

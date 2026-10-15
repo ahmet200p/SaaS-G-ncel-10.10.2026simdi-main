@@ -57,7 +57,9 @@ async function runTests() {
   assert(htmlContent.includes('Şasi No (VIN)'), 'Arama tipi dropdown Şasi No (VIN) içermelidir');
   assert(htmlContent.includes('btn-store-search'), 'Büyük "Ara" butonu bulunmalıdır');
   assert(htmlContent.includes('user-display-name'), 'Kullanıcı adı elementi (Kemal Usta vb.) bulunmalıdır');
-  assert(htmlContent.includes('balance-badge-widget'), 'Yeşil bakiye rozeti bulunmalıdır');
+  assert(!htmlContent.includes('id="balance-badge-widget"'), 'Header içindeki bakiye kutusu kaldırılmış olmalıdır');
+  assert(htmlContent.includes('btn-dropdown-current-account'), 'Cari hesap durum butonu profil dropdown içinde olmalıdır');
+  assert(htmlContent.includes('modal-current-account'), 'Cari ekstre / hesap durumu modalı mevcut olmalıdır');
   assert(htmlContent.includes('cart-counter-badge'), 'Sepetim sayacı rozeti bulunmalıdır');
 
   console.log('  ✅ [PASS] 1. Adım: Dinamik Multi-tenant Header ve Arama Yapısı Eksiksiz.');

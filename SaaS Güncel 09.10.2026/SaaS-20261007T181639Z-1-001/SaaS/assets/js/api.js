@@ -1487,6 +1487,28 @@
       headers.set('Authorization', `Bearer ${token}`);
     }
 
+    // 5. ADIM: Tenant Algılama (Subdomain/Slug Resolution)
+    // URL parametresinden (?tenant=slug veya ?subdomain=slug) veya hostname subdomain'inden tenant slug algıla
+    if (!headers.has('X-Tenant-Slug')) {
+      let slug = null;
+      if (typeof window !== 'undefined' && window.location) {
+        const urlParams = new URLSearchParams(window.location.search);
+        slug = urlParams.get('tenant') || urlParams.get('subdomain');
+        if (!slug && window.location.hostname) {
+          const parts = window.location.hostname.split('.');
+          if (parts.length > 2 && parts[0] !== 'www' && parts[0] !== 'localhost') {
+            slug = parts[0];
+          }
+        }
+        if (!slug) {
+          slug = localStorage.getItem('tenantSlug') || 'ahmetoto';
+        }
+      }
+      if (slug) {
+        headers.set('X-Tenant-Slug', slug);
+      }
+    }
+
     let body = options.body;
     if (body && typeof body === 'object' && !(body instanceof FormData) && !(body instanceof URLSearchParams)) {
       body = JSON.stringify(body);
@@ -1520,9 +1542,28 @@
         }
       }
 
-      const isLoginEndpoint = url.includes('/auth/login');
+      const isLoginEndpoint = url.includes('/auth/login') || url.includes('/auth/tenant-login') || url.includes('/auth/customer-login');
+      const isStoreContext = (typeof window !== 'undefined' && window.location && (
+        window.location.pathname.endsWith('store.html') ||
+        window.location.pathname === '/' ||
+        window.location.pathname.endsWith('/store')
+      )) || url.includes('/store/products') || url.includes('/store/bank-info') || url.includes('/store/tenant-info');
 
       if ((response.status === 401 || response.status === 403) && !isLoginEndpoint) {
+        // 1. ADIM & 2. ADIM: Müşteri vitrininde (store.html) asla genel SaaS login.html sayfasına yönlendirme!
+        if (isStoreContext) {
+          console.warn(`[API] Vitrinde yetkisiz/oturumsuz istek (${response.status}). Ziyaretçi modunda kalınacak.`);
+          if (response.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+          }
+          if (data && typeof data === 'object') {
+            data._status = response.status;
+            data._ok = response.ok;
+          }
+          return data || { success: false, status: response.status, message: 'Oturum gerekli' };
+        }
+
         console.warn(`[API] Yetkisiz erişim (${response.status}). Giriş sayfasına yönlendiriliyor...`);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -1550,10 +1591,19 @@
    * Sayfa erişim koruması (Route Guard) sağlar.
    */
   function requireAuth(allowedRoles = []) {
+    const isStorePage = typeof window !== 'undefined' && window.location && (
+      window.location.pathname.endsWith('store.html') ||
+      window.location.pathname === '/' ||
+      window.location.pathname.endsWith('/store')
+    );
+
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
 
     if (!token || !userStr) {
+      if (isStorePage) {
+        return null;
+      }
       console.warn('[AUTH_GUARD] Token veya kullanıcı bilgisi bulunamadı. Giriş sayfasına yönlendiriliyor.');
       window.location.href = 'login.html';
       return null;
@@ -1565,6 +1615,9 @@
     } catch (e) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      if (isStorePage) {
+        return null;
+      }
       window.location.href = 'login.html';
       return null;
     }
@@ -1590,13 +1643,29 @@
 
   /**
    * logout:
-   * prompt.md Yönergesi: Panellerdeki 'Çıkış Yap' butonlarına tıklanınca çalışır.
-   * Bu kod localStorage'ı temizleyip (token ve user'ı silip) tekrar login.html'e yönlendirir.
+   * 1. ADIM: Çıkış (Logout) Yönlendirmesinin Ayrıştırılması
+   * store.html (Müşteri Vitrini) içerisindeyken kullanıcı çıkış yaptığında token'ı sil,
+   * ancak onu genel SaaS login.html sayfasına YÖNLENDİRME.
+   * Bunun yerine vitrin ana sayfasına (store.html) ziyaretçi statüsünde yönlendir.
    */
-  function logout() {
+  function logout(redirectTarget = null) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    window.location.href = 'login.html';
+
+    const isStorePage = typeof window !== 'undefined' && window.location && (
+      window.location.pathname.endsWith('store.html') ||
+      window.location.pathname === '/' ||
+      window.location.pathname.endsWith('/store')
+    );
+
+    if (redirectTarget) {
+      window.location.href = redirectTarget;
+    } else if (isStorePage) {
+      const search = window.location.search || '';
+      window.location.href = 'store.html' + search;
+    } else {
+      window.location.href = 'login.html';
+    }
   }
 
   // Sistemdeki tüm panellerdeki (admin.html, bayi.html vb.) 'Çıkış Yap' butonlarına otomatik bağlanma

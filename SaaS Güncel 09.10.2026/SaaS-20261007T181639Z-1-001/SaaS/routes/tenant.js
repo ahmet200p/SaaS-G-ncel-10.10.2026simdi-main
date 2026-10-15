@@ -1245,6 +1245,8 @@ const updateOrderStatus = async (req, res) => {
     const orderId = req.params.id;
     const { status } = req.body;
     const rejectionReason = (req.body.rejectionReason || req.body.reason || '').trim();
+    const cargoCompany = (req.body.cargoCompany || req.body.kargoFirmasi || req.body.cargo || '').trim();
+    const trackingNumber = (req.body.trackingNumber || req.body.takipNumarasi || req.body.cargoTrackingNumber || '').trim();
 
     const validStatuses = [
       'PENDING_APPROVAL',
@@ -1253,8 +1255,11 @@ const updateOrderStatus = async (req, res) => {
       'PENDING',
       'APPROVED',
       'SHIPPED',
+      'DELIVERED',
+      'Teslim Edildi',
       'COMPLETED',
       'CANCELLED',
+      'RETURNED',
       'Hazırlanıyor',
       'Ödeme Bekliyor'
     ];
@@ -1359,10 +1364,16 @@ const updateOrderStatus = async (req, res) => {
       });
     }
 
-    // Diğer Durumlar (PROCESSING, APPROVED, SHIPPED vb.)
+    // Diğer Durumlar (PROCESSING, APPROVED, SHIPPED, DELIVERED vb.)
     const updateData = { status: status };
     if (rejectionReason) {
       updateData.rejectionReason = rejectionReason;
+    }
+    if (cargoCompany) {
+      updateData.cargoCompany = cargoCompany;
+    }
+    if (trackingNumber) {
+      updateData.trackingNumber = trackingNumber;
     }
 
     const updatedOrder = await prisma.order.update({
@@ -1376,11 +1387,16 @@ const updateOrderStatus = async (req, res) => {
       }
     });
 
-    const statusLabel = status === 'PROCESSING' ? 'Hazırlanıyor' : (status === 'APPROVED' ? 'Onaylandı' : status);
+    const statusLabel = status === 'PROCESSING' ? 'Hazırlanıyor' : (status === 'APPROVED' ? 'Onaylandı' : (status === 'SHIPPED' ? 'Kargolandı' : status));
+    let successMessage = `Sipariş #${updatedOrder.orderNumber || updatedOrder.id} durumu "${statusLabel}" olarak güncellendi.`;
+    if (status === 'SHIPPED' && (updatedOrder.cargoCompany || updatedOrder.trackingNumber)) {
+      const cargoDetail = [updatedOrder.cargoCompany, updatedOrder.trackingNumber].filter(Boolean).join(' - ');
+      successMessage = `Sipariş #${updatedOrder.orderNumber || updatedOrder.id} kargoya verildi (${cargoDetail}).`;
+    }
 
     return res.status(200).json({
       success: true,
-      message: `Sipariş #${updatedOrder.orderNumber || updatedOrder.id} durumu "${statusLabel}" olarak güncellendi.`,
+      message: successMessage,
       data: updatedOrder
     });
 
@@ -1701,6 +1717,282 @@ router.delete('/discounts/:id', async (req, res) => {
     });
   }
 });
+
+// ============================================================================
+// 6. İADE YÖNETİMİ (RMA) ROTALARI - Bayi Paneli (Prompt 2. ADIM)
+// ============================================================================
+
+/**
+ * @route   GET /api/tenant/returns
+ * @desc    Bayiye gelen tüm iade taleplerini (ReturnRequest) listeler.
+ * @access  Protected (TENANT_ADMIN - İlgili Bayi)
+ */
+router.get('/returns', async (req, res) => {
+  try {
+    const tenantId = resolveTenantId(req, res);
+    if (!tenantId) return;
+
+    const { status, search } = req.query;
+    const whereCondition = { tenantId: tenantId };
+
+    if (status && status !== 'ALL') {
+      if (status === 'PENDING') {
+        whereCondition.status = { in: ['Bekliyor', 'PENDING'] };
+      } else if (status === 'APPROVED') {
+        whereCondition.status = { in: ['Onaylandı', 'APPROVED'] };
+      } else if (status === 'REJECTED') {
+        whereCondition.status = { in: ['Reddedildi', 'REJECTED'] };
+      } else {
+        whereCondition.status = status;
+      }
+    }
+
+    if (search) {
+      const q = String(search).trim();
+      whereCondition.OR = [
+        { order: { orderNumber: { contains: q } } },
+        { customer: { companyName: { contains: q } } },
+        { reason: { contains: q } }
+      ];
+    }
+
+    const returns = await prisma.returnRequest.findMany({
+      where: whereCondition,
+      include: {
+        order: {
+          select: {
+            id: true,
+            orderNumber: true,
+            totalAmount: true,
+            status: true,
+            createdAt: true,
+            items: {
+              include: {
+                tenantProduct: {
+                  include: {
+                    product: {
+                      select: {
+                        id: true,
+                        oeNumber: true,
+                        name: true,
+                        category: true,
+                        imageUrl: true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        customer: {
+          select: {
+            id: true,
+            companyName: true,
+            phone: true,
+            discountRate: true,
+            balance: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const pendingCount = await prisma.returnRequest.count({
+      where: {
+        tenantId: tenantId,
+        status: { in: ['Bekliyor', 'PENDING'] }
+      }
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: returns.length,
+      pendingCount: pendingCount,
+      data: returns
+    });
+
+  } catch (error) {
+    console.error('[TENANT_GET_RETURNS_ERROR]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'İade talepleri listelenirken hata oluştu.'
+    });
+  }
+});
+
+/**
+ * @route   PUT /api/tenant/returns/:id/status & PATCH /api/tenant/returns/:id/status & PUT /api/tenant/returns/:id
+ * @desc    Bayi iade talebini onaylar veya reddeder.
+ *          Kritik Stok Mantığı: İade onaylanırsa (APPROVED), siparişteki kalemlerin
+ *          stok miktarları veritabanında iade edilen adet kadar geri artırılır (Stoka iade girişi).
+ * @access  Protected (TENANT_ADMIN - İlgili Bayi)
+ */
+const handleUpdateReturnStatus = async (req, res) => {
+  try {
+    const tenantId = resolveTenantId(req, res);
+    if (!tenantId) return;
+
+    const returnId = req.params.id;
+    const { status, adminNote, note, rejectionReason } = req.body;
+    const finalNote = (adminNote || note || rejectionReason || '').trim();
+
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: 'Lütfen yeni iade durumunu belirtiniz (Onayla veya Reddet).'
+      });
+    }
+
+    const isApprove = status === 'APPROVED' || status === 'Onaylandı' || status === 'ONAYLA' || status === 'ONAYLANDI';
+    const isReject = status === 'REJECTED' || status === 'Reddedildi' || status === 'REDDET' || status === 'REDDEDILDI';
+
+    if (!isApprove && !isReject) {
+      return res.status(400).json({
+        success: false,
+        message: 'Geçersiz iade durumu. Kabul edilen değerler: APPROVED (Onaylandı) veya REJECTED (Reddedildi).'
+      });
+    }
+
+    // 1. İade talebini bul ve bayiye ait olduğunu doğrula (IDOR koruması)
+    const existingReturn = await prisma.returnRequest.findFirst({
+      where: {
+        id: returnId,
+        tenantId: tenantId
+      },
+      include: {
+        order: {
+          include: {
+            items: true
+          }
+        },
+        customer: true
+      }
+    });
+
+    if (!existingReturn) {
+      return res.status(404).json({
+        success: false,
+        message: 'İade talebi bulunamadı veya bayinize ait değil.'
+      });
+    }
+
+    // Eğer zaten sonuçlandırılmışsa uyar
+    const currentStatus = existingReturn.status;
+    if (currentStatus === 'Onaylandı' || currentStatus === 'APPROVED') {
+      return res.status(400).json({
+        success: false,
+        message: 'Bu iade talebi zaten onaylanmış ve stok girişi yapılmıştır.'
+      });
+    }
+
+    // 2. İADE ONAYLAMA AKIŞI (Stok Geri Yükleme + Stok Hareketi + Cari Düzenleme)
+    if (isApprove) {
+      const updatedReturn = await prisma.$transaction(async (tx) => {
+        // A. İade talebi statüsünü güncelle
+        const ret = await tx.returnRequest.update({
+          where: { id: returnId },
+          data: {
+            status: 'Onaylandı',
+            adminNote: finalNote || 'İade onaylandı, ürünler stoka geri alındı.'
+          }
+        });
+
+        // B. Kritik Stok Mantığı: Siparişteki her kalemi bul ve stok miktarlarını geri artır (Stoka iade girişi)
+        const orderItems = existingReturn.order?.items || [];
+        for (const item of orderItems) {
+          await tx.tenantProduct.update({
+            where: { id: item.tenantProductId },
+            data: {
+              stock: { increment: item.quantity }
+            }
+          });
+
+          // Stok Denetim Defterine (StockMovement) RETURN kaydı yaz
+          await tx.stockMovement.create({
+            data: {
+              tenantId: tenantId,
+              tenantProductId: item.tenantProductId,
+              orderId: existingReturn.orderId,
+              quantityChange: item.quantity,
+              type: 'RETURN',
+              note: `İade Talebi Onaylandı (#${existingReturn.order.orderNumber}): +${item.quantity} adet stoka iade girişi yapıldı.`
+            }
+          });
+        }
+
+        // C. Müşteri cari bakiyesinden sipariş bedelini düşerek alacak kaydı oluştur (CustomerLedger)
+        if (existingReturn.customer && existingReturn.order.totalAmount > 0) {
+          const prevBalance = parseFloat(existingReturn.customer.balance) || 0;
+          const newBalance = parseFloat(Math.max(0, prevBalance - existingReturn.order.totalAmount).toFixed(2));
+
+          await tx.customerProfile.update({
+            where: { id: existingReturn.customerId },
+            data: {
+              balance: newBalance,
+              currentBalance: newBalance
+            }
+          });
+
+          await tx.customerLedger.create({
+            data: {
+              tenantId: tenantId,
+              customerId: existingReturn.customerId,
+              type: 'CREDIT',
+              amount: existingReturn.order.totalAmount,
+              balanceAfter: newBalance,
+              description: `İade Onayı (#${existingReturn.order.orderNumber}): Ürünler iade alındı ve cari hesaba alacak işlendi.`
+            }
+          });
+        }
+
+        // D. Sipariş durumunu güncelle
+        await tx.order.update({
+          where: { id: existingReturn.orderId },
+          data: {
+            status: 'RETURNED'
+          }
+        });
+
+        return ret;
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: `İade talebi başarıyla onaylandı. #${existingReturn.order.orderNumber} siparişindeki parçalar stoka geri eklendi.`,
+        data: updatedReturn
+      });
+    }
+
+    // 3. İADE REDDETME AKIŞI
+    if (isReject) {
+      const updatedReturn = await prisma.returnRequest.update({
+        where: { id: returnId },
+        data: {
+          status: 'Reddedildi',
+          adminNote: finalNote || 'İade talebi bayi tarafından reddedildi.'
+        }
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: `İade talebi reddedildi. Müşteriye bildirim iletildi.`,
+        data: updatedReturn
+      });
+    }
+
+  } catch (error) {
+    console.error('[TENANT_UPDATE_RETURN_STATUS_ERROR]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'İade talebi durumu güncellenirken sunucu hatası oluştu.'
+    });
+  }
+};
+
+router.put('/returns/:id/status', handleUpdateReturnStatus);
+router.patch('/returns/:id/status', handleUpdateReturnStatus);
+router.put('/returns/:id', handleUpdateReturnStatus);
 
 module.exports = router;
 

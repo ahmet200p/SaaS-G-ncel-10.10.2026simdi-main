@@ -168,6 +168,16 @@
                   </div>
                   <span class="item-arrow">›</span>
                 </button>
+
+                <!-- 💳 Cari Ekstre / Hesap Durumu (B2B Otoservis Kullanıcıları) -->
+                <button type="button" class="user-dropdown-item" id="btn-dropdown-current-account" onclick="openCurrentAccountModal(); closeUserDropdown();" role="menuitem" style="display: none;">
+                  <div class="item-icon-box" style="background: #eef2ff; color: #4f46e5;">💳</div>
+                  <div class="item-text-box">
+                    <span class="item-title">Cari Ekstre / Hesap Durumu</span>
+                    <span class="item-desc">Kredi limiti, cari borç ve hesap özeti</span>
+                  </div>
+                  <span class="item-arrow">›</span>
+                </button>
               </div>
 
               <div class="user-dropdown-divider"></div>
@@ -181,6 +191,8 @@
                 </div>
               </button>
             </div>
+          </div>
+
           <!-- 🔔 Bildirim Çanı (Sipariş Durumu Takip Merkezi) -->
           <div class="notification-dropdown-wrap" id="notification-dropdown-wrap">
             <button type="button" class="btn-notification-bell" id="btn-notification-bell" onclick="toggleNotificationDropdown(event)" title="Sipariş Bildirimleri" aria-label="Sipariş Bildirimleri">
@@ -204,18 +216,6 @@
               <div class="notification-dropdown-body" id="notification-dropdown-body">
                 <div class="notification-empty-text">Yeni bir sipariş bildiriminiz bulunmuyor.</div>
               </div>
-            </div>
-          </div>
-
-          <!-- Bakiye Durumu (Yeşil Renkte Sabit Bakiye Rozeti) -->
-          <div class="balance-badge" id="balance-badge-widget" title="Mevcut Bakiye Limiti">
-            <svg class="balance-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="4" width="20" height="16" rx="2"></rect>
-              <line x1="2" y1="10" x2="22" y2="10"></line>
-            </svg>
-            <div class="balance-col">
-              <span class="balance-title">Bakiye</span>
-              <span class="balance-amount" id="user-balance-amount">+14.850,00 ₺</span>
             </div>
           </div>
 
@@ -817,17 +817,20 @@
         <!-- 3 Farklı Ödeme Seçeneği (Kutu / Kart Şeklinde) -->
         <div class="payment-methods-list" style="display: flex; flex-direction: column; gap: 12px;">
 
-          <!-- 1. Seçenek (Aktif): 'Cari Hesaba Yaz (Veresiye)' -->
+          <!-- 1. Seçenek (B2B Cari): 'Cari Hesaba Yaz (Açık Hesap)' -->
           <label class="payment-method-card active-method" id="card-method-current" onclick="selectPaymentMethodOption('CURRENT_ACCOUNT')" style="cursor: pointer; display: flex; align-items: flex-start; gap: 14px; padding: 16px; border: 2px solid #f97316; border-radius: 12px; background: #fffaf5; transition: all 0.2s ease;">
             <input type="radio" name="paymentMethodSelect" value="CURRENT_ACCOUNT" id="radio-method-current" checked style="margin-top: 4px; accent-color: #f97316; width: 18px; height: 18px; cursor: pointer;">
             <div style="flex: 1;">
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-                <span style="font-weight: 700; font-size: 0.98rem; color: #0f172a;">Cari Hesaba Yaz (Veresiye)</span>
-                <span class="badge-b2b" style="background: #ffedd5; color: #ea580c; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 6px;">B2B Cari</span>
+                <span style="font-weight: 700; font-size: 0.98rem; color: #0f172a;">Cari Hesaba Yaz (Açık Hesap)</span>
+                <span class="badge-b2b" id="badge-cari-method" style="background: #ffedd5; color: #ea580c; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 6px;">B2B Cari</span>
               </div>
-              <p style="margin: 0; font-size: 0.85rem; color: #64748b; line-height: 1.4;">
-                Sipariş tutarı cari hesabınıza borç olarak yansıtılacaktır.
+              <p style="margin: 0; font-size: 0.85rem; color: #64748b; line-height: 1.4;" id="text-cari-method-desc">
+                Sipariş tutarı toptancı cari hesabınıza borç olarak yansıtılacaktır.
               </p>
+              <div id="text-cari-available-hint" style="font-size: 0.78rem; font-weight: 700; margin-top: 4px; color: #16a34a;">
+                Kullanılabilir Limit: 35.150,00 ₺
+              </div>
             </div>
           </label>
 
@@ -865,19 +868,19 @@
             </div>
           </label>
 
-          <!-- 3. Seçenek (Pasif/Disabled): 'Kredi Kartı ile Öde' -->
-          <div class="payment-method-card disabled-method" id="card-method-card" style="opacity: 0.6; cursor: not-allowed; display: flex; align-items: flex-start; gap: 14px; padding: 16px; border: 2px solid #e2e8f0; border-radius: 12px; background: #f8fafc; user-select: none;">
-            <input type="radio" name="paymentMethodSelect" value="CREDIT_CARD" id="radio-method-card" disabled style="margin-top: 4px; width: 18px; height: 18px; cursor: not-allowed;">
+          <!-- 3. Seçenek: 'Kredi Kartı ile Öde' (Perakende ve B2B için Sanal POS) -->
+          <label class="payment-method-card" id="card-method-card" onclick="selectPaymentMethodOption('CREDIT_CARD')" style="cursor: pointer; display: flex; align-items: flex-start; gap: 14px; padding: 16px; border: 2px solid #e2e8f0; border-radius: 12px; background: #ffffff; transition: all 0.2s ease;">
+            <input type="radio" name="paymentMethodSelect" value="CREDIT_CARD" id="radio-method-card" style="margin-top: 4px; accent-color: #f97316; width: 18px; height: 18px; cursor: pointer;">
             <div style="flex: 1;">
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-                <span style="font-weight: 700; font-size: 0.98rem; color: #64748b;">Kredi Kartı ile Öde</span>
-                <span class="badge-coming-soon" style="background: #e2e8f0; color: #64748b; border: 1px solid #cbd5e1; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 6px;">Çok Yakında</span>
+                <span style="font-weight: 700; font-size: 0.98rem; color: #0f172a;">Kredi Kartı ile Öde</span>
+                <span class="badge-card" style="background: #eef2ff; color: #4f46e5; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 6px;">3D Secure POS</span>
               </div>
-              <p style="margin: 0; font-size: 0.85rem; color: #94a3b8; line-height: 1.4;">
-                Online kredi kartı ile güvenli ödeme altyapısı.
+              <p style="margin: 0; font-size: 0.85rem; color: #64748b; line-height: 1.4;">
+                Tüm banka ve kredi kartlarıyla peşin veya taksitli güvenli ödeme altyapısı.
               </p>
             </div>
-          </div>
+          </label>
 
         </div>
       </div>
@@ -1050,6 +1053,133 @@
     </div>
   </div>
 
+  <!-- ==========================================================================
+       CARİ EKSTRE / HESAP DURUMU MODALI (3. ADIM: Gerçek Muhasebe Dili & B2B Cari Durumu)
+       ========================================================================== -->
+  <div class="auth-modal-backdrop" id="modal-current-account" style="display: none;" onclick="closeCurrentAccountModal()">
+    <div class="auth-modal-card" style="max-width: 680px; width: 95%;" onclick="event.stopPropagation()">
+      <div class="auth-modal-header" style="border-bottom: 1px solid var(--border-light); padding: 18px 24px;">
+        <div class="auth-modal-title-col">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 1.35rem;">💳</span>
+            <h3 class="auth-modal-title">Cari Ekstre / Hesap Durumu</h3>
+            <span class="badge-b2b" style="background: #ffedd5; color: #ea580c; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 6px;">B2B Açık Hesap</span>
+          </div>
+          <span class="auth-modal-subtitle">Toptancı onaylı kredi limiti, resmi cari borç bakiyesi ve ekstre dökümü</span>
+        </div>
+        <button type="button" class="btn-auth-modal-close" onclick="closeCurrentAccountModal()" aria-label="Kapat">✕</button>
+      </div>
+
+      <div class="auth-modal-body" style="padding: 24px; max-height: 75vh; overflow-y: auto;">
+        <!-- Bilgilendirme Notu: Doğru Muhasebe Dili (Kazanç Değil Toptancıya Borç) -->
+        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: flex-start; gap: 12px;">
+          <span style="font-size: 1.25rem;">ℹ️</span>
+          <div style="font-size: 0.85rem; color: #991b1b; line-height: 1.45;">
+            <strong>Resmi Muhasebe Bildirimi:</strong> Yapılan harcamalar bir kazanç veya nakit bakiye olmayıp, toptancıya olan resmi açık hesap (veresiye) borcunuzu ifade eder. Tanımlı limitiniz dahilinde açık hesapla sipariş verebilirsiniz.
+          </div>
+        </div>
+
+        <!-- 3'lü Özet Kartları: Kredi Limiti, Cari Borç, Kullanılabilir Limit -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 22px;">
+          
+          <!-- 1. Kart: Tanımlı Kredi Limiti -->
+          <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 0.82rem; font-weight: 600; color: #64748b;">Tanımlı Kredi Limiti</span>
+              <span style="font-size: 0.7rem; background: #e2e8f0; color: #334155; font-weight: 700; padding: 2px 6px; border-radius: 4px;">Toptancı Onaylı</span>
+            </div>
+            <div id="cari-modal-credit-limit" style="font-size: 1.35rem; font-weight: 800; color: #1e293b; font-family: monospace;">
+              50.000,00 ₺
+            </div>
+            <span style="font-size: 0.75rem; color: #94a3b8; margin-top: 6px;">Tahsis edilen maksimum limit</span>
+          </div>
+
+          <!-- 2. Kart: Güncel Cari Borç (Kırmızı Tonlarda Borç Bakiyesi Olarak) -->
+          <div style="background: #fff5f5; border: 1.5px solid #fecaca; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 0.82rem; font-weight: 700; color: #b91c1c;">Güncel Cari Borç</span>
+              <span style="font-size: 0.7rem; background: #fee2e2; color: #dc2626; font-weight: 700; padding: 2px 6px; border-radius: 4px;">Açık Borç</span>
+            </div>
+            <div id="cari-modal-current-debt" style="font-size: 1.35rem; font-weight: 800; color: #dc2626; font-family: monospace;">
+              -14.850,00 ₺
+            </div>
+            <span style="font-size: 0.75rem; color: #ef4444; margin-top: 6px; font-weight: 500;">Toptancıya ödenecek bakiye</span>
+          </div>
+
+          <!-- 3. Kart: Kullanılabilir Limit (Yeşil Tonlarda) -->
+          <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 0.82rem; font-weight: 700; color: #15803d;">Kullanılabilir Limit</span>
+              <span style="font-size: 0.7rem; background: #dcfce7; color: #16a34a; font-weight: 700; padding: 2px 6px; border-radius: 4px;">Kalan Marj</span>
+            </div>
+            <div id="cari-modal-available-limit" style="font-size: 1.35rem; font-weight: 800; color: #16a34a; font-family: monospace;">
+              35.150,00 ₺
+            </div>
+            <span style="font-size: 0.75rem; color: #22c55e; margin-top: 6px; font-weight: 500;">Açık hesapla sipariş verebilir</span>
+          </div>
+
+        </div>
+
+        <!-- Limit Kullanım Çubuğu (Progress Bar) -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; margin-bottom: 22px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.82rem;">
+            <span style="font-weight: 600; color: #475569;">Kredi Limiti Doluluk Oranı</span>
+            <span id="cari-modal-usage-percent" style="font-weight: 700; color: #0f172a;">%29.7 Dolu</span>
+          </div>
+          <div style="width: 100%; height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden;">
+            <div id="cari-modal-usage-bar" style="width: 29.7%; height: 100%; background: linear-gradient(90deg, #f97316, #ef4444); border-radius: 5px; transition: width 0.4s ease;"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 0.74rem; color: #64748b;">
+            <span>0,00 ₺</span>
+            <span id="cari-modal-usage-text">Kullanılan Borç: 14.850,00 ₺</span>
+            <span id="cari-modal-max-limit-text">Kredi Limiti: 50.000,00 ₺</span>
+          </div>
+        </div>
+
+        <!-- Cari Hareketler & Ekstre Listesi -->
+        <div style="margin-top: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-weight: 700; font-size: 0.95rem; color: #0f172a;">Son Cari Hesap Hareketleri (Ekstre)</span>
+              <span id="cari-modal-ledger-count" style="font-size: 0.72rem; background: #f1f5f9; color: #475569; padding: 2px 7px; border-radius: 10px; font-weight: 600;">0 Kayıt</span>
+            </div>
+            <button type="button" onclick="refreshCariLedgerData()" style="background: none; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 10px; font-size: 0.8rem; font-weight: 600; color: #475569; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+              <span>🔄</span> Yenile
+            </button>
+          </div>
+
+          <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.84rem; text-align: left;">
+              <thead>
+                <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600;">
+                  <th style="padding: 10px 14px;">Tarih</th>
+                  <th style="padding: 10px 14px;">İşlem</th>
+                  <th style="padding: 10px 14px;">Açıklama</th>
+                  <th style="padding: 10px 14px; text-align: right;">Tutar</th>
+                </tr>
+              </thead>
+              <tbody id="cari-modal-ledger-tbody">
+                <tr>
+                  <td colspan="4" style="text-align: center; padding: 24px; color: #94a3b8;">
+                    Cari hareketler yükleniyor...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="auth-modal-footer" style="padding: 14px 24px; border-top: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; background: #ffffff; border-radius: 0 0 16px 16px;">
+        <span style="font-size: 0.78rem; color: #94a3b8;">Mutabakat ve cari ödeme için toptancı bayinizle iletişime geçebilirsiniz.</span>
+        <button type="button" class="btn-auth-cancel" onclick="closeCurrentAccountModal()" style="padding: 8px 18px; border-radius: 8px; font-weight: 600;">
+          Kapat
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Bildirim Taşıyıcısı -->
   <div class="partsouq-toast-container" id="toast-container"></div>
 
@@ -1117,12 +1247,19 @@
           if (dropdownNameEl) dropdownNameEl.textContent = name;
           if (dropdownEmailEl && user.email) dropdownEmailEl.textContent = user.email;
 
-          const isRetail = user.customerProfile && user.customerProfile.customerType === 'RETAIL';
+          const isRetail = (user.customerProfile && user.customerProfile.customerType === 'RETAIL') || user.customerType === 'RETAIL';
           const roleText = isRetail
             ? 'Bireysel Müşteri'
             : (user.role === 'SUPER_ADMIN' ? 'Süper Admin' : (user.role === 'TENANT_ADMIN' ? 'Bayi Yöneticisi' : 'Otoservis Müşterisi'));
           if (userRoleEl) userRoleEl.textContent = roleText;
           if (dropdownRoleEl) dropdownRoleEl.textContent = roleText;
+
+          // 2. ADIM: Rol Tabanlı Cari Hesap Denetimi (Role-Based Visibility)
+          // Eğer perakende müşteri ise dropdown'daki 'Cari Ekstre / Hesap Durumu' gizlenir
+          const btnDropdownCari = document.getElementById('btn-dropdown-current-account');
+          if (btnDropdownCari) {
+            btnDropdownCari.style.display = isRetail ? 'none' : 'flex';
+          }
 
           const parts = name.trim().split(' ');
           const initials = parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : name.substring(0, 2).toUpperCase();
@@ -1176,8 +1313,31 @@
         const dealerDefaultEmblem = document.getElementById('dealer-default-emblem');
 
         if (!isLoggedIn()) {
-          // Ziyaretçi modu: Bayi adını temiz göster
-          if (dealerNameEl) dealerNameEl.textContent = formatDealerName('Ahmet Oto');
+          // Ziyaretçi modu: 5. ADIM Subdomain veya X-Tenant-Slug üzerinden bayinin adını ve temasını dinamik çek
+          try {
+            const tenantRes = await apiFetch('/store/tenant-info');
+            if (tenantRes && tenantRes.success && tenantRes.data) {
+              const t = tenantRes.data;
+              currentTenant = t;
+              if (dealerNameEl && t.name) {
+                const formatted = formatDealerName(t.name);
+                dealerNameEl.textContent = formatted;
+                document.title = `${formatted} | B2B Parça Vitrini`;
+              }
+              if (t.logoUrl) {
+                dealerLogoImg.src = t.logoUrl;
+                dealerLogoImg.style.display = 'block';
+                dealerDefaultEmblem.style.display = 'none';
+              }
+              if (t.themeColor) {
+                document.documentElement.style.setProperty('--tenant-primary', t.themeColor);
+              }
+            } else if (dealerNameEl) {
+              dealerNameEl.textContent = formatDealerName('Ahmet Oto');
+            }
+          } catch (e) {
+            if (dealerNameEl) dealerNameEl.textContent = formatDealerName('Ahmet Oto');
+          }
           return;
         }
 
@@ -1204,6 +1364,7 @@
           const userNameEl = document.getElementById('user-display-name');
           const userAvatarEl = document.getElementById('user-avatar-initials');
           const dropdownNameEl = document.getElementById('dropdown-user-name');
+          const dropdownRoleEl = document.getElementById('dropdown-user-role');
           const dropdownEmailEl = document.getElementById('dropdown-user-email');
           const dropdownAvatarEl = document.getElementById('dropdown-avatar-circle');
 
@@ -1214,19 +1375,194 @@
             dropdownEmailEl.textContent = profile.email || profile.user.email;
           }
 
+          const isRetail = profile.customerType === 'RETAIL' || profile.isB2B === false;
+          const userRoleEl = document.getElementById('user-role-label');
+          const roleText = isRetail
+            ? 'Bireysel Müşteri'
+            : (profile.user && profile.user.role === 'SUPER_ADMIN' ? 'Süper Admin' : (profile.user && profile.user.role === 'TENANT_ADMIN' ? 'Bayi Yöneticisi' : 'Otoservis Müşterisi'));
+          if (userRoleEl) userRoleEl.textContent = roleText;
+          if (dropdownRoleEl) dropdownRoleEl.textContent = roleText;
+
+          // 2. ADIM: Rol Tabanlı Cari Hesap Denetimi (Role-Based Visibility)
+          const btnDropdownCari = document.getElementById('btn-dropdown-current-account');
+          if (btnDropdownCari) {
+            btnDropdownCari.style.display = isRetail ? 'none' : 'flex';
+          }
+
           // Baş harfleri oluştur (Örn: "Kemal Usta" -> "KU")
           const parts = companyName.trim().split(' ');
           const initials = parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : companyName.substring(0, 2).toUpperCase();
           if (userAvatarEl) userAvatarEl.textContent = initials;
           if (dropdownAvatarEl) dropdownAvatarEl.textContent = initials;
 
-          // Bakiye Rozeti (Yeşil Renkte)
+          // Bakiye Rozeti (Eğer sayfada mevcutsa hata vermeden güncelle)
           const balanceEl = document.getElementById('user-balance-amount');
-          const bal = parseFloat(profile.balance || 0);
-          balanceEl.textContent = (bal >= 0 ? '+' : '') + bal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+          if (balanceEl) {
+            const bal = parseFloat(profile.balance || 0);
+            balanceEl.textContent = (bal >= 0 ? '+' : '') + bal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+          }
         }
       } catch (err) {
         console.warn('[PROFILE_LOAD_WARN]:', err);
+      }
+    }
+
+    // --------------------------------------------------------------------------
+    // 3. ADIM: CARİ EKSTRE / HESAP DURUMU MODAL İŞLEMLERİ (B2B Cari Hesap & Kredi Limiti)
+    // --------------------------------------------------------------------------
+    function openCurrentAccountModal() {
+      if (!isLoggedIn()) {
+        openLoginModal();
+        showToast('Cari hesap durumunu görüntülemek için lütfen giriş yapınız.', 'warning');
+        return;
+      }
+
+      // 2. ADIM Güvencesi: Eğer perakende müşteri ise açılması engellenir
+      const isRetail = (currentCustomer && (currentCustomer.customerType === 'RETAIL' || currentCustomer.isB2B === false));
+      if (isRetail) {
+        showToast('Bireysel müşteriler için cari hesap ekstresi bulunmamaktadır.', 'info');
+        return;
+      }
+
+      const modal = document.getElementById('modal-current-account');
+      if (modal) {
+        modal.classList.add('active');
+        modal.classList.add('open');
+        modal.style.display = 'flex';
+        modal.style.opacity = '1';
+        document.body.style.overflow = 'hidden';
+      }
+
+      refreshCariLedgerData();
+    }
+
+    function closeCurrentAccountModal() {
+      const modal = document.getElementById('modal-current-account');
+      if (modal) {
+        modal.classList.remove('active');
+        modal.classList.remove('open');
+        modal.style.display = 'none';
+        modal.style.opacity = '0';
+        document.body.style.overflow = '';
+      }
+    }
+
+    async function refreshCariLedgerData() {
+      try {
+        const tbody = document.getElementById('cari-modal-ledger-tbody');
+        const countBadge = document.getElementById('cari-modal-ledger-count');
+        if (tbody) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="4" style="text-align: center; padding: 20px; color: #64748b;">
+                <div style="display: inline-block; width: 20px; height: 20px; border: 2.5px solid #cbd5e1; border-top-color: var(--tenant-primary); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+                <div style="margin-top: 6px; font-size: 0.82rem;">Cari hareketler yükleniyor...</div>
+              </td>
+            </tr>
+          `;
+        }
+
+        const [profileRes, ledgerRes] = await Promise.all([
+          apiFetch('/store/profile'),
+          apiFetch('/store/ledger')
+        ]);
+
+        let creditLimit = 50000.00;
+        let currentDebt = 14850.00;
+        let availableLimit = 35150.00;
+
+        if (profileRes && profileRes.success && profileRes.data) {
+          currentCustomer = profileRes.data;
+          creditLimit = typeof profileRes.data.creditLimit === 'number' ? profileRes.data.creditLimit : 50000.00;
+          currentDebt = typeof profileRes.data.currentDebt === 'number' ? profileRes.data.currentDebt : parseFloat(profileRes.data.balance || 0);
+          availableLimit = typeof profileRes.data.availableLimit === 'number' ? profileRes.data.availableLimit : Math.max(0, creditLimit - currentDebt);
+        } else if (ledgerRes && ledgerRes.success) {
+          creditLimit = typeof ledgerRes.creditLimit === 'number' ? ledgerRes.creditLimit : 50000.00;
+          currentDebt = typeof ledgerRes.currentDebt === 'number' ? ledgerRes.currentDebt : 14850.00;
+          availableLimit = typeof ledgerRes.availableLimit === 'number' ? ledgerRes.availableLimit : Math.max(0, creditLimit - currentDebt);
+        }
+
+        // 3. ADIM UI Güncellemeleri
+        // Tanımlı Kredi Limiti: 50.000 TL
+        const creditLimitEl = document.getElementById('cari-modal-credit-limit');
+        if (creditLimitEl) {
+          creditLimitEl.textContent = creditLimit.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+        }
+
+        // Güncel Cari Borç: (Örn: -14.850 TL - Kırmızı tonlarda borç bakiyesi olarak)
+        const currentDebtEl = document.getElementById('cari-modal-current-debt');
+        if (currentDebtEl) {
+          const debtFormatted = (currentDebt > 0 ? '-' : '') + Math.abs(currentDebt).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+          currentDebtEl.textContent = debtFormatted;
+        }
+
+        // Kullanılabilir Limit: (Örn: 35.150 TL)
+        const availableLimitEl = document.getElementById('cari-modal-available-limit');
+        if (availableLimitEl) {
+          availableLimitEl.textContent = availableLimit.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+        }
+
+        // Limit Kullanım Çubuğu (Progress Bar)
+        const usageRatio = creditLimit > 0 ? Math.min(100, Math.max(0, (currentDebt / creditLimit) * 100)) : 0;
+        const usagePercentEl = document.getElementById('cari-modal-usage-percent');
+        const usageBarEl = document.getElementById('cari-modal-usage-bar');
+        const usageTextEl = document.getElementById('cari-modal-usage-text');
+        const maxLimitTextEl = document.getElementById('cari-modal-max-limit-text');
+
+        if (usagePercentEl) usagePercentEl.textContent = `%${usageRatio.toFixed(1)} Dolu`;
+        if (usageBarEl) usageBarEl.style.width = `${usageRatio.toFixed(1)}%`;
+        if (usageTextEl) usageTextEl.textContent = `Kullanılan Borç: ${currentDebt.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺`;
+        if (maxLimitTextEl) maxLimitTextEl.textContent = `Kredi Limiti: ${creditLimit.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺`;
+
+        // Ekstre / Hareketler Tablosu
+        if (tbody) {
+          const ledgers = (ledgerRes && ledgerRes.data && Array.isArray(ledgerRes.data)) ? ledgerRes.data : [];
+          if (countBadge) countBadge.textContent = `${ledgers.length} Kayıt`;
+
+          if (ledgers.length === 0) {
+            tbody.innerHTML = `
+              <tr>
+                <td colspan="4" style="text-align: center; padding: 24px; color: #94a3b8; font-size: 0.85rem;">
+                  Henüz kaydedilmiş cari hesap hareketi bulunmuyor.
+                </td>
+              </tr>
+            `;
+          } else {
+            tbody.innerHTML = ledgers.map(item => {
+              const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+              const isDebit = item.type === 'DEBIT' || item.type === 'BORC';
+              const badgeBg = isDebit ? '#fee2e2' : '#dcfce7';
+              const badgeColor = isDebit ? '#dc2626' : '#16a34a';
+              const typeText = isDebit ? 'Borç (Sipariş)' : 'Alacak / Tahsilat';
+              const amtFormatted = (isDebit ? '-' : '+') + parseFloat(item.amount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+
+              return `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 10px 14px; font-family: monospace; font-size: 0.78rem; color: #64748b;">${dateStr}</td>
+                  <td style="padding: 10px 14px;">
+                    <span style="background: ${badgeBg}; color: ${badgeColor}; font-size: 0.72rem; font-weight: 700; padding: 2px 6px; border-radius: 4px;">
+                      ${typeText}
+                    </span>
+                  </td>
+                  <td style="padding: 10px 14px; color: #334155; font-size: 0.82rem;">${item.description || 'Cari İşlem'}</td>
+                  <td style="padding: 10px 14px; text-align: right; font-weight: 700; font-family: monospace; color: ${badgeColor}; font-size: 0.88rem;">${amtFormatted}</td>
+                </tr>
+              `;
+            }).join('');
+          }
+        }
+      } catch (err) {
+        console.warn('[REFRESH_CARI_LEDGER_ERROR]:', err);
+        const tbody = document.getElementById('cari-modal-ledger-tbody');
+        if (tbody) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="4" style="text-align: center; padding: 18px; color: #ef4444; font-size: 0.85rem;">
+                Cari hesap hareketleri yüklenirken hata oluştu. Lütfen tekrar deneyiniz.
+              </td>
+            </tr>
+          `;
+        }
       }
     }
 
@@ -1430,41 +1766,70 @@
             <span class="group-name-label">${safeGroup}</span>
           </td>
 
-          <!-- 5. Stok Durumu (Yeşil: Stokta, Kırmızı: Tükendi) -->
+          <!-- 5. Stok Durumu (Ziyaretçi Modunda Gizlenir) -->
           <td class="td-stock">
-            <span class="stock-pill ${inStock ? 'in-stock' : 'out-of-stock'}">
-              <span class="stock-dot"></span>
-              <span>${inStock ? `Stokta (${stockCount} Adet)` : 'Tükendi'}</span>
-            </span>
+            ${(!isLoggedIn() || p.isGuest) ? `
+              <span class="stock-pill guest-lock" style="background:#f1f5f9; color:#64748b; font-weight:600; font-size:12px; padding:4px 8px; border-radius:6px; display:inline-flex; align-items:center; gap:5px;" title="Stok durumunu görmek için giriş yapın">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <span>Giriş Yapın</span>
+              </span>
+            ` : `
+              <span class="stock-pill ${inStock ? 'in-stock' : 'out-of-stock'}">
+                <span class="stock-dot"></span>
+                <span>${inStock ? `Stokta (${stockCount} Adet)` : 'Tükendi'}</span>
+              </span>
+            `}
           </td>
 
-          <!-- 6. Liste Fiyatı & Net B2B İskontolu Fiyat (Dinamik İskonto Kontrolü) -->
+          <!-- 6. Liste Fiyatı & Net B2B İskontolu Fiyat (Ziyaretçi Modunda Gizlenir) -->
           <td class="td-price">
-            <div class="price-col-wrap">
-              ${hasActiveDiscount ? `
-                <span class="price-list-strikethrough">${listFormatted} ₺</span>
-                <span class="price-net-bold">${discFormatted} ₺</span>
-                <span class="discount-percent-badge">%${customerDiscountRate} İskonto</span>
-              ` : `
-                <span class="price-net-bold">${listFormatted} ₺</span>
-              `}
-            </div>
+            ${(!isLoggedIn() || p.isGuest) ? `
+              <div class="price-col-wrap">
+                <span class="price-locked-badge" style="font-size:12px; color:#64748b; font-weight:600; display:inline-flex; align-items:center; gap:5px;" title="Fiyatları görmek için giriş yapın">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                  <span>Fiyat Gizli</span>
+                </span>
+              </div>
+            ` : `
+              <div class="price-col-wrap">
+                ${hasActiveDiscount ? `
+                  <span class="price-list-strikethrough">${listFormatted} ₺</span>
+                  <span class="price-net-bold">${discFormatted} ₺</span>
+                  <span class="discount-percent-badge">%${customerDiscountRate} İskonto</span>
+                ` : `
+                  <span class="price-net-bold">${listFormatted} ₺</span>
+                `}
+              </div>
+            `}
           </td>
 
-          <!-- 7. 'Sepete Ekle' Butonu (Çift Artı Temizlendi, Sade 'Sepete Ekle') -->
+          <!-- 7. 'Sepete Ekle' Butonu (2. ADIM: Ziyaretçi modunda yerine 'Fiyatları görmek için giriş yapın veya kayıt olun' gösterilir) -->
           <td class="td-action">
-            <button 
-              type="button" 
-              class="btn-add-to-cart" 
-              ${!inStock ? 'disabled title="Ürün stokta bulunmuyor"' : ''}
-              onclick="addToCart('${p.tenantProductId || p.id}', '${p.productId || p.id}')"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              <span>${inStock ? 'Sepete Ekle' : 'Tükendi'}</span>
-            </button>
+            ${(!isLoggedIn() || p.isGuest) ? `
+              <button 
+                type="button" 
+                class="btn-guest-prompt" 
+                onclick="openLoginModal()" 
+                style="background:var(--tenant-primary, #f97316); color:#fff; border:none; padding:7px 12px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 1px 3px rgba(0,0,0,0.1); white-space:nowrap; transition:all 0.2s;"
+                title="Fiyatları görmek için giriş yapın veya kayıt olun"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+                <span>Fiyatları görmek için giriş yapın veya kayıt olun</span>
+              </button>
+            ` : `
+              <button 
+                type="button" 
+                class="btn-add-to-cart" 
+                ${!inStock ? 'disabled title="Ürün stokta bulunmuyor"' : ''}
+                onclick="addToCart('${p.tenantProductId || p.id}', '${p.productId || p.id}')"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>${inStock ? 'Sepete Ekle' : 'Tükendi'}</span>
+              </button>
+            `}
           </td>
         `;
 
@@ -1952,9 +2317,9 @@
     }
 
     // --------------------------------------------------------------------------
-    // 9. ÖDEME YÖNTEMİ MODALI & SİPARİŞİ TAMAMLA (PROMPT: STEP 1, STEP 2, STEP 3)
+    // 9. ÖDEME YÖNTEMİ MODALI & SİPARİŞİ TAMAMLA (PROMPT 4. ADIM: Perakende vs B2B & Kredi Limiti)
     // --------------------------------------------------------------------------
-    let selectedPaymentMethod = 'CURRENT_ACCOUNT';
+    let selectedPaymentMethod = 'BANK_TRANSFER';
 
     function openPaymentMethodModal() {
       if (cart.length === 0) {
@@ -1977,8 +2342,64 @@
         grandTotalEl.textContent = grandTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
       }
 
-      // Varsayılan olarak Cari Hesaba Yaz seçeneğini aktif et
-      selectPaymentMethodOption('CURRENT_ACCOUNT');
+      // 4. ADIM: Rol Tabanlı ve Limit Kontrollü Ödeme Seçenekleri
+      // Eğer kullanıcı perakende müşteri ise 'Cari Hesaba Yaz (Açık Hesap)' seçeneği KESİNLİKLE görünmemeli.
+      let isRetail = false;
+      if (currentCustomer) {
+        isRetail = currentCustomer.customerType === 'RETAIL' || currentCustomer.isB2B === false;
+      } else {
+        try {
+          const u = JSON.parse(localStorage.getItem('user'));
+          if (u) {
+            isRetail = (u.customerProfile && u.customerProfile.customerType === 'RETAIL') || u.customerType === 'RETAIL';
+          }
+        } catch (e) {}
+      }
+
+      const cardCurrent = document.getElementById('card-method-current');
+      const radioCurrent = document.getElementById('radio-method-current');
+      const hintEl = document.getElementById('text-cari-available-hint');
+
+      if (isRetail) {
+        // Perakende Müşteri: Cari Hesap tamamen gizlenir, sadece Havale/EFT veya Kredi Kartı sunulur
+        if (cardCurrent) cardCurrent.style.display = 'none';
+        selectPaymentMethodOption('BANK_TRANSFER');
+      } else {
+        // B2B Tamirci / Bayi: Cari Hesap görüntülenir ve limit kontrolü yapılır
+        if (cardCurrent) cardCurrent.style.display = 'flex';
+
+        const creditLimit = (currentCustomer && typeof currentCustomer.creditLimit === 'number') ? currentCustomer.creditLimit : 50000.00;
+        const currentDebt = (currentCustomer && typeof currentCustomer.currentDebt === 'number') ? currentCustomer.currentDebt : parseFloat(currentCustomer?.balance || 0);
+        const availableLimit = (currentCustomer && typeof currentCustomer.availableLimit === 'number') ? currentCustomer.availableLimit : Math.max(0, creditLimit - currentDebt);
+
+        if (grandTotal > availableLimit) {
+          // Cari hesap limiti sipariş tutarı için yetersiz!
+          if (radioCurrent) radioCurrent.disabled = true;
+          if (cardCurrent) {
+            cardCurrent.classList.add('disabled-method');
+            cardCurrent.style.opacity = '0.55';
+            cardCurrent.style.cursor = 'not-allowed';
+          }
+          if (hintEl) {
+            hintEl.style.color = '#dc2626';
+            hintEl.textContent = `⚠️ Yetersiz Cari Limit (Kullanılabilir: ${availableLimit.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺ | Sipariş: ${grandTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺)`;
+          }
+          selectPaymentMethodOption('BANK_TRANSFER');
+        } else {
+          // Limit yeterli: Cari Hesap aktif ve varsayılan
+          if (radioCurrent) radioCurrent.disabled = false;
+          if (cardCurrent) {
+            cardCurrent.classList.remove('disabled-method');
+            cardCurrent.style.opacity = '1';
+            cardCurrent.style.cursor = 'pointer';
+          }
+          if (hintEl) {
+            hintEl.style.color = '#16a34a';
+            hintEl.textContent = `✓ Kullanılabilir Limit: ${availableLimit.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺`;
+          }
+          selectPaymentMethodOption('CURRENT_ACCOUNT');
+        }
+      }
 
       // Bayinin dinamik banka ve IBAN bilgilerini çek
       loadDealerBankInfo();
@@ -2022,53 +2443,79 @@
     }
 
     function selectPaymentMethodOption(method) {
-      if (method === 'CREDIT_CARD') {
-        // Pasif / Disabled seçenek
-        return;
+      let isRetail = false;
+      if (currentCustomer) {
+        isRetail = currentCustomer.customerType === 'RETAIL' || currentCustomer.isB2B === false;
+      } else {
+        try {
+          const u = JSON.parse(localStorage.getItem('user'));
+          if (u) {
+            isRetail = (u.customerProfile && u.customerProfile.customerType === 'RETAIL') || u.customerType === 'RETAIL';
+          }
+        } catch (e) {}
+      }
+
+      // 4. ADIM: Perakende müşteri Cari Hesap seçemez
+      if (method === 'CURRENT_ACCOUNT') {
+        if (isRetail) {
+          showToast('Bireysel müşteriler için cari hesap ile sipariş yetkisi bulunmamaktadır.', 'warning');
+          selectPaymentMethodOption('BANK_TRANSFER');
+          return;
+        }
+
+        // Limit kontrolü
+        const totalSubtotal = cart.reduce((acc, item) => acc + ((Number(item.discountedPrice) || 0) * (Number(item.qty) || 1)), 0);
+        const grandTotal = parseFloat((totalSubtotal * 1.20).toFixed(2));
+        const creditLimit = (currentCustomer && typeof currentCustomer.creditLimit === 'number') ? currentCustomer.creditLimit : 50000.00;
+        const currentDebt = (currentCustomer && typeof currentCustomer.currentDebt === 'number') ? currentCustomer.currentDebt : parseFloat(currentCustomer?.balance || 0);
+        const availableLimit = (currentCustomer && typeof currentCustomer.availableLimit === 'number') ? currentCustomer.availableLimit : Math.max(0, creditLimit - currentDebt);
+
+        if (grandTotal > availableLimit) {
+          showToast(`Cari limitiniz yetersizdir (Kullanılabilir: ${availableLimit.toLocaleString('tr-TR')} ₺). Lütfen Havale/EFT seçiniz.`, 'warning');
+          selectPaymentMethodOption('BANK_TRANSFER');
+          return;
+        }
       }
 
       selectedPaymentMethod = method;
 
       const cardCurrent = document.getElementById('card-method-current');
       const cardBank = document.getElementById('card-method-bank');
+      const cardCredit = document.getElementById('card-method-card');
       const radioCurrent = document.getElementById('radio-method-current');
       const radioBank = document.getElementById('radio-method-bank');
+      const radioCredit = document.getElementById('radio-method-card');
       const bankDetails = document.getElementById('bank-transfer-details');
 
-      if (method === 'CURRENT_ACCOUNT') {
+      // Önce tüm kartların seçimini sıfırla
+      [cardCurrent, cardBank, cardCredit].forEach(card => {
+        if (card) {
+          card.classList.remove('active-method');
+          card.style.borderColor = '#e2e8f0';
+          card.style.background = '#ffffff';
+        }
+      });
+      if (radioCurrent) radioCurrent.checked = false;
+      if (radioBank) radioBank.checked = false;
+      if (radioCredit) radioCredit.checked = false;
+      if (bankDetails) bankDetails.style.display = 'none';
+
+      if (method === 'CURRENT_ACCOUNT' && cardCurrent) {
         if (radioCurrent) radioCurrent.checked = true;
-        if (radioBank) radioBank.checked = false;
-
-        if (cardCurrent) {
-          cardCurrent.classList.add('active-method');
-          cardCurrent.style.borderColor = '#f97316';
-          cardCurrent.style.background = '#fffaf5';
-        }
-        if (cardBank) {
-          cardBank.classList.remove('active-method');
-          cardBank.style.borderColor = '#e2e8f0';
-          cardBank.style.background = '#ffffff';
-        }
-        if (bankDetails) {
-          bankDetails.style.display = 'none';
-        }
-      } else if (method === 'BANK_TRANSFER') {
+        cardCurrent.classList.add('active-method');
+        cardCurrent.style.borderColor = '#f97316';
+        cardCurrent.style.background = '#fffaf5';
+      } else if (method === 'BANK_TRANSFER' && cardBank) {
         if (radioBank) radioBank.checked = true;
-        if (radioCurrent) radioCurrent.checked = false;
-
-        if (cardBank) {
-          cardBank.classList.add('active-method');
-          cardBank.style.borderColor = '#f97316';
-          cardBank.style.background = '#fffaf5';
-        }
-        if (cardCurrent) {
-          cardCurrent.classList.remove('active-method');
-          cardCurrent.style.borderColor = '#e2e8f0';
-          cardCurrent.style.background = '#ffffff';
-        }
-        if (bankDetails) {
-          bankDetails.style.display = 'block';
-        }
+        cardBank.classList.add('active-method');
+        cardBank.style.borderColor = '#f97316';
+        cardBank.style.background = '#fffaf5';
+        if (bankDetails) bankDetails.style.display = 'block';
+      } else if (method === 'CREDIT_CARD' && cardCredit) {
+        if (radioCredit) radioCredit.checked = true;
+        cardCredit.classList.add('active-method');
+        cardCredit.style.borderColor = '#4f46e5';
+        cardCredit.style.background = '#f5f3ff';
       }
     }
 
@@ -2436,7 +2883,8 @@
       `;
 
       try {
-        const res = await apiFetch('/auth/login', {
+        // 3. ADIM: Müşteri/Tamirci girişi için izole customer-login rotası
+        const res = await apiFetch('/auth/customer-login', {
           method: 'POST',
           body: { email, password }
         });
@@ -2791,12 +3239,65 @@
         } else if (st.includes('ÖDEME') || st.includes('ODEME')) {
           statusBadge = '<span class="order-status-badge pending" style="background:#fffbeb; color:#b45309; border:1px solid #fde68a; font-weight:700; display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:9999px;">🏦 Ödeme Bekleniyor</span>';
         } else if (st === 'SHIPPED' || st === 'KARGOLANDI') {
-          statusBadge = '<span class="order-status-badge shipped" style="font-weight:700; display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:9999px;">🚚 Kargolandı</span>';
-        } else if (st === 'DELIVERED' || st === 'TESLIM_EDILDI' || st === 'COMPLETED') {
-          statusBadge = '<span class="order-status-badge delivered" style="font-weight:700; display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:9999px;">✅ Teslim Edildi</span>';
+          let cargoDetailHtml = '';
+          if (ord.trackingNumber || ord.cargoCompany) {
+            const comp = ord.cargoCompany || 'Kargo';
+            const track = ord.trackingNumber || '';
+            cargoDetailHtml = `
+              <div style="margin-top: 5px;">
+                <button type="button" onclick="event.stopPropagation(); showCargoTrackingModal('${escapeHtml(comp)}', '${escapeHtml(track)}', '${escapeHtml(orderNo)}')" style="background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; padding: 3px 9px; border-radius: 6px; font-size: 0.76rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" title="Kargo Takip Bilgilerini Görüntüle">
+                  <span>🚚 ${escapeHtml(comp)}: <strong style="font-family: monospace;">${escapeHtml(track)}</strong></span>
+                  <span style="font-size: 0.85rem;">↗</span>
+                </button>
+              </div>
+            `;
+          }
+          statusBadge = `
+            <span class="order-status-badge shipped" style="font-weight:700; display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:9999px; background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe;">
+              🚚 Kargolandı
+            </span>
+            ${cargoDetailHtml}
+          `;
+        } else if (st === 'DELIVERED' || st === 'TESLIM_EDILDI' || st === 'COMPLETED' || ord.status === 'Teslim Edildi') {
+          statusBadge = '<span class="order-status-badge delivered" style="font-weight:700; display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:9999px; background:#f0fdf4; color:#166534; border:1px solid #bbf7d0;">✅ Teslim Edildi</span>';
+        } else if (st === 'RETURNED' || st === 'IADE_EDILDI') {
+          statusBadge = '<span class="order-status-badge returned" style="font-weight:700; display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:9999px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;">↩️ İade Edildi</span>';
         } else {
           statusBadge = `<span class="order-status-badge pending" style="padding:4px 10px; border-radius:9999px; font-weight:600;">${escapeHtml(ord.status)}</span>`;
         }
+
+        // 3. ADIM: İade Butonu ve Durumu (Yalnızca Teslim Edilmiş Siparişler İçin)
+        const isDelivered = st === 'DELIVERED' || st === 'TESLIM_EDILDI' || st === 'COMPLETED' || ord.status === 'Teslim Edildi';
+        const returnRequests = Array.isArray(ord.returnRequests) ? ord.returnRequests : [];
+        const activeReturn = returnRequests.length > 0 ? returnRequests[0] : null;
+
+        let returnButtonHtml = '';
+        if (isDelivered) {
+          if (!activeReturn) {
+            returnButtonHtml = `
+              <button type="button" class="btn-return-action" onclick="openReturnRequestModal('${escapeHtml(ord.id)}', '${escapeHtml(orderNo)}')" style="background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; padding:5px 12px; border-radius:6px; font-weight:700; font-size:0.78rem; cursor:pointer; margin-left:6px; transition:all 0.2s ease;" title="Bu sipariş için iade talebi oluştur">
+                <span>↩ İade Talebi</span>
+              </button>
+            `;
+          } else {
+            const retStatus = activeReturn.status || 'Bekliyor';
+            if (retStatus === 'Bekliyor' || retStatus === 'PENDING') {
+              returnButtonHtml = `<span style="background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; padding:4px 9px; border-radius:6px; font-weight:700; font-size:0.75rem; margin-left:6px;" title="İade talebiniz bayi tarafından inceleniyor">⏳ İade İnceleniyor</span>`;
+            } else if (retStatus === 'Onaylandı' || retStatus === 'APPROVED') {
+              returnButtonHtml = `<span style="background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; padding:4px 9px; border-radius:6px; font-weight:700; font-size:0.75rem; margin-left:6px;" title="İadeniz onaylandı ve stoka kabul edildi">✅ İade Onaylandı</span>`;
+            } else if (retStatus === 'Reddedildi' || retStatus === 'REJECTED') {
+              returnButtonHtml = `
+                <span style="background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; padding:4px 9px; border-radius:6px; font-weight:700; font-size:0.75rem; margin-left:6px;" title="${escapeHtml(activeReturn.adminNote || 'İade reddedildi')}">❌ İade Reddedildi</span>
+              `;
+            }
+          }
+        }
+
+        const cargoActionButton = (ord.trackingNumber || ord.cargoCompany)
+          ? `<button type="button" onclick="showCargoTrackingModal('${escapeHtml(ord.cargoCompany || 'Kargo')}', '${escapeHtml(ord.trackingNumber || '')}', '${escapeHtml(orderNo)}')" style="background:#e0e7ff; color:#4338ca; border:1px solid #c7d2fe; padding:5px 9px; border-radius:6px; font-weight:700; font-size:0.78rem; cursor:pointer; margin-left:4px; display:inline-flex; align-items:center; gap:4px;" title="Kargo Takip Bilgilerini Gör">
+               <span>🚚 Kargo</span>
+             </button>`
+          : '';
 
         return `
           <tr>
@@ -2809,11 +3310,13 @@
               ${totalFormatted}
             </td>
             <td style="text-align: center;">${statusBadge}</td>
-            <td style="text-align: center;">
+            <td style="text-align: center; white-space: nowrap;">
               <button type="button" class="btn-order-detail" onclick="viewOrderDetail('${escapeHtml(ord.id || ord.orderNumber)}')" title="Sipariş Kalemlerini Göster">
                 <span>Kalemler</span>
                 <span>›</span>
               </button>
+              ${cargoActionButton}
+              ${returnButtonHtml}
             </td>
           </tr>
         `;
@@ -2888,6 +3391,28 @@
             ${rows}
           </tbody>
         </table>
+        ${(order.cargoCompany || order.trackingNumber) ? `
+          <div style="margin-top: 14px; padding: 14px 18px; background: #eef2ff; border: 1px solid #c7d2fe; border-left: 4px solid #4f46e5; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 38px; height: 38px; border-radius: 8px; background: #4f46e5; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+                🚚
+              </div>
+              <div>
+                <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #4338ca;">Kargo & Sevkiyat Takibi</div>
+                <div style="font-size: 0.95rem; font-weight: 800; color: #1e1b4b; margin-top: 2px;">
+                  ${escapeHtml(order.cargoCompany || 'Kargo Firması')}
+                  <span style="font-family: monospace; background: #ffffff; border: 1px solid #c7d2fe; padding: 2px 8px; border-radius: 4px; font-size: 0.88rem; margin-left: 6px; color: #0f172a;">${escapeHtml(order.trackingNumber || '-')}</span>
+                </div>
+              </div>
+            </div>
+            ${order.trackingNumber ? `
+              <button type="button" onclick="showCargoTrackingModal('${escapeHtml(order.cargoCompany || 'Kargo')}', '${escapeHtml(order.trackingNumber || '')}', '${escapeHtml(order.orderNumber || order.id)}')" style="background: #4f46e5; color: #ffffff; border: none; padding: 8px 14px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.2s;">
+                <span>Kargom Nerede</span>
+                <span>↗</span>
+              </button>
+            ` : ''}
+          </div>
+        ` : ''}
         ${order.rejectionReason ? `
           <div style="margin-top: 14px; padding: 12px 16px; background: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid #ef4444; border-radius: 8px; color: #991b1b; font-size: 0.88rem;">
             <div style="font-weight: 700; display: flex; align-items: center; gap: 6px;">
@@ -2915,8 +3440,222 @@
       }
     }
 
+    // --------------------------------------------------------------------------
+    // 3. ADIM: SWEETALERT2 İLE İADE TALEBİ FORMU VE GÖNDERİMİ (store.html)
+    // --------------------------------------------------------------------------
+    async function openReturnRequestModal(orderId, orderNo) {
+      if (typeof Swal === 'undefined') {
+        const reason = prompt(`Sipariş #${orderNo} için iade sebebi giriniz:\n1. Parça Araca Uymadı\n2. Yanlış Sipariş Ettim\n3. Kusurlu Geldi\n4. Diğer`);
+        if (!reason) return;
+        const note = prompt('İade için eklemek istediğiniz opsiyonel not:') || '';
+        try {
+          const res = await apiFetch(`/store/orders/${orderId}/return`, {
+            method: 'POST',
+            body: { reason, customerNote: note }
+          });
+          if (res && res.success) {
+            alert('İade talebiniz başarıyla alındı!');
+            await loadMyOrders(true);
+          } else {
+            alert('Hata: ' + ((res && res.message) || 'Talep oluşturulamadı.'));
+          }
+        } catch (e) {
+          alert('Bağlantı hatası: ' + e.message);
+        }
+        return;
+      }
+
+      const { value: formValues } = await Swal.fire({
+        title: 'İade Talebi Oluştur',
+        html: `
+          <div style="text-align: left; font-size: 0.9rem; color: #334155; margin-bottom: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px;">
+            Sipariş Numarası: <strong style="color: #0f172a; font-family: monospace; font-size: 1rem;">#${escapeHtml(orderNo)}</strong>
+          </div>
+          <div style="text-align: left; margin-bottom: 14px;">
+            <label style="display: block; font-weight: 700; font-size: 0.85rem; color: #1e293b; margin-bottom: 6px;">
+              İade Sebebi <span style="color:#ef4444;">*</span>
+            </label>
+            <select id="swal-return-reason" class="swal2-select" style="display: block; width: 100%; margin: 0; box-sizing: border-box; padding: 10px 12px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.9rem; background: #fff;">
+              <option value="Parça Araca Uymadı" selected>Parça Araca Uymadı</option>
+              <option value="Yanlış Sipariş Ettim">Yanlış Sipariş Ettim</option>
+              <option value="Kusurlu / Hasarlı Geldi">Kusurlu / Hasarlı Geldi</option>
+              <option value="Farklı Ürün Gönderildi">Farklı Ürün Gönderildi</option>
+              <option value="Artık İhtiyaç Kalmadı">Artık İhtiyaç Kalmadı</option>
+              <option value="Diğer">Diğer</option>
+            </select>
+          </div>
+          <div style="text-align: left;">
+            <label style="display: block; font-weight: 700; font-size: 0.85rem; color: #1e293b; margin-bottom: 6px;">
+              Açıklama / Müşteri Notu <small style="color:#64748b; font-weight: normal;">(Opsiyonel)</small>
+            </label>
+            <textarea id="swal-return-note" class="swal2-textarea" placeholder="İade sebebiyle ilgili detay, parça uyumu veya durum hakkında bilgi ekleyebilirsiniz..." style="display: block; width: 100%; margin: 0; box-sizing: border-box; height: 95px; padding: 10px 12px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.88rem;"></textarea>
+          </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'İade Talebini Gönder',
+        cancelButtonText: 'Vazgeç',
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        customClass: {
+          popup: 'swal2-rounded-modal'
+        },
+        preConfirm: () => {
+          const reasonEl = document.getElementById('swal-return-reason');
+          const noteEl = document.getElementById('swal-return-note');
+          const reason = reasonEl ? reasonEl.value : '';
+          const note = noteEl ? noteEl.value.trim() : '';
+          if (!reason) {
+            Swal.showValidationMessage('Lütfen geçerli bir iade sebebi seçiniz.');
+            return false;
+          }
+          return { reason, note };
+        }
+      });
+
+      if (formValues) {
+        try {
+          const res = await apiFetch(`/store/orders/${orderId}/return`, {
+            method: 'POST',
+            body: {
+              reason: formValues.reason,
+              customerNote: formValues.note
+            }
+          });
+
+          if (res && res.success) {
+            await Swal.fire({
+              icon: 'success',
+              title: 'İade Talebiniz Alındı',
+              text: res.message || 'İade talebiniz bayinize iletildi. Muhasebe ve depo kontrolünün ardından işlem sonuçlandırılacaktır.',
+              confirmButtonColor: '#f97316',
+              confirmButtonText: 'Tamam'
+            });
+            await loadMyOrders(true);
+          } else {
+            Swal.fire({
+              icon: 'error',
+              title: 'İade Talebi Gönderilemedi',
+              text: (res && res.message) ? res.message : 'İade işlemi gerçekleştirilemedi.',
+              confirmButtonColor: '#ef4444'
+            });
+          }
+        } catch (err) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Bağlantı Hatası',
+            text: 'Sunucuya bağlanılamadı: ' + err.message,
+            confirmButtonColor: '#ef4444'
+          });
+        }
+      }
+    }
+
+    // --------------------------------------------------------------------------
+    // 4. ADIM: KARGO TAKİP FONKSİYONU VE MODALI (store.html)
+    // --------------------------------------------------------------------------
+    function getCargoTrackingUrl(company, trackingNum) {
+      if (!trackingNum) return null;
+      const cleanNum = String(trackingNum).trim();
+      const comp = (company || '').toLowerCase();
+
+      if (comp.includes('yurtiçi') || comp.includes('yurtici')) {
+        return `https://www.yurticikargo.com/tr/online-servisler/gonderi-sorgula?code=${encodeURIComponent(cleanNum)}`;
+      }
+      if (comp.includes('aras')) {
+        return `https://kargotakip.araskargo.com.tr/mainpage.aspx?code=${encodeURIComponent(cleanNum)}`;
+      }
+      if (comp.includes('mng')) {
+        return `https://kargotakip.mngkargo.com.tr/?takipNo=${encodeURIComponent(cleanNum)}`;
+      }
+      if (comp.includes('sürat') || comp.includes('surat')) {
+        return `https://suratkargo.com.tr/KargoTakip/?kargotakipno=${encodeURIComponent(cleanNum)}`;
+      }
+      if (comp.includes('ptt')) {
+        return `https://gonderitakip.ptt.gov.tr/Track/Verify?q=${encodeURIComponent(cleanNum)}`;
+      }
+      return null;
+    }
+
+    async function showCargoTrackingModal(company, trackingNum, orderNo) {
+      const cleanCompany = (company || 'Kargo Firması').trim();
+      const cleanTracking = (trackingNum || '-').trim();
+      const trackingUrl = getCargoTrackingUrl(cleanCompany, cleanTracking);
+
+      if (typeof Swal === 'undefined') {
+        if (trackingUrl && confirm(`Kargo Firması: ${cleanCompany}\nTakip Numarası: ${cleanTracking}\n\nKargo firmasının takip sayfasına gitmek istiyor musunuz?`)) {
+          window.open(trackingUrl, '_blank');
+        } else {
+          alert(`Kargo Firması: ${cleanCompany}\nTakip No: ${cleanTracking}`);
+        }
+        return;
+      }
+
+      const copyBtnId = 'btn-copy-tracking-num';
+      await Swal.fire({
+        title: '🚚 Kargo Takip Bilgisi',
+        html: `
+          <div style="text-align: left; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; margin-bottom: 16px;">
+            <div style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px;">Sipariş Numarası</div>
+            <div style="font-family: monospace; font-weight: 800; font-size: 1.05rem; color: #0f172a;">#${escapeHtml(orderNo)}</div>
+          </div>
+          <div style="text-align: left; margin-bottom: 14px;">
+            <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #64748b; display: block; margin-bottom: 4px;">Kargo Firması</span>
+            <div style="font-weight: 700; font-size: 1rem; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 20px;">📦</span>
+              <span>${escapeHtml(cleanCompany)}</span>
+            </div>
+          </div>
+          <div style="text-align: left; margin-bottom: 18px;">
+            <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #64748b; display: block; margin-bottom: 4px;">Takip Numarası (Barkod)</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <input type="text" readonly value="${escapeHtml(cleanTracking)}" id="swal-copy-tracking-input" style="flex: 1; padding: 10px 12px; border-radius: 6px; border: 1.5px solid #cbd5e1; font-family: monospace; font-weight: 800; font-size: 1.05rem; background: #ffffff; color: #0f172a; text-align: center;">
+              <button type="button" id="${copyBtnId}" class="swal2-styled" style="margin: 0; background: #475569; padding: 10px 14px; font-size: 0.85rem; border-radius: 6px; font-weight: 700; cursor: pointer;" title="Takip numarasını kopyala">
+                📋 Kopyala
+              </button>
+            </div>
+          </div>
+          ${trackingUrl ? `
+            <div style="text-align: center; margin-top: 10px;">
+              <a href="${trackingUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px 16px; background: #2563eb; color: #ffffff; font-weight: 700; font-size: 0.95rem; border-radius: 8px; text-decoration: none; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">
+                <span>${escapeHtml(cleanCompany)} Web Sitesinde Sorgula</span>
+                <span style="font-size: 1.1rem;">↗</span>
+              </a>
+            </div>
+          ` : `
+            <div style="font-size: 0.82rem; color: #64748b; text-align: center; margin-top: 8px;">
+              Kargonuz bayiniz veya özel kurye tarafından sevk edilmiştir.
+            </div>
+          `}
+        `,
+        showConfirmButton: !trackingUrl,
+        confirmButtonText: 'Kapat',
+        confirmButtonColor: '#64748b',
+        showCloseButton: true,
+        didOpen: () => {
+          const btn = document.getElementById(copyBtnId);
+          if (btn) {
+            btn.addEventListener('click', () => {
+              if (navigator.clipboard && cleanTracking) {
+                navigator.clipboard.writeText(cleanTracking);
+                btn.textContent = '✓ Kopyalandı';
+                btn.style.background = '#166534';
+                setTimeout(() => {
+                  btn.textContent = '📋 Kopyala';
+                  btn.style.background = '#475569';
+                }, 2000);
+              }
+            });
+          }
+        }
+      });
+    }
+
+    window.openReturnRequestModal = openReturnRequestModal;
     window.viewOrderDetail = viewOrderDetail;
     window.backToOrdersList = backToOrdersList;
+    window.showCargoTrackingModal = showCargoTrackingModal;
+    window.getCargoTrackingUrl = getCargoTrackingUrl;
 
     // ==========================================================================
     // 15. 'HESAP AYARLARI' MODALI YÖNETİMİ (modal-account-settings)
@@ -3122,7 +3861,7 @@
 
     window.handleSaveAccountSettings = handleSaveAccountSettings;
 
-    // Çıkış Fonksiyonu (Dinamik Ziyaretçi Moduna Geçiş)
+    // 1. ADIM: Çıkış Fonksiyonu (Genel SaaS login.html sayfasına ASLA yönlendirmez, ziyaretçi moduna geçer)
     function logout() {
       if (typeof Swal !== 'undefined') {
         Swal.fire({
@@ -3145,6 +3884,9 @@
             loadProfile();
             loadProducts();
             showToast('Oturum kapatıldı. Ziyaretçi modundasınız.', 'info');
+            // Sayfayı ziyaretçi modunda güvenle tazele (Asla login.html sayfasına yönlendirme!)
+            const currentParams = window.location.search || '';
+            window.location.href = 'store.html' + currentParams;
           }
         });
       } else {
@@ -3158,6 +3900,8 @@
           loadProfile();
           loadProducts();
           showToast('Oturum kapatıldı.', 'info');
+          const currentParams = window.location.search || '';
+          window.location.href = 'store.html' + currentParams;
         }
       }
     }

@@ -100,47 +100,54 @@ a {
   text-decoration: none;
 }
 
-/* 3. MULTI-TENANT HEADER (STEP 1) */
+/* 3. MULTI-TENANT HEADER (STEP 1: REFINED CONTAINER & SPACING) */
 .partsouq-header {
   position: sticky;
   top: 0;
-  z-index: 100;
-  background: var(--bg-card);
-  border-bottom: 2px solid var(--border-light);
-  box-shadow: var(--shadow-sm);
+  z-index: 1000;
+  background: #ffffff; /* 4. ADIM: Tam Beyaz Kurumsal Arka Plan */
+  border-bottom: 1px solid #f1f5f9; /* 4. ADIM: Yumuşak Açık Gri Ayrım Çizgisi */
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03), 0 2px 6px -1px rgba(15, 23, 42, 0.02); /* 1. ADIM: Hafif, Yumuşak Gölge */
   width: 100%;
+  transition: all 0.2s ease;
 }
 
 .header-container {
   max-width: 1600px;
   margin: 0 auto;
-  padding: 10px 24px;
+  padding: 16px 32px; /* 1. ADIM: Geniş İç Boşluklar (Ferahlık Hissi) */
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  min-height: 72px;
+  justify-content: space-between; /* 1. ADIM: 3 Bloğu Birbirinden Net Ayırma */
+  gap: clamp(24px, 3.5vw, 48px); /* 1. ADIM: Geniş Esneme Payı (gap-8 / gap-12) */
+  min-height: 80px; /* 1. ADIM: Dikeyde Sıkışmayı Önleyen Yükseklik */
+  box-sizing: border-box;
 }
 
-/* Header Left: Dealer Emblem & Name */
+/* Header Left (1. Blok): Dealer Emblem & Name */
 .header-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   text-decoration: none;
   flex-shrink: 0;
+  transition: opacity 0.2s ease;
+}
+
+.header-brand:hover {
+  opacity: 0.92;
 }
 
 .dealer-logo-wrap {
   width: 48px;
   height: 48px;
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   background: linear-gradient(135deg, var(--tenant-primary), var(--tenant-primary-hover));
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-inverse);
-  box-shadow: 0 3px 8px var(--tenant-primary-glow);
+  box-shadow: 0 4px 12px var(--tenant-primary-glow);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -185,40 +192,51 @@ a {
   background-color: var(--tenant-primary);
 }
 
-/* Header Center: Partsouq Search Bar */
+/* Header Center (2. Blok): 2. ADIM - Sadeleştirilmiş Arama Çubuğu */
 .header-search {
   flex: 1;
-  max-width: 760px;
+  max-width: 700px;
   margin: 0 auto;
 }
 
 .search-bar-wrap {
   display: flex;
   align-items: stretch;
-  background: var(--bg-card);
-  border: 2px solid #cbd5e1;
-  border-radius: var(--radius-md);
+  background: #ffffff;
+  border: 1px solid #e2e8f0; /* 2. ADIM: İnce ve Açık Gri Kenarlık */
+  border-radius: 10px; /* 2. ADIM: rounded-lg Yuvarlak Köşeler */
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  height: 46px;
+}
+
+.search-bar-wrap:hover {
+  border-color: #cbd5e1;
 }
 
 .search-bar-wrap:focus-within {
-  border-color: var(--tenant-primary);
-  box-shadow: 0 0 0 3px var(--tenant-primary-glow);
+  border-color: #f97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12);
 }
 
 .search-type-select {
-  padding: 0 14px;
+  padding: 0 16px;
   background-color: #f8fafc;
   border: none;
-  border-right: 1px solid #cbd5e1;
+  border-right: 1px solid #e2e8f0; /* 2. ADIM: Hafif Dikey Ayırıcı Çizgi */
   font-weight: 600;
   font-size: 0.88rem;
-  color: var(--text-headline);
+  color: #334155;
   cursor: pointer;
   outline: none;
-  min-width: 140px;
+  min-width: 145px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.search-type-select:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
 }
 
 .search-input-wrap {
@@ -230,68 +248,75 @@ a {
 
 .search-input {
   width: 100%;
-  padding: 12px 38px 12px 14px;
+  padding: 12px 42px 12px 18px; /* 2. ADIM: Ferah İç Boşluk (Padding) */
   border: none;
   outline: none;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   font-weight: 500;
-  color: var(--text-headline);
+  color: #1e293b;
+  background: transparent;
 }
 
 .search-input::placeholder {
   color: #94a3b8;
   font-size: 0.88rem;
+  font-weight: 400;
 }
 
 .btn-clear-search {
   position: absolute;
-  right: 10px;
+  right: 12px;
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #e2e8f0;
-  color: #475569;
+  background: #f1f5f9;
+  color: #64748b;
   display: none;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1;
-  transition: background var(--transition-fast);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .btn-clear-search:hover {
-  background: #cbd5e1;
+  background: #e2e8f0;
   color: #0f172a;
 }
 
+/* 2. ADIM: Kurumsal Pastel Turuncu Arama Butonu */
 .btn-search-submit {
   padding: 0 24px;
-  background: var(--tenant-primary);
-  color: var(--text-inverse);
-  font-weight: 700;
-  font-size: 0.95rem;
+  background: #ea580c; /* Kurumsal Sıcak Pastel Turuncu Ton */
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.92rem;
   display: flex;
   align-items: center;
   gap: 8px;
-  transition: background-color var(--transition-fast);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   border: none;
+  cursor: pointer;
   min-height: 46px;
   white-space: nowrap;
 }
 
 .btn-search-submit:hover {
-  background: var(--tenant-primary-hover);
+  background: #c2410c;
+  box-shadow: inset 0 0 0 100px rgba(0, 0, 0, 0.05);
 }
 
 .btn-search-submit:active {
   transform: translateY(1px);
 }
 
-/* Header Right: Kemal Usta, Balance, Cart */
+/* Header Right (3. Blok): 3. ADIM - Sağ Aksiyon Menüsünün İzolasyonu */
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px; /* 3. ADIM: Standart Boşluk (gap-4 / gap-5) */
   flex-shrink: 0;
 }
 
@@ -317,10 +342,12 @@ a {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 12px;
-  background: #f8fafc;
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
+  height: 44px; /* 3. ADIM: Yükseklik Eşitleme */
+  min-height: 44px;
+  padding: 0 14px; /* 3. ADIM: Artırılmış İç Boşluk */
+  background: #ffffff;
+  border: 1px solid #e2e8f0; /* 4. ADIM: Yumuşak Açık Gri Kenarlık */
+  border-radius: 10px;
   font-family: inherit;
   text-align: left;
   user-select: none;
@@ -329,14 +356,15 @@ a {
 
 .user-info-badge.user-profile-toggle {
   cursor: pointer;
-  background: #f8fafc;
+  background: #ffffff;
 }
 
 .user-info-badge.user-profile-toggle:hover,
 .user-profile-dropdown.open .user-info-badge.user-profile-toggle {
-  background: #f1f5f9;
+  background: #f8fafc;
   border-color: #cbd5e1;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
 }
 
 .dropdown-chevron-icon {
@@ -568,68 +596,87 @@ a {
   color: var(--text-muted);
 }
 
-/* Balance Badge (Yeşil Renkte) */
+/* 3. ADIM: Bakiye Ekranı (Şeffaf / Zarif Minimalist Tasarım) */
 .balance-badge {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px;
-  background: var(--color-success-bg);
-  border: 1.5px solid var(--color-success-border);
-  border-radius: var(--radius-md);
-  color: var(--color-success);
+  height: 44px; /* 3. ADIM: Yükseklik Eşitleme */
+  min-height: 44px;
+  padding: 0 14px; /* 3. ADIM: Artırılmış İç Boşluk */
+  background: transparent; /* 3. ADIM: Kaba kutu yerine şeffaf arka plan */
+  border: 1px solid rgba(22, 163, 74, 0.25); /* Zarif açık yeşil kenarlık */
+  border-radius: 10px;
+  color: #16a34a; /* 3. ADIM: Sadece yeşil metin */
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.balance-badge:hover {
+  background: rgba(22, 163, 74, 0.04);
+  border-color: rgba(22, 163, 74, 0.45);
+  transform: translateY(-1px);
 }
 
 .balance-icon {
   width: 18px;
   height: 18px;
+  color: #16a34a;
+  flex-shrink: 0;
 }
 
 .balance-col {
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  line-height: 1.15;
 }
 
 .balance-title {
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  opacity: 0.85;
-  line-height: 1;
+  color: #15803d;
+  opacity: 0.9;
 }
 
 .balance-amount {
-  font-size: 0.95rem;
-  font-weight: 800;
+  font-size: 0.92rem;
+  font-weight: 700;
   line-height: 1.2;
-  letter-spacing: -0.01em;
+  color: #16a34a;
 }
 
-/* Cart Button (Sepetim) */
+/* 3. ADIM: Sepet Butonu (Yükseklik Eşitlenmiş & Yumuşak Hover Geçişli) */
 .btn-header-cart {
-  min-height: 48px;
-  padding: 0 18px;
+  height: 44px; /* 3. ADIM: Yükseklik Eşitleme */
+  min-height: 44px;
+  padding: 0 18px; /* 3. ADIM: Artırılmış İç Boşluk */
   background: #0f172a;
   color: #ffffff;
-  border-radius: var(--radius-md);
-  font-weight: 700;
-  font-size: 0.92rem;
-  display: flex;
+  border-radius: 10px;
+  border: 1px solid #0f172a;
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: inline-flex;
   align-items: center;
   gap: 10px;
-  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.12);
-  transition: background var(--transition-fast), transform var(--transition-fast);
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
 }
 
 .btn-header-cart:hover {
   background: #1e293b;
+  border-color: #1e293b;
   transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.16);
 }
 
 .btn-header-cart:active {
-  transform: translateY(1px);
+  transform: translateY(0);
 }
 
 .cart-counter-badge {
@@ -1759,57 +1806,64 @@ a {
 .guest-auth-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
 }
 
 .btn-nav-login {
-  min-height: 46px;
+  height: 44px;
+  min-height: 44px;
   padding: 0 18px;
   background: #ffffff;
-  border: 1.5px solid #cbd5e1;
-  border-radius: var(--radius-md);
-  font-weight: 700;
+  border: 1px solid #e2e8f0; /* 4. ADIM: Yumuşak Açık Gri Kenarlık */
+  border-radius: 10px;
+  font-weight: 600;
   font-size: 0.9rem;
   color: var(--text-headline);
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: all var(--transition-fast);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-nav-login:hover {
   background: #f8fafc;
-  border-color: #94a3b8;
+  border-color: #cbd5e1;
   color: #0f172a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
 }
 
 .btn-nav-register {
-  min-height: 46px;
+  height: 44px;
+  min-height: 44px;
   padding: 0 20px;
   background: var(--tenant-primary);
-  border: 1.5px solid var(--tenant-primary);
-  border-radius: var(--radius-md);
-  font-weight: 800;
+  border: 1px solid var(--tenant-primary);
+  border-radius: 10px;
+  font-weight: 700;
   font-size: 0.9rem;
   color: #ffffff;
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  cursor: pointer;
   box-shadow: 0 2px 4px var(--tenant-primary-glow);
-  transition: all var(--transition-fast);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-nav-register:hover {
   background: var(--tenant-primary-hover);
   border-color: var(--tenant-primary-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px var(--tenant-primary-glow);
+  box-shadow: 0 4px 12px var(--tenant-primary-glow);
 }
 
+/* 3. ADIM: Sağ Aksiyon Menüsü İzolasyonu (gap-4 / gap-5) */
 .logged-in-user-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px; /* 3. ADIM: Standart Boşluk */
 }
 
 /* Auth Modals Generic */
@@ -2451,24 +2505,26 @@ a {
 
 .btn-notification-bell {
   background: #ffffff;
-  border: 1.5px solid var(--border-color, #e2e8f0);
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md, 10px);
+  border: 1px solid #e2e8f0; /* 4. ADIM: Yumuşak Açık Gri Kenarlık */
+  width: 44px; /* 3. ADIM: Yükseklik ve Genişlik Eşitleme */
+  height: 44px;
+  min-height: 44px;
+  border-radius: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-dark, #334155);
+  color: #334155;
   cursor: pointer;
   position: relative;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-notification-bell:hover {
   background: #f8fafc;
-  border-color: var(--tenant-primary, #2563eb);
-  color: var(--tenant-primary, #2563eb);
+  border-color: #cbd5e1;
+  color: #0f172a;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
 }
 
 .notification-badge-dot {
