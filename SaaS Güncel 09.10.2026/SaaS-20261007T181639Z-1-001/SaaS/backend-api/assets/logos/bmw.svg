@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="46" fill="#111827"/>
+    <circle cx="50" cy="50" r="44" fill="none" stroke="#d1d5db" stroke-width="2"/>
+    <circle cx="50" cy="50" r="28" fill="#ffffff"/>
+    <path d="M50 22A28 28 0 0 1 78 50H50V22z" fill="#0066b1"/>
+    <path d="M50 50H22a28 28 0 0 1 28-28v28z" fill="#ffffff"/>
+    <path d="M50 50v28A28 28 0 0 1 22 50h28z" fill="#0066b1"/>
+    <path d="M50 50h28a28 28 0 0 1-28 28V50z" fill="#ffffff"/>
+    <circle cx="50" cy="50" r="28" fill="none" stroke="#d1d5db" stroke-width="2"/>
+    <text x="32" y="19" font-family="Arial, sans-serif" font-size="11" font-weight="900" fill="#ffffff">B</text>
+    <text x="50" y="15" font-family="Arial, sans-serif" font-size="11" font-weight="900" fill="#ffffff" text-anchor="middle">M</text>
+    <text x="68" y="19" font-family="Arial, sans-serif" font-size="11" font-weight="900" fill="#ffffff">W</text>
+  </svg>

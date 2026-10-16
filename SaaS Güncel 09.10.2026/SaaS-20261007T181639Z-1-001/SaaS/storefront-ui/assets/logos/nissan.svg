@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="44" fill="none" stroke="#c3002f" stroke-width="8"/>
+    <rect x="6" y="38" width="88" height="24" rx="4" fill="#1e293b"/>
+    <text x="50" y="55" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="2">NISSAN</text>
+  </svg>

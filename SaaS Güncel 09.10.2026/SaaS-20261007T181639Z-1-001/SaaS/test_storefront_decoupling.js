@@ -78,10 +78,14 @@ async function runTests() {
   // 1. ADIM: Logout & Yönlendirme İzolasyonu Kod Analizi
   // --------------------------------------------------------------------------
   console.log('--- [1. ADIM: Çıkış (Logout) Yönlendirmesinin Ayrıştırılması] ---');
-  const storeHtmlPath = path.join(__dirname, 'store.html');
+  const storeHtmlPath = fs.existsSync(path.join(__dirname, 'storefront-ui', 'store.html'))
+    ? path.join(__dirname, 'storefront-ui', 'store.html')
+    : path.join(__dirname, 'store.html');
   const storeHtmlContent = fs.readFileSync(storeHtmlPath, 'utf8');
 
-  const apiJsPath = path.join(__dirname, 'assets', 'js', 'api.js');
+  const apiJsPath = fs.existsSync(path.join(__dirname, 'storefront-ui', 'assets', 'js', 'api.js'))
+    ? path.join(__dirname, 'storefront-ui', 'assets', 'js', 'api.js')
+    : path.join(__dirname, 'assets', 'js', 'api.js');
   const apiJsContent = fs.readFileSync(apiJsPath, 'utf8');
 
   // store.html içindeki logout() fonksiyonunda login.html yönlendirmesi olmamalıdır

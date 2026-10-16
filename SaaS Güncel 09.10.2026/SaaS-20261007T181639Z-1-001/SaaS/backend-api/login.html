@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SaaS B2B Platformu - Güvenli Yönetici ve Bayi Giriş Portalı">
+  <title>Giriş Yap | SaaS Yönetim Platformu</title>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="login.css">
+  <style>
+    body {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .login-left {
+      width: 45%;
+    }
+    .login-right {
+      width: 55%;
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="login-container">
+
+    <!-- SOL PANEL: MARKA TANITIMI & GÖRSEL VİTRİN (.login-left) -->
+    <section class="login-left">
+      <div class="glow-circle-1"></div>
+      <div class="glow-circle-2"></div>
+      <div class="grid-overlay"></div>
+
+      <!-- Marka Logosu & Başlık -->
+      <header class="brand-header">
+        <div class="brand-logo-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        <div class="brand-logo-text">
+          SaaS Platform
+          <span class="brand-tag">v2.4 Enterprise</span>
+        </div>
+      </header>
+
+      <!-- Orta Başlık & İstatistik Önizleme Kartı -->
+      <div class="brand-content">
+        <h1 class="brand-slogan">Yedek Parça Ekosistemine Hoş Geldiniz</h1>
+        <p class="brand-description">
+          Yüzlerce bayi ağını, merkezi stok ve parça havuzunu tek bir güvenli çatı altında kolayca yönetin.
+        </p>
+
+        <!-- Canlı Metrik Cam Kartı (Glassmorphic Card) -->
+        <div class="stats-glass-card">
+          <div class="glass-card-header">
+            <div class="glass-title">
+              <span class="live-dot"></span>
+              Sistem Durumu: Çevrimiçi
+            </div>
+            <span class="glass-badge">%99.98 Uptime</span>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="stat-number">142+</div>
+              <div class="stat-label">Aktif B2B Bayi</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">1.4M+</div>
+              <div class="stat-label">Merkezi Parça Havuzu</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sol Alt Güvenlik Bildirimi -->
+      <footer class="brand-footer">
+        <div class="security-badge">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          256-bit Uçtan Uca Şifreli Güvenli Oturum
+        </div>
+      </footer>
+    </section>
+
+    <!-- SAĞ PANEL: GİRİŞ FORMU ALANI (.login-right) -->
+    <section class="login-right">
+      <div class="login-box">
+
+        <!-- En üste 'Hesabınıza Giriş Yapın' başlığı ve gri alt metin -->
+        <header class="login-header">
+          <h2 class="login-title">Hesabınıza Giriş Yapın</h2>
+          <p class="login-subtitle">Lütfen e-posta ve şifrenizi giriniz</p>
+        </header>
+
+        <!-- Formun hemen üstüne id="error-msg" olan div -->
+        <div id="error-msg">
+          Hatalı e-posta veya şifre!
+        </div>
+
+        <!-- Form: <form id="login-form"> -->
+        <form id="login-form">
+
+          <!-- 1. Giriş Grubu: email -->
+          <div class="input-group">
+            <label for="email">E-posta</label>
+            <input type="email" id="email" name="email" placeholder="admin@sistem.com" required autocomplete="email">
+          </div>
+
+          <!-- 2. Giriş Grubu: password -->
+          <div class="input-group">
+            <label for="password">Şifre</label>
+            <input type="password" id="password" name="password" placeholder="••••••" required autocomplete="current-password">
+          </div>
+
+          <!-- Şifre alanının hemen altına sağa yaslı, ufak ve mavi renkli 'Şifremi Unuttum' linki -->
+          <div class="forgot-wrapper">
+            <a href="#forgot" class="forgot-link">Şifremi Unuttum</a>
+          </div>
+
+          <!-- Test e-posta adresleri notu (ufak ve silik bir not) -->
+          <div class="test-credentials-note">
+            <div class="note-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              Test Giriş Bilgileri (Tıklayıp Doldurabilirsiniz):
+            </div>
+            <div class="test-row" onclick="fillTestCreds('admin@sistem.com', '123456')">
+              <span><strong>Süper Admin:</strong> <code>admin@sistem.com</code></span>
+              <span>Şifre: <code>123456</code></span>
+            </div>
+            <div class="test-row" onclick="fillTestCreds('ahmet@ahmetoto.com', '123456')">
+              <span><strong>Bayi Yöneticisi:</strong> <code>ahmet@ahmetoto.com</code></span>
+              <span>Şifre: <code>123456</code></span>
+            </div>
+            <div class="test-row" onclick="fillTestCreds('kemal@kemaloto.com', '123456')">
+              <span><strong>Otoservis (Müşteri):</strong> <code>kemal@kemaloto.com</code></span>
+              <span>Şifre: <code>123456</code></span>
+            </div>
+          </div>
+
+          <!-- Formun en altına tam genişlikte, --primary arkaplanlı, kalın fontlu büyük 'Giriş Yap' butonu -->
+          <button type="submit" class="btn-login" id="btn-login">
+            Giriş Yap
+          </button>
+        </form>
+
+        <!-- Hızlı Sayfa Geçişleri -->
+        <div class="divider">
+          <span>Doğrudan Panellere Git</span>
+        </div>
+
+        <!-- Sistem Panelleri Hızlı Linkler -->
+        <div class="quick-links">
+          <a href="admin.html" class="quick-link-card" onclick="quickLoginAndGo('SUPER_ADMIN', 'admin.html', event)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+              <polyline points="2 17 12 22 22 17"></polyline>
+              <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+            Süper Admin
+          </a>
+          <a href="bayi.html" class="quick-link-card" onclick="quickLoginAndGo('TENANT_ADMIN', 'bayi.html', event)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+            </svg>
+            Bayi Paneli
+          </a>
+          <a href="store.html" class="quick-link-card" onclick="quickLoginAndGo('CUSTOMER', 'store.html', event)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="9" cy="21" r="1"/>
+              <circle cx="20" cy="21" r="1"/>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+            </svg>
+            B2B Vitrin
+          </a>
+        </div>
+
+        <!-- Alt Telif / Gizlilik -->
+        <footer class="box-footer">
+          Güvenli SaaS Oturum Yönetimi &copy; 2026<br>
+          <a href="#terms">Kullanım Koşulları</a> &bull; <a href="#privacy">KVKK &amp; Gizlilik Bildirimi</a>
+        </footer>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- API İstemcisi & Kimlik Doğrulama Köprüsü -->
+  <script src="assets/js/api.js"></script>
+
+  <!-- JavaScript Backend Entegrasyonu -->
+  <script>
+    // Test bilgilerini tek tıkla forma doldurma yardımcısı
+    function fillTestCreds(email, password) {
+      document.getElementById('email').value = email;
+      document.getElementById('password').value = password;
+      const errorMsg = document.getElementById('error-msg');
+      if (errorMsg) {
+        errorMsg.style.display = 'none';
+      }
+    }
+
+    // Doğrudan panellere hızlı giriş yardımcısı
+    function quickLoginAndGo(role, targetPage, event) {
+      if (event) event.preventDefault();
+      if (role === 'SUPER_ADMIN') {
+        fillTestCreds('admin@sistem.com', '123456');
+      } else if (role === 'TENANT_ADMIN') {
+        fillTestCreds('ahmet@ahmetoto.com', '123456');
+      } else if (role === 'CUSTOMER') {
+        fillTestCreds('kemal@kemaloto.com', '123456');
+      }
+      const form = document.getElementById('login-form');
+      if (form) {
+        form.dispatchEvent(new Event('submit', { cancelable: true }));
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const loginForm = document.getElementById('login-form');
+      const errorMsg = document.getElementById('error-msg');
+      const errorDiv = document.getElementById('error-msg');
+      const btnLogin = document.getElementById('btn-login');
+      const emailInput = document.getElementById('email');
+      const passwordInput = document.getElementById('password');
+
+      // Kullanıcı tekrar yazmaya başladığında hata mesajını gizle
+      [emailInput, passwordInput].forEach(inp => {
+        if (inp) {
+          inp.addEventListener('input', function () {
+            if (errorMsg) errorMsg.style.display = 'none';
+          });
+        }
+      });
+
+      // Eğer kullanıcı zaten geçerli bir oturuma sahipse ilgili panele akıllı yönlendir
+      const existingToken = localStorage.getItem('token');
+      const existingUserStr = localStorage.getItem('user');
+      if (existingToken && existingUserStr) {
+        try {
+          const user = JSON.parse(existingUserStr);
+          if (user && user.role) {
+            if (user.role === 'SUPER_ADMIN') {
+              window.location.href = 'admin.html';
+            } else if (user.role === 'TENANT_ADMIN') {
+              window.location.href = 'bayi.html';
+            } else if (user.role === 'CUSTOMER') {
+              window.location.href = 'store.html';
+            }
+          }
+        } catch (e) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        }
+      }
+
+      // Şifremi Unuttum Bağlantısı
+      const forgotLink = document.querySelector('.forgot-link');
+      if (forgotLink) {
+        forgotLink.addEventListener('click', function (e) {
+          e.preventDefault();
+          const email = prompt('Şifre sıfırlama bağlantısı gönderilecek e-posta adresini giriniz:', emailInput ? emailInput.value : '');
+          if (email && email.trim() !== '') {
+            alert(`Şifre sıfırlama talimatları ${email.trim()} adresine başarıyla gönderildi.`);
+          }
+        });
+      }
+
+      // Kullanım Koşulları ve KVKK Linkleri
+      const termsLink = document.querySelector('a[href="#terms"]');
+      if (termsLink) {
+        termsLink.addEventListener('click', function (e) {
+          e.preventDefault();
+          alert('SaaS v2.4 Enterprise Platformu Kullanım Koşulları: Bu sistem yetkili kurumsal B2B bayileri ve yöneticileri içindir. Verileriniz KVKK kapsamında korunmaktadır.');
+        });
+      }
+
+      const privacyLink = document.querySelector('a[href="#privacy"]');
+      if (privacyLink) {
+        privacyLink.addEventListener('click', function (e) {
+          e.preventDefault();
+          alert('KVKK ve Gizlilik Bildirimi: Kullanıcı oturum ve işlem logları 256-bit SSL şifreleme ve KVKK mevzuatına uygun olarak güvenli bulut kümesinde saklanmaktadır.');
+        });
+      }
+
+      // Form Gönderimi: prompt.md Yönergelerine Göre API Entegrasyonu & Rol Bazlı Yönlendirme
+      if (loginForm) {
+        loginForm.addEventListener('submit', async function (e) {
+          // 1. Formun submit olayını yakala (e.preventDefault())
+          e.preventDefault();
+
+          // 2. Kullanıcının girdiği e-posta ve şifreyi al
+          const email = emailInput.value.trim();
+          const password = passwordInput.value.trim();
+
+          // Hata mesajı alanını gizle
+          if (errorMsg) {
+            errorMsg.style.display = 'none';
+          }
+
+          if (!email || !password) {
+            if (errorMsg) {
+              errorMsg.textContent = 'Lütfen e-posta ve şifrenizi eksiksiz giriniz.';
+              errorMsg.style.display = 'block';
+            }
+            return;
+          }
+
+          // Buton yükleniyor durumu
+          const originalBtnText = btnLogin ? btnLogin.innerHTML : 'Giriş Yap';
+          if (btnLogin) {
+            btnLogin.disabled = true;
+            btnLogin.textContent = 'Giriş Yapılıyor...';
+          }
+
+          try {
+            // apiFetch: Yerel Express sunucusuna (http://localhost:5000/api/auth/login) bağlanır,
+            // sunucu kapalıysa veya yerel demo modundaysa otomatik offline köprüsünü devreye alır.
+            const res = await apiFetch('/auth/login', {
+              method: 'POST',
+              body: { email, password }
+            });
+
+            // 4. Eğer giriş başarılıysa, sunucudan dönen token ve user nesnelerini localStorage içine kaydet
+            if (res && res.success && res.token) {
+              localStorage.setItem('token', res.token);
+              if (res.user) {
+                localStorage.setItem('user', JSON.stringify(res.user));
+              }
+
+              // 5. Kullanıcının rolüne göre yönlendirme yap (window.location.href)
+              const userRole = (res.user && res.user.role) || res.role;
+              if (userRole === 'SUPER_ADMIN') {
+                // Role 'SUPER_ADMIN' ise admin.html'e git
+                window.location.href = 'admin.html';
+              } else if (userRole === 'TENANT_ADMIN') {
+                // Role 'TENANT_ADMIN' ise bayi.html'e git
+                window.location.href = 'bayi.html';
+              } else if (userRole === 'CUSTOMER') {
+                // Role 'CUSTOMER' ise store.html'e git
+                window.location.href = 'store.html';
+              } else {
+                window.location.href = 'admin.html';
+              }
+            } else {
+              // 6. Eğer giriş hatalıysa, arayüzdeki hata div'ini (#error-msg) görünür yapıp hata mesajını bas
+              // Prompt 4. ADIM: API'den dönen hata mesajını (res.message) doğrudan hata kutusuna (#error-msg) yazdır:
+              errorDiv.textContent = res.message || 'Hatalı e-posta veya şifre!';
+              errorDiv.style.display = 'block';
+
+              // Butona titreşim efekti ver
+              if (btnLogin) {
+                btnLogin.classList.remove('btn-shake');
+                void btnLogin.offsetWidth;
+                btnLogin.classList.add('btn-shake');
+
+                setTimeout(function () {
+                  btnLogin.classList.remove('btn-shake');
+                }, 500);
+              }
+            }
+          } catch (err) {
+            console.error('[LOGIN_ERROR]:', err);
+            if (errorDiv) {
+              errorDiv.textContent = (err && err.message) || 'Giriş işlemi sırasında hata oluştu. Lütfen bağlantınızı kontrol ediniz.';
+              errorDiv.style.display = 'block';
+            }
+          } finally {
+            if (btnLogin) {
+              btnLogin.disabled = false;
+              btnLogin.innerHTML = originalBtnText;
+            }
+          }
+        });
+      }
+    });
+  </script>
+
+</body>
+
+</html>

@@ -1,0 +1,319 @@
+// ============================================================================
+// Multi-Tenant B2B Yedek Parça SaaS - Prisma ORM Veritabanı Şeması (PostgreSQL)
+// Kurumsal B2B E-Ticaret ve Yüksek Ölçeklenebilirlik Mimarisi
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------------------------------
+// 1. USER (Kullanıcılar)
+// SQLite enum desteklemediği için role: String olarak tanımlanmıştır.
+// ----------------------------------------------------------------------------
+model User {
+  id               String           @id @default(uuid())
+  email            String           @unique
+  password         String
+  role             String           @default("CUSTOMER") // SUPER_ADMIN, TENANT_ADMIN, CUSTOMER
+  name             String?          // Ad Soyad
+
+  // Super Admin için null; Tenant Admin ve Customer için zorunlu (1-n Tenant İlişkisi)
+  tenantId         String?
+  tenant           Tenant?          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Parola sıfırlama akışı
+  resetToken       String?
+  resetTokenExpiry DateTime?
+
+  // Otoservis Müşteri Profili (1-e-1)
+  customerProfile  CustomerProfile?
+
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([tenantId])
+}
+
+// ----------------------------------------------------------------------------
+// 2. TENANT (Bayiler / Firmalar)
+// Tenant ve User arasında 1-n ilişki kurulmuştur.
+// ----------------------------------------------------------------------------
+model Tenant {
+  id               String            @id @default(uuid())
+  name             String
+  subdomain        String            @unique
+  themeColor       String            @default("#2563eb")
+  isActive         Boolean           @default(true)
+
+  // İlişkiler (1-n)
+  users            User[]
+  tenantProducts   TenantProduct[]
+  customerProfiles CustomerProfile[]
+  orders           Order[]
+  stockMovements   StockMovement[]
+  customerLedgers  CustomerLedger[]
+  returnRequests   ReturnRequest[]
+
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+// ----------------------------------------------------------------------------
+// 3. PRODUCT (Merkezi Parça Havuzu)
+// ----------------------------------------------------------------------------
+model Product {
+  id               String          @id @default(uuid())
+  oeNumber         String          @unique
+  name             String
+  category         String
+  defaultPrice     Float           // SQLite uyumlu Float fiyat
+  imageUrl         String?
+  images           String?         // Çoklu ürün görselleri (JSON string veya virgülle ayrılmış)
+
+  // Otomotiv Yedek Parça Sektör Standartları (Prompt Adım 1)
+  vehicleBrand     String?         // Parçanın uyumlu olduğu araç markası (Örn: Volkswagen, Hyundai)
+  compatibleModels String?         // Uyumlu olduğu spesifik modeller (Örn: Golf 7, Passat B8)
+  partGroup        String?         // Parçanın araçtaki yeri (Örn: İç Aksam, Dış Aksam/Kaporta, Motor)
+
+  tenantProducts   TenantProduct[]
+
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([oeNumber])
+  @@index([category])
+  @@index([vehicleBrand])
+  @@index([partGroup])
+}
+
+// ----------------------------------------------------------------------------
+// 4. TENANT PRODUCT (Bayinin Kendi Kataloğu - Tenant & Product Ara Tablosu)
+// ----------------------------------------------------------------------------
+model TenantProduct {
+  id             String          @id @default(uuid())
+
+  tenantId       String
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  productId      String
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  stock          Int             @default(0)
+  customPrice    Float?          // SQLite uyumlu Float özel fiyat
+  isDiscounted   Boolean         @default(false)
+
+  orderItems     OrderItem[]
+  stockMovements StockMovement[]
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@unique([tenantId, productId])
+  @@index([tenantId])
+  @@index([productId])
+}
+
+// ----------------------------------------------------------------------------
+// 5. CUSTOMER PROFILE (Otoservisler / Tamirciler)
+// ----------------------------------------------------------------------------
+model CustomerProfile {
+  id              String           @id @default(uuid())
+
+  userId          String           @unique
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tenantId        String
+  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  companyName     String
+  phone           String
+  address         String?          // Otoservis açık adresi
+  customerType    String           @default("MECHANIC") // MECHANIC (Tamirci / B2B) veya RETAIL (Bireysel / B2C)
+  taxNumber       String?          // Vergi/TC No
+  status          String           @default("APPROVED") // APPROVED (Onaylı) veya PENDING_APPROVAL (Onay Bekliyor)
+  discountRate    Float            @default(0.0) // %20.0 iskonto
+  balance         Float            @default(0.0) // Açık cari bakiye (₺)
+  currentBalance  Float            @default(0.0) // Açık cari bakiye (Float, prompt gereksinimi)
+
+  orders          Order[]
+  customerLedgers CustomerLedger[]
+  returnRequests  ReturnRequest[]
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([tenantId])
+  @@index([customerType])
+}
+
+// ----------------------------------------------------------------------------
+// 6. ORDER (Siparişler)
+// ----------------------------------------------------------------------------
+model Order {
+  id             String          @id @default(uuid())
+  orderNumber    String          @unique // Örn: SP-KXZ91A-4821
+
+  tenantId       String
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  customerId     String
+  customer       CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  subtotal       Float           @default(0.0)
+  vatRate        Float           @default(20.0) // %20 KDV
+  vatAmount      Float           @default(0.0)
+  totalAmount    Float           // KDV Dahil Toplam
+  status         String          @default("PENDING_APPROVAL") // PENDING_APPROVAL, PROCESSING, REJECTED, SHIPPED
+  paymentMethod  String?         // CURRENT_ACCOUNT, BANK_TRANSFER, CREDIT_CARD
+  rejectionReason String?        // Bayi ret sebebi (Örn: 'Cari limitiniz dolmuştur, lütfen ödeme yapınız.')
+  cargoCompany   String?         // Kargo Firması adı (Yurtiçi Kargo, Aras Kargo, MNG Kargo, Sürat Kargo, PTT Kargo vb.)
+  trackingNumber String?         // Kargo Takip Barkod Numarası
+
+  items          OrderItem[]
+  stockMovements StockMovement[]
+  returnRequests ReturnRequest[]
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([tenantId])
+  @@index([customerId])
+  @@index([status])
+}
+
+// ----------------------------------------------------------------------------
+// 7. ORDER ITEM (Sipariş Kalemleri)
+// ----------------------------------------------------------------------------
+model OrderItem {
+  id              String        @id @default(uuid())
+
+  orderId         String
+  order           Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  tenantProductId String
+  tenantProduct   TenantProduct @relation(fields: [tenantProductId], references: [id], onDelete: Restrict)
+
+  quantity        Int           @default(1)
+  unitPrice       Float
+  totalPrice      Float
+
+  createdAt       DateTime      @default(now())
+
+  @@index([orderId])
+  @@index([tenantProductId])
+}
+
+// ----------------------------------------------------------------------------
+// 8. STOCK MOVEMENT (Stok Denetim ve Hareket Geçmişi - Audit)
+// ----------------------------------------------------------------------------
+model StockMovement {
+  id              String        @id @default(uuid())
+
+  tenantId        String
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  tenantProductId String
+  tenantProduct   TenantProduct @relation(fields: [tenantProductId], references: [id], onDelete: Cascade)
+
+  orderId         String?
+  order           Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  quantityChange  Int           // Örn: -2 (satış) veya +50 (giriş)
+  type            String        // 'SALE', 'RESTOCK', 'ADJUSTMENT', 'RETURN'
+  note            String?
+
+  createdAt       DateTime      @default(now())
+
+  @@index([tenantId])
+  @@index([tenantProductId])
+  @@index([orderId])
+}
+
+// ----------------------------------------------------------------------------
+// 9. CUSTOMER LEDGER (Cari Hesap ve Finansal Denetim Defteri - Audit)
+// ----------------------------------------------------------------------------
+model CustomerLedger {
+  id           String          @id @default(uuid())
+
+  tenantId     String
+  tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  customerId   String
+  customer     CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  type         String          // 'DEBIT' (Borçlandırma), 'CREDIT' (Tahsilat)
+  amount       Float
+  balanceAfter Float
+  description  String?
+
+  createdAt    DateTime        @default(now())
+
+  @@index([tenantId])
+  @@index([customerId])
+}
+
+// ----------------------------------------------------------------------------
+// 10. SYSTEM SETTINGS (Süper Admin Sistem Ayarları ve Yapılandırma - Singleton)
+// ----------------------------------------------------------------------------
+model SystemSettings {
+  id                 Int      @id @default(1) // Her zaman 1 numaralı ID'yi kullanacağız
+  tecdocApiKey       String?
+  tecdocEndpoint     String?  @default("https://api.tecalliance.net/v2/catalog")
+  defaultB2BDiscount Float    @default(20.0)
+  defaultTaxRate     Float    @default(20.0)
+  platformCurrency   String   @default("TRY")
+  adminEmail         String   @default("admin@sistem.com")
+  updatedAt          DateTime @updatedAt
+}
+
+// ----------------------------------------------------------------------------
+// 11. DISCOUNT RULE (Bayi İskonto Kuralları - Prompt 4. ADIM)
+// ----------------------------------------------------------------------------
+model DiscountRule {
+  id          Int      @id @default(autoincrement())
+  tenantId    String   // Bayi kimliği (String/UUID veya Int string karşılığı)
+  ruleName    String   // Örn: "Bahar Kampanyası"
+  targetCust  String   // Örn: "Tüm Müşteriler" veya "Kemal Usta"
+  category    String   // Örn: "Filtre Grubu"
+  rate        Float    // Örn: 15.0
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+// ----------------------------------------------------------------------------
+// 12. RETURN REQUEST (İade Yönetimi - RMA - Prompt.md 1. ADIM)
+// ----------------------------------------------------------------------------
+model ReturnRequest {
+  id           String          @id @default(uuid())
+
+  orderId      String
+  order        Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  tenantId     String
+  tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  customerId   String
+  customer     CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  reason       String          // İade sebebi (Örn: 'Parça Araca Uymadı', 'Yanlış Sipariş Ettim', 'Kusurlu Geldi')
+  customerNote String?         // Müşterinin eklediği opsiyonel açıklama metni
+  status       String          @default("Bekliyor") // Bekliyor, Onaylandı, Reddedildi (veya PENDING, APPROVED, REJECTED)
+  adminNote    String?         // Bayinin inceleme / ret notu
+
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([orderId])
+  @@index([tenantId])
+  @@index([customerId])
+  @@index([status])
+}
+

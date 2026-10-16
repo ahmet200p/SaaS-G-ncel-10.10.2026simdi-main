@@ -200,8 +200,148 @@ Tarih: Ekim 2026
     * Backend, X-Tenant-Slug başlığı veya parametre üzerinden ilgili bayiyi veritabanından çözümleyerek vitrini o bayinin kataloğu, logosu ve tema rengiyle sunar.
     * Pasife alınmış bayiler HTTP 403 ile engellenir.
 
+7. HEADLESS MİMARİYE GEÇİŞ VE DİZİN AYRIŞTIRMASI (BACKEND-API & STOREFRONT-UI - TAMAMLANDI)
+--------------------------------------------------------------------------------
+7.1. Klasör Yapısının Ayrıştırılması (Decoupled Directory Structure)
+  - Yapılan İşlem:
+    * 'backend-api' ve 'storefront-ui' adında iki bağımsız ana klasör oluşturuldu.
+    * storefront-ui/ klasörüne: store.html, store.css, image.png ve vitrine ait assets/js/api.js ile assets/logos/ dosyaları taşındı. Müşteri vitrini bağımsız bir statik web uygulaması (SPA/Static UI) haline getirildi.
+    * backend-api/ klasörüne: server.js, app.js, dev_pg_server.js, prisma/ (şema ve migration'lar), routes/ (tüm API rotaları), middleware/ (güvenlik, rate limiter, upload), config/, lib/, uploads/ ve admin/bayi yönetim panelleri taşındı.
+
+7.2. Sıfır Kesinti (Zero Disruption) ve Dosya Yolu Güncellemeleri
+  - Yapılan İşlem:
+    * backend-api/app.js içerisindeki statik dosya sunumuna '../storefront-ui' yolu eklenerek yerel geliştirme ve testlerde kesinti yaşanması engellendi.
+    * Ana dizindeki server.js ve app.js dosyaları doğrudan backend-api modüllerine delege edildi; böylece mevcut başlatma komutları (start_server.bat, node server.js vb.) geriye dönük tam uyumlulukla (%100) çalışmaya devam etti.
+    * storefront-ui içerisindeki CSS, JS ve logo yollarının bağımsız çalışması doğrulandı.
+
+7.3. Headless Güvenlik Analizi
+  - CORS Güvenliği: backend-api CORS politikasında X-Tenant-Slug, Authorization ve JSON istekleri için esnek ve güvenli cross-origin desteği sağlandı.
+  - İzolasyon: storefront-ui içerisinde hiçbir sunucu kodu, veritabanı bağlantı sırrı veya backend bağımlılığı kalmadı; böylece istemci tarafına kod veya veritabanı sızıntısı riski ortadan kaldırıldı.
+  - Doğrulama: 'test_headless_architecture.js' entegrasyon testi yazılarak 25/25 (%100) başarıyla doğrulandı.
+
+8. SAF REST API DÖNÜŞÜMÜ, HTML SUNUMUNUN KALDIRILMASI VE ARAMA OPTİMİZASYONU (TAMAMLANDI)
+--------------------------------------------------------------------------------
+8.1. Backend HTML Sunumunun Kaldırılması (res.sendFile ve res.render Engeli)
+  - Konum: backend-api/app.js
+  - Yapılan İşlem:
+    * backend-api içerisinden tüm statik HTML dosya sunumu (express.static(__dirname) ve express.static(../storefront-ui)) tamamen kaldırıldı.
+    * Doğrudan .html uzantılı dosyalara (store.html, admin.html, bayi.html vb.) gelen tüm HTTP istekleri middleware ile yakalanarak saf JSON formatında HTTP 404 hata mesajına bağlandı.
+    * Kök dizin (GET /) saf JSON REST API metadata, sürüm ve API uç noktaları haritası döndürecek şekilde yapılandırıldı.
+    * Hiçbir rotada res.sendFile veya res.render kullanılmadığı, tüm yanıtların salt res.json() ile saf JSON formatında (Content-Type: application/json) döndüğü doğrulandı.
+
+8.2. store.js RESTful Ürün Listeleme & Filtreleme Mimarisi
+  - Konum: backend-api/routes/store.js (GET /api/store/products)
+  - Yapılan İşlem:
+    * Çok kriterli arama ve filtreleme parametreleri (search, q, query, searchType, category, brand, vehicleBrand, model, partGroup, inStock, sort, page, limit) REST standartlarına çekildi.
+    * Daha önce 'search' ve 'model' filtrelerinin Prisma OR nesnesi üzerinde birbirini ezmesine yol açan mantıksal hata, 'AND: andConditions' mimarisine geçirilerek giderildi.
+    * REST standartlarında sayfalama meta verileri (page, limit, totalCount, totalPages, hasNextPage, hasPrevPage) ve uygulanan filtreler JSON yanıtına dahil edildi.
+
+8.3. PostgreSQL Büyük/Küçük Harf Duyarsız Arama (Case-Insensitive Search)
+  - Konum: routes/store.js, routes/tenant.js, routes/superAdmin.js
+  - Yapılan İşlem:
+    * Prisma PostgreSQL sorgularındaki tüm 'contains' filtrelerine 'mode: "insensitive"' direktifi eklendi.
+    * "fren", "FREN", "Fren" veya "renault", "RENAULT" gibi farklı harf boyutlarında yapılan arama ve filtreleme isteklerinin eksiksiz ve aynı sonuçları döndürmesi güvenceye alındı.
+
+8.4. Genişletilmiş REST Uç Noktaları (Tekil Ürün, Hızlı Arama, Kategori & Marka)
+  - Konum: backend-api/routes/store.js
+  - Yapılan İşlem:
+    * GET /api/store/products/:id: Tekil ürün detayını id, tenantProductId veya OE numarası ile çözen ve dinamik B2B iskonto/ziyaretçi maskelemesi uygulayan REST uç noktası eklendi.
+    * GET /api/store/search: Hızlı canlı arama ve otomatik tamamlama sağlayan saf JSON arama rotası eklendi.
+    * GET /api/store/categories: Bayi kataloğundaki ürün kategorilerini ve parça sayılarını dönen REST uç noktası eklendi.
+    * GET /api/store/brands: Bayi kataloğundaki uyumlu araç markalarını ve parça sayılarını dönen REST uç noktası eklendi.
+
+8.5. Test ve Güvenlik Doğrulaması
+  - 'test_rest_api_store_and_no_html.js' otomasyon testi yazılarak 32/32 (%100) başarıyla doğrulandı.
+  - Toplam 6 test süitinde 143/143 (%100) test başarısıyla çalışan mimari onaylandı.
+
+9. STOREFRONT-UI DİNAMİK FETCH ENTEGRASYONU VE SIFIR HARDCODED MİMARİSİ (TAMAMLANDI)
+--------------------------------------------------------------------------------
+9.1. Hardcoded Ürünlerin HTML'den Temizlenmesi
+  - Konum: storefront-ui/store.html
+  - Yapılan İşlem:
+    * 'products-table-body' tbody etiketi içerisindeki tüm statik/sabit ürün satırları (tr) temizlendi. Tablo gövdesi tamamen dinamik JavaScript veri bağlama (data-binding) mimarisine teslim edildi.
+    * Ekrandaki tüm ürünler, B2B iskonto hesaplamaları, stok rozetleri ve fiyat etiketleri yalnızca backend'den gelen JSON verisiyle DOM'a basılmaktadır.
+
+9.2. Bağımsız Frontend Dinamik API Fetch (Dual-Port 3000 / 5000 Desteği)
+  - Konum: storefront-ui/store.html & storefront-ui/assets/js/api.js
+  - Yapılan İşlem:
+    * Sayfa açıldığında (DOMContentLoaded) asenkron 'loadProducts()' fonksiyonu otomatik tetiklenerek 'http://localhost:3000/api/store/products' ve 'http://localhost:5000/api/store/products' adreslerine fetch istekleri atar.
+    * Gelen REST JSON yanıtı anında 'renderProductTable()' ile tablo satırlarına dönüştürülür.
+    * api.js merkezi istemcisi dual-port fallback mimarisine kavuşturuldu.
+
+9.3. Arama Çubuğuna Yazıldığında Canlı ve Dinamik Tetiklenme (Debounced Live Search)
+  - Konum: storefront-ui/store.html (searchInput 'input' event listener)
+  - Yapılan İşlem:
+    * Arama çubuğuna parça kodu (OE), parça adı veya model yazıldığı anda 'input' olayı dinlenerek 250ms debounced gecikmeyle arka plana canlı API fetch isteği gönderilir.
+    * Kullanıcının formu 'submit' etmesine gerek kalmadan klavyeden her harf girildiğinde vitrin tablosu organik olarak canlı güncellenir.
+
+9.4. Backend Çift Port (3000 & 5000) Eşzamanlı Dinleyici Mimarisi
+  - Konum: backend-api/server.js
+  - Yapılan İşlem:
+    * Sunucu çekirdeği hem Port 5000 hem de Port 3000 soketlerini eşzamanlı dinleyecek şekilde yapılandırıldı; böylece 'http://localhost:3000/api/store/products' çağrıları tam zamanlı yanıtlandı.
+
+9.5. Test ve Doğrulama
+  - 'test_storefront_dynamic_fetch.js' otomasyon testi yazılarak 15/15 (%100) başarıyla doğrulandı.
+  - Toplam 7 test süitinde 158/158 (%100) test başarısıyla çalışan mimari teyit edildi.
+
+10. CORS GÜVENLİK AYARLARI VE X-TENANT-API-KEY HARİCİ BAYİ ENTEGRASYONU (TAMAMLANDI)
+--------------------------------------------------------------------------------
+10.1. Sıkı CORS Beyaz Liste (Whitelist) Mimarisi
+  - Konum: backend-api/app.js & backend-api/middleware/security.js
+  - Zaafiyet / Eksiklik:
+    * Daha önce backend API 'cors({ origin: "*" })' kullanıyordu; bu durum internetteki herhangi bir yabancı/zararlı web sayfasının kullanıcının tarayıcısından API'ye istek göndermesine (CSRF/CORS suiistimali) imkan tanıyordu.
+  - Yapılan İşlem ve Onarım:
+    * 'allowedOrigins' beyaz listesi oluşturuldu: Sadece 'storefront-ui'ın çalıştığı adres ve portlara ('http://localhost:5500', 'http://127.0.0.1:5500', 'http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5000', 'http://127.0.0.1:5000', 'http://localhost:5173', 'http://127.0.0.1:5173' ve ortam değişkeni 'ALLOWED_ORIGINS') izin verildi.
+    * Yetkisiz veya bilinmeyen kökenlerden (origins) gelen tarayıcı istekleri anında HTTP 403 Forbidden ('CORS_FORBIDDEN') ile engellendi.
+    * Tarayıcı dışı güvenli istemciler (Curl, Postman, sunucudan sunucuya B2B servisler) için '!origin' desteği korunarak entegrasyon bütünlüğü sağlandı.
+    * Content Security Policy (CSP) 'connect-src' direktifleri port 5500, 5000, 3000 ve 5173 ile senkronize edildi.
+
+10.2. Harici Bayi ve B2B Entegrasyonları için X-Tenant-API-Key Denetleyicisi
+  - Konum: backend-api/middleware/tenantApiKey.js & backend-api/middleware/auth.js & backend-api/routes/tenant.js
+  - İhtiyaç:
+    * Harici bayilerin ve ERP/muhasebe yazılımlarının kullanıcı adı/şifre veya dinamik JWT yenileme oturumlarına bağımlı kalmadan, doğrudan HTTP header üzerinden 'X-Tenant-API-Key' ile güvenle API'ye bağlanabilmesi sağlandı.
+  - Yapılan İşlem ve Onarım:
+    * 'tenantApiKey.js' ara yazılımı geliştirildi. Bayi kimliğine göre kriptografik HMAC tabanlı API anahtarları üretildi ('tk_live_<subdomain>_<hmac>').
+    * İstekte 'X-Tenant-API-Key' başlığı bulunduğunda bayi veritabanında doğrulanır; geçerliyse 'req.tenant', 'req.tenantId' ve 'req.user' nesneleri otomatik enjekte edilir.
+    * Geçersiz veya tahrif edilmiş API anahtarları anında HTTP 401 Unauthorized ('INVALID_API_KEY') koduyla reddedilir.
+    * 'backend-api/routes/tenant.js' içerisine 'GET /api/tenant/api-key' uç noktası eklenerek bayilerin kendi aktif entegrasyon anahtarlarını ve curl kullanım örneklerini görüntülemesi sağlandı.
+    * 'middleware/auth.js' içindeki 'verifyToken' katmanı API anahtarı ile doğrulanmış istekleri doğrudan tanıyacak şekilde güncellendi.
+
+10.3. Test ve Doğrulama
+  - 'test_cors_and_tenant_api_key.js' otomasyon testi yazılarak 26/26 (%100) başarıyla doğrulandı.
+  - Toplam 8 test süitinde 184/184 (%100) test başarısıyla çalışan mimari onaylandı.
+
+11. VİTRİN API KEY GÜVENLİK SINIRLARI VE 3 TEMEL KURAL (TAMAMLANDI)
+--------------------------------------------------------------------------------
+11.1. KURAL 1: Yetki Kısıtlaması (Read-Only / Publishable Key Scope)
+  - Konum: backend-api/middleware/tenantApiKey.js & backend-api/middleware/auth.js
+  - Güvenlik İlkesi:
+    * Vitrindeki API anahtarı (Publishable Key / 'X-Tenant-API-Key') SADECE mağaza kataloğunu listeleme, ürün detaylarını çekme ve müşteri/ziyaretçi işlemleri (/api/store/...) için kullanılabilir.
+    * Bu anahtar ile hiçbir bayi yönetimi (/api/tenant/...), fiyat değiştirme, ürün ekleme, sipariş onaylama veya süper admin (/api/admin/...) rotasına ASLA erişilemez.
+    * Yönetim rotalarına publishable key ile yapılan herhangi bir istek hem middleware hem de auth guard düzeyinde HTTP 403 Forbidden ('API_KEY_SCOPE_FORBIDDEN') ile durdurulur.
+
+11.2. KURAL 2: Sıkı CORS Kontrolü (Origin ile Bayi customDomain Birebir Eşleşmesi)
+  - Konum: backend-api/middleware/tenantApiKey.js & backend-api/app.js
+  - Güvenlik İlkesi:
+    * İstek backend'e ulaştığında sadece API anahtarının doğruluğu yetmez; isteğin geldiği Origin (Örn: ahmetoto.com) ile veritabanındaki bayiye kayıtlı customDomain birebir eşleşmek ZORUNDADIR.
+    * Yetkisiz veya farklı bir kökenden (Örn: evil-competitor.com, unauthorized-store.com) gelen istekler anında HTTP 403 Forbidden ('CORS_ORIGIN_MISMATCH') ile engellenir.
+    * Geliştirme ortamında storefront-ui'ın çalıştığı yerel portlar (localhost:5500, 127.0.0.1:5500) kontrollü olarak tanınır.
+
+11.3. KURAL 3: Backend Veritabanı ve Kriptografik SHA-256 Hash Doğrulaması
+  - Konum: backend-api/middleware/tenantApiKey.js & backend-api/server.js
+  - Güvenlik İlkesi:
+    * API anahtarları veritabanında veya bellekte açık metin (plaintext) tutulmaz; SHA-256 algoritmasıyla hash'lenerek saklanır.
+    * İstemciden gelen anahtar da anında SHA-256 ile hash'lenir ve zamanlama analizi saldırılarına (timing attacks) karşı 'crypto.timingSafeEqual' ile sabit zamanlı karşılaştırılır.
+    * Bozuk, sahte veya tahrif edilmiş anahtarlar anında HTTP 401 Unauthorized ('INVALID_API_KEY') koduyla reddedilir.
+    * Bayi yöneticileri kendi 'publishableKey', 'apiKeyHash' ve 'customDomain' detaylarını JWT oturumu üzerinden 'GET /api/tenant/api-key' ile güvenle görüntüleyebilir.
+
+11.4. Test ve Sistem Doğrulaması
+  - 'test_cors_and_tenant_api_key.js' otomasyon testi tüm 3 kuralı test edecek şekilde genişletilerek 23/23 (%100) başarıyla doğrulandı.
+  - Toplam 8 test süitinde 181/181 (%100) test başarısıyla çalışan mimari onaylandı.
+
 ================================================================================
 SONUÇ VE SİSTEM DOĞRULAMASI:
-Tüm güvenlik açıkları onarılmış, prompt.md kapsamındaki 5 adımlı Mağaza Vitrini Ayrıştırması (Decoupling) ve Rol Tabanlı Güvenlik Mimarisi eksiksiz kurulmuş; 25/25 (%100) test başarısıyla çalışan mimari başarıyla doğrulanmıştır.
+Tüm güvenlik açıkları onarılmış, prompt.md kapsamındaki Headless Mimari, HTML Sunumunun Kaldırılması, REST API Standartları (store.js & arama uç noktaları), Saf JSON dönüşümü, storefront-ui Dinamik Fetch / Sıfır Hardcoded entegrasyonu, Sıkı CORS Beyaz Listesi (storefront-ui port 5500 izni ve diğerlerinin engellenmesi) ve Vitrin API Key İletişiminde 3 Temel Güvenlik Kuralı (Read-Only yetki kısıtlaması, customDomain Origin eşleşmesi, SHA-256 hash doğrulaması) eksiksiz tamamlanmış; tüm testler (%100) başarıyla doğrulanmıştır.
 ================================================================================
+
 
