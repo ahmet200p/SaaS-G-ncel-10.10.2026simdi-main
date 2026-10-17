@@ -3,8 +3,9 @@
 // ============================================================================
 
 const config = require('./config');
-// 3. ADIM: Çalışma zamanı Fail-Safe denetimi
+// Çalışma zamanı Fail-Safe denetimleri (JWT & DATABASE_URL)
 config.validateJwtSecret();
+config.validateDatabaseUrl();
 
 const app = require('./app');
 const prisma = require('./lib/prisma');
@@ -13,16 +14,35 @@ const PORT = config.PORT;
 
 // Başlangıç Veritabanı Bütünlük Kontrolü (Veri Sıfırlamadan Eksikleri Tamamlama)
 const ensureInitialData = async () => {
+  // 1. KURAL: Üretim (Production) Ortamı Koruması
+  // Otomatik başlangıç hesabı oluşturma SADECE process.env.NODE_ENV === 'development' ortamında çalışır.
+  if (process.env.NODE_ENV !== 'development') {
+    console.log(`[SECURITY] Ortam: "${process.env.NODE_ENV || 'production'}". Üretim ortamında otomatik başlangıç hesabı oluşturma engellendi.`);
+    return;
+  }
+
+  // 2. KURAL: Sabit (Hardcoded) Parolaların Kaldırılması
+  // Parolalar MUTLAKA .env dosyasından (DEFAULT_ADMIN_PASSWORD) okunmalıdır.
+  const adminPassword = process.env.DEFAULT_ADMIN_PASSWORD || process.env.ADMIN_INITIAL_PASSWORD;
+  if (!adminPassword || adminPassword.trim() === '') {
+    throw new Error('[SECURITY_ERROR] .env dosyasında DEFAULT_ADMIN_PASSWORD tanımlanmamış! Sistem güvenliği için otomatik hesap oluşturma reddedildi.');
+  }
+
+  const forbiddenWeakPasswords = ['123456', 'admin', 'test', 'password', '12345678', 'qwerty', '12345'];
+  if (forbiddenWeakPasswords.includes(adminPassword.toLowerCase())) {
+    throw new Error(`[SECURITY_ERROR] DEFAULT_ADMIN_PASSWORD zayıf veya tahmin edilebilir bir parola ("${adminPassword}") olamaz! Lütfen güçlü bir parola belirleyin.`);
+  }
+
+  const dealerPassword = process.env.DEFAULT_DEALER_PASSWORD || adminPassword;
+  if (!dealerPassword || forbiddenWeakPasswords.includes(dealerPassword.toLowerCase())) {
+    throw new Error('[SECURITY_ERROR] DEFAULT_DEALER_PASSWORD zayıf veya tanımlanmamış!');
+  }
+
   try {
     const adminCount = await prisma.user.count({ where: { role: 'SUPER_ADMIN' } });
     if (adminCount === 0) {
-      const crypto = require('crypto');
       const bcrypt = require('bcryptjs');
-
-      // 4. ADIM: Statik şifreler yerine crypto ile rastgele en az 16 haneli güçlü şifre üret
-      const rawAdminPassword = process.env.ADMIN_INITIAL_PASSWORD ||
-        crypto.randomBytes(12).toString('base64').replace(/[^a-zA-Z0-9]/g, 'X') + 'A1!';
-      const hash = await bcrypt.hash(rawAdminPassword, 10);
+      const hash = await bcrypt.hash(adminPassword, 10);
 
       await prisma.user.create({
         data: {
@@ -35,8 +55,7 @@ const ensureInitialData = async () => {
       console.log('====================================================');
       console.log('👑 İLK KURULUM: Yeni Süper Admin Hesabı Oluşturuldu');
       console.log(`📧 E-posta: admin@sistem.com`);
-      console.log(`🔑 Geçici Güvenli Şifre: ${rawAdminPassword}`);
-      console.log('⚠️ Bu şifre yalnızca ilk kurulumda bir kez gösterilmiştir.');
+      console.log('🔑 Parola .env (DEFAULT_ADMIN_PASSWORD) üzerinden güvenle yapılandırıldı.');
       console.log('====================================================');
     }
 
@@ -73,7 +92,7 @@ const ensureInitialData = async () => {
     const tenantAdmin = await prisma.user.findUnique({ where: { email: 'ahmet@ahmetoto.com' } });
     if (!tenantAdmin) {
       const bcrypt = require('bcryptjs');
-      const hash = await bcrypt.hash('123456', 10);
+      const hash = await bcrypt.hash(dealerPassword, 10);
       await prisma.user.create({
         data: {
           email: 'ahmet@ahmetoto.com',
@@ -86,18 +105,26 @@ const ensureInitialData = async () => {
     }
   } catch (err) {
     console.error('[DB_INIT_CHECK]:', err.message);
+    throw err;
   }
 };
-
-const { startServer } = require('./dev_pg_server');
 
 let server = null;
 let secondaryServer = null;
 
 async function bootstrap() {
   try {
-    await startServer();
-    await ensureInitialData();
+    // 1. KURAL: Geliştirme Ortamı İzolasyonu (dev_pg_server)
+    // SADECE process.env.NODE_ENV === 'development' ortamında dev_pg_server başlatılır.
+    // Production (veya development harici) ortamda bu modül tamamen bypass edilir.
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DEV_MODE] Geliştirme ortamı algılandı: dev_pg_server ve başlangıç tohumlama başlatılıyor...');
+      const { startServer } = require('./dev_pg_server');
+      await startServer();
+      await ensureInitialData();
+    } else {
+      console.log(`[PRODUCTION_MODE] Ortam: "${process.env.NODE_ENV || 'production'}". dev_pg_server ve otomatik tohumlama tamamen bypass edildi.`);
+    }
   } catch (e) {
     console.error('[BOOTSTRAP_ERROR]:', e);
   }
@@ -147,3 +174,5 @@ process.on('SIGTERM', () => handleShutdown('SIGTERM'));
 process.on('SIGINT', () => handleShutdown('SIGINT'));
 
 module.exports = server;
+module.exports.ensureInitialData = ensureInitialData;
+module.exports.bootstrap = bootstrap;

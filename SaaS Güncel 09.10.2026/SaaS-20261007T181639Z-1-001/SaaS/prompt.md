@@ -1,7 +1,7 @@
-"Vitrin (Frontend) ile Backend arasındaki API Key iletişiminde güvenlik sınırlarını netleştirmemiz gerekiyor. Lütfen sistemde şu 3 kuralın aktif olduğundan emin ol ve eksikse kodları güncelle:
+"Aldığım güvenlik/mimari analizine göre .gitignore yapılandırmamızda eksikler var. Lütfen backend-api klasörünün içindeki .gitignore dosyasını kontrol et ve içerisine şu kısıtlamaları kesin olarak ekle:
 
-Yetki Kısıtlaması (Read-Only): tenant.apikey (Vitrindeki Publishable Key) SADECE mağaza kataloğunu listeleme, ürün detaylarını çekme ve ziyaretçi/müşteri işlemleri için kullanılabilsin. Bu key ile hiçbir /api/admin veya /api/tenant-management rotasına (ürün ekleme, fiyat değiştirme, bayi ayarları) erişilemesin.
+Bağımlılık klasörünün (node_modules/) hiçbir şekilde yüklenmeyeceğinden emin ol.
 
-Sıkı CORS Kontrolü: İstek backend'e ulaştığında, sadece API Key'in doğruluğu yetmez. İsteğin geldiği Origin (Örn: ahmetoto.com) ile veritabanındaki bayiye kayıtlı customDomain birebir eşleşmek ZORUNDADIR. Eşleşmiyorsa 403 hatası fırlat.
+Proje içindeki tüm yerel veritabanı dosyalarının (özellikle dev.db, *.db, *.sqlite, *.sqlite3) ve veritabanı loglarının izlenmesini durdur/yoksay.
 
-Backend Veritabanı: Eğer API key'leri veritabanında tutuyorsak, güvenlik standartları gereği bunları bcrypt veya sha256 ile hash'leyerek kaydet (Opsiyonel ama önerilen). Frontend'den gelen key'i bu hash ile karşılaştır."
+Bu dosyaların Git takibinden (eğer daha önce eklendiyse) tamamen çıkarıldığından (git rm --cached mantığıyla) emin ol."

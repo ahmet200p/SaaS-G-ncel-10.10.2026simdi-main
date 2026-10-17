@@ -1,0 +1,44 @@
+# ==============================================================================
+# Multi-Tenant B2B SaaS - Backend API Git Ignore Configuration
+# ==============================================================================
+
+# Hassas Ortam Değişkenleri ve Gizli Anahtarlar (GÜVENLİK)
+.env
+*.env
+.env.*
+!.env.example
+
+# Bağımlılıklar (Kesin Olarak Engellenmiş)
+node_modules/
+*/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Yerel Veritabanı ve Log Dosyaları
+dev.db
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+prisma/pgdata/
+*/prisma/pgdata/
+*.log
+*.log*
+logs/
+
+# Yüklenen Geçici Dosyalar
+uploads/*
+!uploads/.gitkeep
+
+# İşletim Sistemi ve IDE Dosyaları
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

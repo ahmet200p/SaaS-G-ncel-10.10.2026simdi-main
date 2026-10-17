@@ -41,6 +41,8 @@ async function makeRequest(url, method = 'GET', body = null, token = null) {
 }
 
 async function runTests() {
+  const { startServer } = require('./dev_pg_server');
+  await startServer();
   console.log('================================================================');
   console.log('🧪 PROMPT.MD: ÖDEME YÖNTEMLERİ & SİPARİŞ DURUMU DOĞRULAMA TESTİ');
   console.log('================================================================\n');
@@ -112,11 +114,16 @@ async function runTests() {
   // 4. ADIM: Canlı Express & Prisma API Entegrasyon Testleri
   // --------------------------------------------------------------------------
   console.log('\n--- 4. ADIM: Canlı Backend API (POST /orders & GET /bank-info) Testleri ---');
-  const app = require('./app');
-  const server = http.createServer(app);
-  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  const port = server.address().port;
-  const baseUrl = `http://127.0.0.1:${port}`;
+  const { isPortOpen } = require('./dev_pg_server');
+  let baseUrl = 'http://127.0.0.1:5000';
+  let server = null;
+  const isServerRunning = await isPortOpen(5000);
+  if (!isServerRunning) {
+    const app = require('./app');
+    server = http.createServer(app);
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    baseUrl = `http://127.0.0.1:${server.address().port}`;
+  }
 
   try {
     // 4.1. Banka Bilgisi API'si Testi (GET /api/store/bank-info)
@@ -136,17 +143,19 @@ async function runTests() {
     const token = loginRes.data.token || (loginRes.data.data && loginRes.data.data.token);
     assert(loginRes.status === 200 && token, 'Giriş başarılı olmalı ve token dönmeli');
 
-    // Mevcut bir tenantProduct bul veya gerekirse oluştur
+    // Mevcut bir tenantProduct bul veya gerekirse oluştur (yeterli stok kontrolü)
     let sampleProduct = null;
     const prodsRes = await makeRequest(`${baseUrl}/api/tenant/products`, 'GET', null, token);
     if (prodsRes.status === 200 && prodsRes.data.data && prodsRes.data.data.length > 0) {
-      sampleProduct = prodsRes.data.data[0];
-    } else {
+      sampleProduct = prodsRes.data.data.find(p => p.stock >= 5);
+    }
+    
+    if (!sampleProduct) {
       const prisma = require('./lib/prisma');
       const tenant = await prisma.tenant.findUnique({ where: { subdomain: 'ahmetoto' } });
       const testProd = await prisma.product.create({
         data: {
-          oeNumber: 'OE-PAY-TEST-99',
+          oeNumber: 'OE-PAY-TEST-' + Date.now(),
           name: 'Ödeme Entegrasyon Test Parçası',
           category: 'Fren Sistemi',
           defaultPrice: 300.00
@@ -156,7 +165,7 @@ async function runTests() {
         data: {
           tenantId: tenant.id,
           productId: testProd.id,
-          stock: 25,
+          stock: 50,
           customPrice: 300.00
         }
       });
@@ -246,7 +255,7 @@ async function runTests() {
     console.log('  ✅ [PASS] 4.5: Bayi panelinden durum güncellemesi (PENDING_APPROVAL -> PROCESSING) doğrulandı.');
 
   } finally {
-    await new Promise(resolve => server.close(resolve));
+    if (server) await new Promise(resolve => server.close(resolve));
   }
 
   console.log('\n================================================================');

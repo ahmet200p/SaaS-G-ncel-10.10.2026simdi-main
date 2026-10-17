@@ -17,6 +17,8 @@
   <link rel="stylesheet" href="tenant.css">
   <!-- SweetAlert2 (Modern Dialogs & Confirm Alerts) -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- jwt-decode: Topluluk standardı JWT payload çözümleme kütüphanesi -->
+  <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
   <script src="assets/js/api.js"></script>
 </head>
 
@@ -151,8 +153,8 @@
     </nav>
 
     <!-- Sidebar Alt Kısım: Diğer Portallara Kolay Geçiş -->
-    <div class="sidebar-footer">
-      <a href="store.html" class="portal-switch-btn" title="B2B E-Ticaret Vitrinini Aç">
+    <div class="sidebar-footer" id="sidebar-footer-portal-links">
+      <a href="../storefront-ui/store.html" class="portal-switch-btn" title="B2B E-Ticaret Vitrinini Aç">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
           <circle cx="9" cy="21" r="1"></circle>
@@ -160,15 +162,6 @@
           <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
         </svg>
         <span>B2B Müşteri Vitrini</span>
-      </a>
-      <a href="index.html" class="portal-switch-btn" title="Süper Admin Paneline Dön">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-          <line x1="8" y1="21" x2="16" y2="21"></line>
-          <line x1="12" y1="17" x2="12" y2="21"></line>
-        </svg>
-        <span>Süper Admin Paneli</span>
       </a>
     </div>
 
@@ -1116,6 +1109,44 @@
           const brandEl = document.querySelector('.brand-name');
           if (brandEl) brandEl.textContent = currentUser.tenant.name + ' Yönetim';
         }
+      }
+
+      // ==========================================================================
+      // JWT PAYLOAD ROL KONTROLÜ VE SÜPER ADMİN ERİŞİM GÜVENLİĞİ
+      // ==========================================================================
+      // Giriş yapan kullanıcının rolünü (JWT payload içindeki role) denetle
+      const currentToken = localStorage.getItem('token');
+      const tokenPayload = (typeof window.parseJwtPayload === 'function') 
+        ? window.parseJwtPayload(currentToken) 
+        : null;
+      const verifiedRole = (tokenPayload && tokenPayload.role) 
+        ? tokenPayload.role 
+        : (currentUser ? currentUser.role : null);
+
+      if (verifiedRole === 'SUPER_ADMIN') {
+        // Yalnızca kullanıcı rolü 'SUPER_ADMIN' ise Süper Admin butonunu dinamik olarak render et
+        const sidebarFooter = document.getElementById('sidebar-footer-portal-links') || document.querySelector('.sidebar-footer');
+        if (sidebarFooter && !document.getElementById('super-admin-portal-link')) {
+          const adminBtn = document.createElement('a');
+          adminBtn.id = 'super-admin-portal-link';
+          adminBtn.href = 'index.html';
+          adminBtn.className = 'portal-switch-btn';
+          adminBtn.title = 'Süper Admin Paneline Dön';
+          adminBtn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+            <span>Süper Admin Paneli</span>
+          `;
+          sidebarFooter.appendChild(adminBtn);
+        }
+      } else {
+        // Rol 'SUPER_ADMIN' değilse: Sıradan bir bayi (Tenant) kullanıcısı admin linki/butonu göremez
+        const existingAdminElements = document.querySelectorAll('#super-admin-portal-link, a[href*="admin.html"], a[href*="index.html"]');
+        existingAdminElements.forEach(el => el.remove());
       }
 
       // 0. Güvenli HTML Kaçırma Yardımcısı (XSS Koruması)
@@ -3112,22 +3143,8 @@
             let data = null;
             let successFound = false;
 
-            // 1. Canlı fetch denemesi (Express sunucusu üzerindeyse)
+            // 1. apiFetch veya merkezi API köprüsü üzerinden silme isteği (http://localhost:5000/api)
             try {
-              const response = await fetch(`/api/tenant/customers/${id}`, {
-                method: 'DELETE',
-                headers: headers
-              });
-              if (response && response.ok) {
-                data = await response.json();
-                successFound = !!(data && data.success);
-              }
-            } catch (errRel) {
-              // Göreli path bağlantısı (file:// veya farklı port)
-            }
-
-            // 2. apiFetch veya merkezi API köprüsü üzerinden dene
-            if (!successFound) {
               if (typeof apiFetch === 'function') {
                 data = await apiFetch(`/tenant/customers/${id}`, {
                   method: 'DELETE',
@@ -3135,14 +3152,16 @@
                 });
                 successFound = !!(data && data.success);
               } else {
-                const altUrl = (typeof API_BASE !== 'undefined' ? API_BASE : 'http://localhost:5000/api') + `/tenant/customers/${id}`;
-                const response = await fetch(altUrl, {
+                const targetUrl = (typeof API_BASE !== 'undefined' ? API_BASE : 'http://localhost:5000/api') + `/tenant/customers/${id}`;
+                const response = await fetch(targetUrl, {
                   method: 'DELETE',
                   headers: headers
                 });
                 data = await response.json();
                 successFound = !!(data && data.success);
               }
+            } catch (errRel) {
+              console.error('[CUSTOMER_DELETE_ERROR]:', errRel);
             }
 
             if (data && data.success) {
@@ -3779,20 +3798,8 @@
             let data = null;
             let successFound = false;
 
-            // 1. Canlı sunucuya doğrudan DELETE isteği
+            // 1. apiFetch / Merkezi API köprüsü üzerinden DELETE isteği (http://localhost:5000/api)
             try {
-              const res = await fetch(`/api/tenant/discounts/${id}`, {
-                method: 'DELETE',
-                headers: headers
-              });
-              if (res && res.ok) {
-                data = await res.json();
-                successFound = !!(data && data.success);
-              }
-            } catch (errRel) {}
-
-            // 2. apiFetch / Hibrit köprü denemesi
-            if (!successFound) {
               if (typeof apiFetch === 'function') {
                 data = await apiFetch(`/tenant/discounts/${id}`, {
                   method: 'DELETE',
@@ -3800,11 +3807,13 @@
                 });
                 successFound = !!(data && data.success);
               } else {
-                const altUrl = (typeof API_BASE !== 'undefined' ? API_BASE : 'http://localhost:5000/api') + `/tenant/discounts/${id}`;
-                const res = await fetch(altUrl, { method: 'DELETE', headers: headers });
+                const targetUrl = (typeof API_BASE !== 'undefined' ? API_BASE : 'http://localhost:5000/api') + `/tenant/discounts/${id}`;
+                const res = await fetch(targetUrl, { method: 'DELETE', headers: headers });
                 data = await res.json();
                 successFound = !!(data && data.success);
               }
+            } catch (errRel) {
+              console.error('[DISCOUNT_DELETE_ERROR]:', errRel);
             }
 
             if (data && data.success) {
@@ -3850,21 +3859,8 @@
             let data = null;
             let successFound = false;
 
-            // 1. Canlı POST isteği
+            // 1. apiFetch / Merkezi API köprüsü üzerinden POST isteği (http://localhost:5000/api)
             try {
-              const res = await fetch('/api/tenant/discounts', {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify({ ruleName, targetCust, category, rate })
-              });
-              if (res && res.ok) {
-                data = await res.json();
-                successFound = !!(data && data.success);
-              }
-            } catch (errRel) {}
-
-            // 2. apiFetch / Hibrit köprü denemesi
-            if (!successFound) {
               if (typeof apiFetch === 'function') {
                 data = await apiFetch('/tenant/discounts', {
                   method: 'POST',
@@ -3872,7 +3868,20 @@
                   body: { ruleName, targetCust, category, rate }
                 });
                 successFound = !!(data && data.success);
+              } else {
+                const targetUrl = (typeof API_BASE !== 'undefined' ? API_BASE : 'http://localhost:5000/api') + '/tenant/discounts';
+                const res = await fetch(targetUrl, {
+                  method: 'POST',
+                  headers: headers,
+                  body: JSON.stringify({ ruleName, targetCust, category, rate })
+                });
+                if (res && res.ok) {
+                  data = await res.json();
+                  successFound = !!(data && data.success);
+                }
               }
+            } catch (errRel) {
+              console.error('[DISCOUNT_POST_ERROR]:', errRel);
             }
 
             if (data && data.success) {

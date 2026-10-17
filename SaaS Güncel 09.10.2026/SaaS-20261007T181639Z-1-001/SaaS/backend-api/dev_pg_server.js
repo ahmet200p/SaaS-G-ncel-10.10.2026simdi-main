@@ -49,7 +49,12 @@ async function startServer() {
     `);
   } catch (e) {}
 
-  activeServer = new PGLiteSocketServer({ db: activeDb, port: 5432, host: '127.0.0.1' });
+  activeServer = new PGLiteSocketServer({
+    db: activeDb,
+    port: 5432,
+    host: '127.0.0.1',
+    maxConnections: 100
+  });
   await activeServer.start();
   console.log('🐘 Local PostgreSQL Server running on 127.0.0.1:5432');
 

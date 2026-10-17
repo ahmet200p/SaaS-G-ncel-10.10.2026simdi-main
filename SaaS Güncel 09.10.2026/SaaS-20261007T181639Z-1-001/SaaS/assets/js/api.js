@@ -1630,7 +1630,10 @@
         } else if (user.role === 'TENANT_ADMIN') {
           window.location.href = 'bayi.html';
         } else if (user.role === 'CUSTOMER') {
-          window.location.href = 'store.html';
+          const storeUrl = (typeof window !== 'undefined' && window.location && window.location.pathname.includes('/saas-panel-ui'))
+            ? '../storefront-ui/store.html'
+            : 'store.html';
+          window.location.href = storeUrl;
         } else {
           window.location.href = 'login.html';
         }
@@ -1695,11 +1698,62 @@
       .replace(/'/g, '&#039;');
   }
 
+  /**
+   * parseJwtPayload:
+   * Topluluk standardı jwt-decode kütüphanesi (v4/v3) ve RFC 7519 Base64URL fallback mekanizmasıyla
+   * JWT token payload nesnesini çözümler.
+   */
+  function parseJwtPayload(token) {
+    if (!token || typeof token !== 'string') return null;
+
+    // 1. jwt-decode kütüphanesi yüklüyse öncelikli kullan
+    try {
+      if (typeof window.jwtDecode === 'function') {
+        return window.jwtDecode(token);
+      }
+      if (typeof window.jwt_decode === 'function') {
+        return window.jwt_decode(token);
+      }
+    } catch (e) {
+      console.warn('[JWT] jwt-decode kütüphane ayrıştırma uyarısı:', e);
+    }
+
+    // 2. RFC 7519 Standart Base64URL Çözümleme (Yerel Fallback)
+    try {
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        const base64Url = parts[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, '=');
+        const jsonStr = decodeURIComponent(
+          atob(padded)
+            .split('')
+            .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        );
+        return JSON.parse(jsonStr);
+      }
+    } catch (e) {
+      console.warn('[JWT] Base64 fallback çözümleme uyarısı:', e);
+    }
+
+    // 3. Standalone / Demo Mock token desteği
+    if (token.startsWith('standalone_jwt_')) {
+      if (token.includes('super_admin')) return { role: 'SUPER_ADMIN' };
+      if (token.includes('tenant_admin')) return { role: 'TENANT_ADMIN' };
+      if (token.includes('customer')) return { role: 'CUSTOMER' };
+    }
+
+    return null;
+  }
+
   // Global window nesnesine ata
   window.API_BASE = API_BASE;
   window.apiFetch = apiFetch;
   window.requireAuth = requireAuth;
   window.logout = logout;
   window.escapeHtml = escapeHtml;
+  window.parseJwtPayload = parseJwtPayload;
+  window.jwtDecode = window.jwtDecode || parseJwtPayload;
 
 })(window);

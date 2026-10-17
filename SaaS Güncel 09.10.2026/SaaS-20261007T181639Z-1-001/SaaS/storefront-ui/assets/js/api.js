@@ -16,19 +16,19 @@
 (function (window) {
   'use strict';
 
-  // Sunucu Adresi Yapılandırması (prompt.md: http://localhost:3000/api/store/products):
-  // storefront-ui artık bağımsız bir frontend olduğu için varsayılan backend: http://localhost:3000/api
-  // Aynı zamanda http://localhost:5000/api ve dinamik portlar otomatik desteklenir.
+  // Sunucu Adresi Yapılandırması:
+  // storefront-ui bağımsız bir frontend olarak varsayılan backend: http://localhost:5000/api
+  // Aynı zamanda http://localhost:3000/api ve dinamik portlar otomatik desteklenir.
   function resolveApiBase() {
     if (typeof window !== 'undefined') {
       if (window.API_BASE) return window.API_BASE;
       if (window.STORE_API_URL) return window.STORE_API_URL;
       if (window.location && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
-        if (window.location.port === '3000') return 'http://localhost:3000/api';
         if (window.location.port === '5000') return 'http://localhost:5000/api';
+        if (window.location.port === '3000') return 'http://localhost:3000/api';
       }
     }
-    return 'http://localhost:3000/api';
+    return 'http://localhost:5000/api';
   }
   const API_BASE = resolveApiBase();
 
@@ -1473,12 +1473,12 @@
    * modundaysa kullanıcıyı engellemeden kusursuz bir deneyim sunar.
    */
   async function apiFetch(endpoint, options = {}) {
-    // 1. URL Yapılandırması
+    // 1. URL Yapılandırması (Headless Mimari prompt.md: Mutlak URL http://localhost:5000/api garantisi)
     let url = endpoint;
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       if (!url.startsWith('/api')) {
         url = `${API_BASE}${url.startsWith('/') ? url : '/' + url}`;
-      } else if (!isDirectExpress) {
+      } else {
         url = `http://localhost:5000${url}`;
       }
     }

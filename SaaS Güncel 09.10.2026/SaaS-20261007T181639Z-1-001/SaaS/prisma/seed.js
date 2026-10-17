@@ -9,26 +9,52 @@
  * Çalıştırma Komutu: npx prisma db seed VEYA node prisma/seed.js
  */
 
+// 1. KURAL: Üretim (Production) Ortamı Koruması
+// Tohumlama (Seed) işlemi SADECE development ortamında çalıştırılabilir.
+if (process.env.NODE_ENV !== 'development') {
+  console.error('❌ [SECURITY_ERROR] Prisma tohumlama (seed) SADECE development ortamında çalıştırılabilir (process.env.NODE_ENV !== "development").');
+  console.error('⚠️ Üretim ortamında otomatik tohumlama çalıştırılması güvenlik gerekçesiyle engellendi.');
+  process.exit(1);
+}
+
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
 
 async function main() {
+
+
   console.log('====================================================');
   console.log('🌱 Prisma Başlangıç Verileri (Seed) Yükleniyor...');
   console.log('====================================================');
 
-  // 1. Şifrelerin Bcrypt ile Hashlenmesi (4. ADIM: Güvenli Rastgele Parola Üretimi)
-  const saltRounds = 10;
-  const crypto = require('crypto');
-  const rawAdminPassword = process.env.ADMIN_INITIAL_PASSWORD ||
-    crypto.randomBytes(12).toString('base64').replace(/[^a-zA-Z0-9]/g, 'X') + 'A1!';
-  const hashedAdminPassword = await bcrypt.hash(rawAdminPassword, saltRounds);
-  const commonHashedPassword = await bcrypt.hash('123456', saltRounds);
-  const hashedPassword = commonHashedPassword;
+  // 2. KURAL: Sabit (Hardcoded) Parolaların Kaldırılması
+  // Parolalar MUTLAKA .env dosyasından okunmalıdır.
+  const adminPassword = process.env.DEFAULT_ADMIN_PASSWORD || process.env.ADMIN_INITIAL_PASSWORD;
+  if (!adminPassword || adminPassword.trim() === '') {
+    throw new Error('[SECURITY_ERROR] .env dosyasında DEFAULT_ADMIN_PASSWORD tanımlanmamış! Sistem güvenliği için tohumlama reddedildi.');
+  }
 
-  console.log('🔒 Başlangıç şifreleri bcrypt ile başarıyla hash\'lendi.');
+  const forbiddenWeakPasswords = ['123456', 'admin', 'test', 'password', '12345678', 'qwerty', '12345'];
+  if (forbiddenWeakPasswords.includes(adminPassword.toLowerCase())) {
+    throw new Error(`[SECURITY_ERROR] DEFAULT_ADMIN_PASSWORD zayıf veya tahmin edilebilir bir parola ("${adminPassword}") olamaz! Lütfen güçlü bir parola belirleyin.`);
+  }
+
+  const dealerPassword = process.env.DEFAULT_DEALER_PASSWORD || adminPassword;
+  if (!dealerPassword || forbiddenWeakPasswords.includes(dealerPassword.toLowerCase())) {
+    throw new Error('[SECURITY_ERROR] Bayi yöneticisi parolası zayıf veya tanımlanmamış!');
+  }
+
+  const customerPassword = process.env.DEFAULT_CUSTOMER_PASSWORD || dealerPassword;
+
+  // Şifrelerin Bcrypt ile Hashlenmesi (.env üzerinden)
+  const saltRounds = 10;
+  const hashedAdminPassword = await bcrypt.hash(adminPassword, saltRounds);
+  const hashedDealerPassword = await bcrypt.hash(dealerPassword, saltRounds);
+  const hashedCustomerPassword = await bcrypt.hash(customerPassword, saltRounds);
+
+  console.log('🔒 Başlangıç şifreleri .env üzerinden bcrypt ile başarıyla hash\'lendi.');
 
   // 2. Süper Admin Kullanıcısı Oluşturma
   const superAdmin = await prisma.user.upsert({
@@ -67,17 +93,17 @@ async function main() {
   console.log(`🏪 Bayi (Tenant) oluşturuldu: ${tenant.name} (Subdomain: ${tenant.subdomain}.sistem.com)`);
 
   // 4. Bayiye Bağlı Bayi Yöneticisi (TENANT_ADMIN) Oluşturma
-  // ahmet@ahmetoto.com / 123456 / TENANT_ADMIN (tenantId: tenant.id)
+  // ahmet@ahmetoto.com / DEFAULT_DEALER_PASSWORD / TENANT_ADMIN (tenantId: tenant.id)
   const tenantAdmin = await prisma.user.upsert({
     where: { email: 'ahmet@ahmetoto.com' },
     update: {
-      password: hashedPassword,
+      password: hashedDealerPassword,
       role: 'TENANT_ADMIN',
       tenantId: tenant.id
     },
     create: {
       email: 'ahmet@ahmetoto.com',
-      password: hashedPassword,
+      password: hashedDealerPassword,
       role: 'TENANT_ADMIN',
       tenantId: tenant.id
     }
@@ -86,18 +112,18 @@ async function main() {
   console.log(`👔 Bayi Yöneticisi oluşturuldu: ${tenantAdmin.email} (Bayi: ${tenant.name})`);
 
   // 5. Otoservis Müşterisi (CUSTOMER) Oluşturma
-  // kemal@kemaloto.com / 123456 / CUSTOMER (Kemal Usta)
+  // kemal@kemaloto.com / DEFAULT_CUSTOMER_PASSWORD / CUSTOMER (Kemal Usta)
   const customerUser = await prisma.user.upsert({
     where: { email: 'kemal@kemaloto.com' },
     update: {
-      password: hashedPassword,
+      password: hashedCustomerPassword,
       role: 'CUSTOMER',
       name: 'Kemal Usta',
       tenantId: tenant.id
     },
     create: {
       email: 'kemal@kemaloto.com',
-      password: hashedPassword,
+      password: hashedCustomerPassword,
       role: 'CUSTOMER',
       name: 'Kemal Usta',
       tenantId: tenant.id
@@ -133,10 +159,10 @@ async function main() {
 
   console.log('====================================================');
   console.log('🎉 Başlangıç Hesapları Başarıyla Yapılandırıldı (Organik Sistem)!');
-  console.log('🔑 Giriş Bilgileri:');
-  console.log('   - Süper Admin:      admin@sistem.com / 123456');
-  console.log('   - Bayi Yöneticisi:  ahmet@ahmetoto.com / 123456');
-  console.log('   - Müşteri (Kemal):  kemal@kemaloto.com / 123456');
+  console.log('🔑 Giriş Hesapları (.env üzerinden korumalı):');
+  console.log('   - Süper Admin:      admin@sistem.com / [.env DEFAULT_ADMIN_PASSWORD]');
+  console.log('   - Bayi Yöneticisi:  ahmet@ahmetoto.com / [.env DEFAULT_DEALER_PASSWORD]');
+  console.log('   - Müşteri (Kemal):  kemal@kemaloto.com / [.env DEFAULT_CUSTOMER_PASSWORD]');
   console.log('====================================================');
 }
 

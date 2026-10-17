@@ -55,8 +55,9 @@ async function cleanTestData() {
     });
     console.log(`🗑️  Silinen Test Müşteri Hesapları (User - CUSTOMER): ${deletedCustomerUsers.count}`);
 
-    // 6. Bayi (Ahmet Oto) ve Yetkili Kullanıcıların Bütünlüğünü Sağlama
-    const hashedPassword = await bcrypt.hash('123456', 10);
+    // 6. Bayi (Ahmet Oto) ve Yetkili Kullanıcıların Bütünlüğünü Sağlama (.env üzerinden)
+    const adminPass = process.env.DEFAULT_ADMIN_PASSWORD || process.env.ADMIN_INITIAL_PASSWORD || 'SaaS_Super_Admin_2026!#Secure';
+    const hashedPassword = await bcrypt.hash(adminPass, 10);
 
     // 6.a Süper Admin
     const superAdmin = await prisma.user.upsert({
