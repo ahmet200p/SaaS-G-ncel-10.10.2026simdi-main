@@ -749,8 +749,13 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label" for="reg-tax-number">Vergi No veya TC Kimlik No</label>
-                  <input type="text" class="form-input" id="reg-tax-number" placeholder="Örn: 1234567890">
+                  <input type="text" class="form-input" id="reg-tax-number" placeholder="Örn: 12345678901">
                 </div>
+              </div>
+              <div class="form-group" style="margin-top: 10px;">
+                <label class="form-label" for="reg-birth-year">Yetkili Doğum Yılı (T.C. Doğrulaması İçin)</label>
+                <input type="text" class="form-input" id="reg-birth-year" maxlength="4" pattern="[0-9]{4}" placeholder="Örn: 1990">
+                <span style="font-size: 0.72rem; color: #64748b; display: block; margin-top: 3px;">* 11 haneli TC kimlik girildiğinde NVİ üzerinden anlık doğrulanır.</span>
               </div>
             </div>
           </div>
@@ -3002,6 +3007,7 @@
       const customerType = selectedRegCustomerType;
       const companyName = document.getElementById('reg-company-name').value.trim();
       const taxNumber = document.getElementById('reg-tax-number').value.trim();
+      const birthYear = document.getElementById('reg-birth-year') ? document.getElementById('reg-birth-year').value.trim() : '';
       const btn = document.getElementById('btn-submit-register');
 
       if (!fullName || !phone || !email || !password) {
@@ -3034,7 +3040,10 @@
           password,
           customerType,
           companyName: (customerType === 'MECHANIC' && companyName) ? companyName : fullName,
-          taxNumber: (customerType === 'MECHANIC') ? taxNumber : null
+          taxNumber: (customerType === 'MECHANIC') ? taxNumber : null,
+          tcKimlikNo: (customerType === 'MECHANIC' && taxNumber && taxNumber.length === 11) ? taxNumber : null,
+          dogumYili: birthYear || null,
+          birthYear: birthYear || null
         };
 
         const res = await apiFetch('/auth/register', {

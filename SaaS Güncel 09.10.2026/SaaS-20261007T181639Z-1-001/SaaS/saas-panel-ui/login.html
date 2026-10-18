@@ -163,6 +163,20 @@
           </button>
         </form>
 
+        <!-- Bayi Başvurusu / Kayıt Ol Butonu & Bilgilendirme -->
+        <div class="bayi-register-cta" style="margin-top: 16px; text-align: center; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px 14px;">
+          <span style="font-size: 0.84rem; color: #64748b; display: block; margin-bottom: 6px;">B2B Parça Ağına Katılmak İsteyen Yeni Bayi misiniz?</span>
+          <button type="button" class="btn-open-bayi-register" id="btn-open-bayi-register" onclick="openBayiRegisterModal()" style="background: #2563eb; color: #ffffff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 0.84rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(37,99,235,0.2);">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="8.5" cy="7" r="4"></circle>
+              <line x1="20" y1="8" x2="20" y2="14"></line>
+              <line x1="23" y1="11" x2="17" y2="11"></line>
+            </svg>
+            <span>Yeni Bayi Kaydı Yap (NVİ Onaylı)</span>
+          </button>
+        </div>
+
         <!-- Hızlı Sayfa Geçişleri -->
         <div class="divider">
           <span>Doğrudan Panellere Git</span>
@@ -206,11 +220,274 @@
 
   </main>
 
+  <!-- ==========================================================================
+       NVİ DEVLET DOĞRULAMALI BAYİ KAYIT MODALI (REGISTER MODAL/FORM)
+       ========================================================================== -->
+  <div class="modal-backdrop" id="modal-bayi-register" style="display: none;" onclick="if(event.target === this) closeBayiRegisterModal()">
+    <div class="modal-dialog" style="max-width: 640px; width: 92%; max-height: 90vh; overflow-y: auto;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h3 class="modal-title" style="margin: 0; font-size: 1.2rem; font-weight: 700; color: #0f172a;">Yeni Bayi Kayıt Başvurusu</h3>
+            <span style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; padding: 2px 8px; border-radius: 9999px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              %100 NVİ KPS Korumalı
+            </span>
+          </div>
+          <p class="modal-subtitle" style="margin: 4px 0 0; font-size: 0.82rem; color: #64748b;">
+            Sahte hesapları ve yetkisiz işlemleri engellemek için T.C. İçişleri Bakanlığı NVİ Kimlik Doğrulama sistemi devrededir.
+          </p>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="closeBayiRegisterModal()" aria-label="Kapat" style="background: none; border: none; font-size: 1.4rem; line-height: 1; cursor: pointer; color: #94a3b8;">✕</button>
+      </div>
+
+      <div id="bayi-register-alert" style="display: none; margin: 16px 20px 0; padding: 12px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 500;"></div>
+
+      <form id="form-bayi-register" onsubmit="handleBayiRegisterSubmit(event)" style="padding: 20px;">
+        <!-- Güvenlik Bilgilendirme Kartı -->
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 14px; margin-bottom: 18px; display: flex; gap: 10px; align-items: flex-start;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" style="flex-shrink: 0; margin-top: 2px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <div style="font-size: 0.78rem; color: #1e40af; line-height: 1.45;">
+            <strong>Devlet (NVİ) Doğrulama Zorunluluğu:</strong> Girilen Ad, Soyad, 11 haneli T.C. Kimlik No ve 4 haneli Doğum Yılı doğrudan devlet nüfus kayıtlarıyla eşleştirilir. Bilgiler uyuşmadığı takdirde kayıt anında iptal edilir.
+          </div>
+        </div>
+
+        <!-- 1. KISIM: YETKİLİ KİMLİK BİLGİLERİ (Zorunlu 4 Alan) -->
+        <div style="font-size: 0.8rem; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
+          1. Bayi Yetkilisi Kimlik Bilgileri (NVİ KPS)
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div class="input-group" style="margin: 0;">
+            <label for="bayi-reg-ad" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #1e293b;">
+              Ad <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="bayi-reg-ad" name="ad" placeholder="Örn: Ahmet" required autocomplete="given-name" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem;">
+          </div>
+          <div class="input-group" style="margin: 0;">
+            <label for="bayi-reg-soyad" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #1e293b;">
+              Soyad <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="bayi-reg-soyad" name="soyad" placeholder="Örn: Yılmaz" required autocomplete="family-name" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem;">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px;">
+          <div class="input-group" style="margin: 0;">
+            <label for="bayi-reg-tc" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #1e293b;">
+              TC Kimlik No <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="bayi-reg-tc" name="tcKimlikNo" maxlength="11" pattern="[0-9]{11}" placeholder="11 Haneli T.C. No" required autocomplete="off" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem; font-family: monospace;">
+          </div>
+          <div class="input-group" style="margin: 0;">
+            <label for="bayi-reg-dogum-yili" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #1e293b;">
+              Doğum Yılı (4 Hane) <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="bayi-reg-dogum-yili" name="dogumYili" maxlength="4" pattern="[0-9]{4}" placeholder="Örn: 1990" required autocomplete="bday-year" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem; font-family: monospace;">
+          </div>
+        </div>
+
+        <!-- 2. KISIM: FİRMA VE GİRİŞ BİLGİLERİ -->
+        <div style="font-size: 0.8rem; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
+          2. Bayi Firma ve Giriş Bilgileri
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div class="input-group" style="margin: 0;">
+            <label for="bayi-reg-firm-name" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #1e293b;">
+              Firma / Bayi Adı <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="bayi-reg-firm-name" name="firmName" placeholder="Örn: Özkan Otomotiv" required style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem;">
+          </div>
+          <div class="input-group" style="margin: 0;">
+            <label for="bayi-reg-subdomain" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #1e293b;">
+              Subdomain Tercihi <span style="color: #ef4444;">*</span>
+            </label>
+            <div style="display: flex; align-items: center;">
+              <input type="text" id="bayi-reg-subdomain" name="subdomainPrefix" placeholder="ozkanoto" required style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-right: none; border-radius: 6px 0 0 6px; font-size: 0.88rem;">
+              <span style="background: #f1f5f9; border: 1px solid #cbd5e1; border-left: none; padding: 9px 10px; font-size: 0.8rem; color: #64748b; border-radius: 0 6px 6px 0; white-space: nowrap;">.sistem.com</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div class="input-group" style="margin: 0;">
+            <label for="bayi-reg-email" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #1e293b;">
+              Yönetici E-posta <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="email" id="bayi-reg-email" name="email" placeholder="admin@ozkanoto.com" required autocomplete="email" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem;">
+          </div>
+          <div class="input-group" style="margin: 0;">
+            <label for="bayi-reg-password" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #1e293b;">
+              Yönetici Şifresi <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="password" id="bayi-reg-password" name="password" minlength="6" placeholder="En az 6 karakter" required autocomplete="new-password" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem;">
+          </div>
+        </div>
+
+        <div class="input-group" style="margin-bottom: 20px;">
+          <label for="bayi-reg-phone" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #1e293b;">
+            İletişim Telefonu <span style="color: #ef4444;">*</span>
+          </label>
+          <input type="tel" id="bayi-reg-phone" name="phone" placeholder="Örn: 0555 123 45 67" required autocomplete="tel" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem;">
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 16px;">
+          <button type="button" onclick="closeBayiRegisterModal()" style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px 18px; border-radius: 6px; font-weight: 600; color: #475569; cursor: pointer; font-size: 0.88rem;">
+            Vazgeç
+          </button>
+          <button type="submit" id="btn-submit-bayi-register" style="background: #2563eb; border: none; padding: 10px 22px; border-radius: 6px; font-weight: 700; color: #ffffff; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 0.88rem; box-shadow: 0 2px 4px rgba(37,99,235,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>NVİ ile Doğrula ve Kaydı Tamamla</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- API İstemcisi & Kimlik Doğrulama Köprüsü -->
   <script src="assets/js/api.js"></script>
 
   <!-- JavaScript Backend Entegrasyonu -->
   <script>
+    function openBayiRegisterModal() {
+      const modal = document.getElementById('modal-bayi-register');
+      if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function closeBayiRegisterModal() {
+      const modal = document.getElementById('modal-bayi-register');
+      if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+      const alertBox = document.getElementById('bayi-register-alert');
+      if (alertBox) alertBox.style.display = 'none';
+    }
+
+    async function handleBayiRegisterSubmit(event) {
+      event.preventDefault();
+      const alertBox = document.getElementById('bayi-register-alert');
+      const submitBtn = document.getElementById('btn-submit-bayi-register');
+
+      // 1. Form Verilerini Toplama
+      const ad = (document.getElementById('bayi-reg-ad').value || '').trim();
+      const soyad = (document.getElementById('bayi-reg-soyad').value || '').trim();
+      const tcKimlikNo = (document.getElementById('bayi-reg-tc').value || '').trim();
+      const dogumYili = (document.getElementById('bayi-reg-dogum-yili').value || '').trim();
+
+      const firmName = (document.getElementById('bayi-reg-firm-name').value || '').trim();
+      const subdomainPrefix = (document.getElementById('bayi-reg-subdomain').value || '').trim();
+      const email = (document.getElementById('bayi-reg-email').value || '').trim();
+      const password = (document.getElementById('bayi-reg-password').value || '').trim();
+      const phone = (document.getElementById('bayi-reg-phone').value || '').trim();
+
+      // Prompt 1. ADIM Kuralı: Form verilerini toplarken bu 4 verinin (Ad, Soyad, TC Kimlik No, Doğum Yılı) boş olmadığından emin ol.
+      if (!ad || !soyad || !tcKimlikNo || !dogumYili) {
+        if (alertBox) {
+          alertBox.style.display = 'block';
+          alertBox.style.background = '#fef2f2';
+          alertBox.style.color = '#b91c1c';
+          alertBox.style.border = '1px solid #f87171';
+          alertBox.innerHTML = '<strong>Hata:</strong> Devlet (NVİ) doğrulaması için Ad, Soyad, TC Kimlik No ve Doğum Yılı alanları boş bırakılamaz!';
+        }
+        return;
+      }
+
+      if (tcKimlikNo.length !== 11 || !/^[0-9]{11}$/.test(tcKimlikNo)) {
+        if (alertBox) {
+          alertBox.style.display = 'block';
+          alertBox.style.background = '#fef2f2';
+          alertBox.style.color = '#b91c1c';
+          alertBox.style.border = '1px solid #f87171';
+          alertBox.innerHTML = '<strong>Hata:</strong> TC Kimlik Numarası 11 haneli rakamlardan oluşmalıdır.';
+        }
+        return;
+      }
+
+      if (dogumYili.length !== 4 || !/^[0-9]{4}$/.test(dogumYili)) {
+        if (alertBox) {
+          alertBox.style.display = 'block';
+          alertBox.style.background = '#fef2f2';
+          alertBox.style.color = '#b91c1c';
+          alertBox.style.border = '1px solid #f87171';
+          alertBox.innerHTML = '<strong>Hata:</strong> Doğum Yılı sadece 4 haneli yıl olmalıdır (Örn: 1990).';
+        }
+        return;
+      }
+
+      if (alertBox) alertBox.style.display = 'none';
+      const origBtnText = submitBtn ? submitBtn.innerHTML : 'Kaydet';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Devlet (NVİ) Doğrulanıyor...';
+      }
+
+      try {
+        const payload = {
+          ad,
+          soyad,
+          tcKimlikNo,
+          dogumYili,
+          firmName,
+          companyName: firmName,
+          subdomainPrefix,
+          email,
+          password,
+          phone
+        };
+
+        const res = await apiFetch('/auth/register-bayi', {
+          method: 'POST',
+          body: payload
+        });
+
+        if (res && res.success) {
+          if (alertBox) {
+            alertBox.style.display = 'block';
+            alertBox.style.background = '#ecfdf5';
+            alertBox.style.color = '#065f46';
+            alertBox.style.border = '1px solid #6ee7b7';
+            alertBox.innerHTML = '<strong>Tebrikler!</strong> Kimlik bilgileriniz NVİ tarafından onaylandı ve bayi hesabınız oluşturuldu. Yönlendiriliyorsunuz...';
+          }
+          document.getElementById('form-bayi-register').reset();
+          if (res.token) {
+            localStorage.setItem('token', res.token);
+            if (res.user) localStorage.setItem('user', JSON.stringify(res.user));
+          }
+          setTimeout(() => {
+            window.location.href = 'bayi.html';
+          }, 1500);
+        } else {
+          // Prompt 3. KURAL: Eğer NVİ'den dönen sonuç false ise... 400 Bad Request: Girdiğiniz kimlik bilgileri devlet kayıtlarıyla uyuşmuyor.
+          const errorMsg = (res && res.message) ? res.message : 'Girdiğiniz kimlik bilgileri devlet kayıtlarıyla uyuşmuyor.';
+          if (alertBox) {
+            alertBox.style.display = 'block';
+            alertBox.style.background = '#fef2f2';
+            alertBox.style.color = '#b91c1c';
+            alertBox.style.border = '1px solid #f87171';
+            alertBox.innerHTML = `<strong>Doğrulama Başarısız:</strong> ${errorMsg}`;
+          }
+        }
+      } catch (err) {
+        if (alertBox) {
+          alertBox.style.display = 'block';
+          alertBox.style.background = '#fef2f2';
+          alertBox.style.color = '#b91c1c';
+          alertBox.style.border = '1px solid #f87171';
+          alertBox.innerHTML = `<strong>Hata:</strong> ${err.message || 'Bağlantı hatası oluştu.'}`;
+        }
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = origBtnText;
+        }
+      }
+    }
+
     // Test bilgilerini tek tıkla forma doldurma yardımcısı
     function fillTestCreds(email, password) {
       document.getElementById('email').value = email;

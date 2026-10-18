@@ -818,6 +818,35 @@
             </div>
           </div>
 
+          <!-- NVİ Doğrulama Kartı -->
+          <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 12px; margin: 12px 0; font-size: 0.78rem; color: #1e40af;">
+            <strong>🔒 Devlet (NVİ) Doğrulaması:</strong> Sahte bayilikleri önlemek için yetkili kimlik bilgileri Nüfus ve Vatandaşlık İşleri KPS Public servisiyle anlık sorgulanır.
+          </div>
+
+          <!-- Yetkili Adı ve Soyadı -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" for="firm-owner-ad">Yetkili Adı <span style="color: #ef4444;">*</span></label>
+              <input type="text" class="form-input" id="firm-owner-ad" name="ad" placeholder="Örn: Mehmet" required>
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" for="firm-owner-soyad">Yetkili Soyadı <span style="color: #ef4444;">*</span></label>
+              <input type="text" class="form-input" id="firm-owner-soyad" name="soyad" placeholder="Örn: Demir" required>
+            </div>
+          </div>
+
+          <!-- Yetkili TC Kimlik No ve Doğum Yılı -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" for="firm-owner-tc">Yetkili TC Kimlik No <span style="color: #ef4444;">*</span></label>
+              <input type="text" class="form-input" id="firm-owner-tc" name="tcKimlikNo" maxlength="11" pattern="[0-9]{11}" placeholder="11 Haneli T.C. No" required style="font-family: monospace;">
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" for="firm-owner-dogum-yili">Doğum Yılı <span style="color: #ef4444;">*</span></label>
+              <input type="text" class="form-input" id="firm-owner-dogum-yili" name="dogumYili" maxlength="4" pattern="[0-9]{4}" placeholder="Örn: 1990" required style="font-family: monospace;">
+            </div>
+          </div>
+
           <!-- 3. Yönetici E-posta -->
           <div class="form-group">
             <label class="form-label" for="admin-email">Yönetici E-posta</label>
@@ -1194,6 +1223,18 @@
         const themeColor = document.getElementById('theme-color').value || '#2563eb';
         const adminPassword = document.getElementById('admin-password') ? document.getElementById('admin-password').value.trim() : '';
 
+        // NVİ Kimlik Bilgileri (Prompt 1. KURAL)
+        const ad = document.getElementById('firm-owner-ad') ? document.getElementById('firm-owner-ad').value.trim() : '';
+        const soyad = document.getElementById('firm-owner-soyad') ? document.getElementById('firm-owner-soyad').value.trim() : '';
+        const tcKimlikNo = document.getElementById('firm-owner-tc') ? document.getElementById('firm-owner-tc').value.trim() : '';
+        const dogumYili = document.getElementById('firm-owner-dogum-yili') ? document.getElementById('firm-owner-dogum-yili').value.trim() : '';
+
+        // Form verilerini toplarken bu 4 verinin boş olmadığından emin ol
+        if (!ad || !soyad || !tcKimlikNo || !dogumYili) {
+          showToast('Devlet (NVİ) doğrulaması için Yetkili Ad, Soyad, TC Kimlik No ve Doğum Yılı alanları zorunludur.', 'warning');
+          return;
+        }
+
         if (!firmName || !subdomainPrefix || !adminEmail || !adminPassword) {
           showToast('Lütfen firma adı, subdomain, yönetici e-posta ve şifresini eksiksiz girin.', 'warning');
           return;
@@ -1202,7 +1243,7 @@
         const submitBtn = document.getElementById('btn-create-firm');
         if (submitBtn) {
           submitBtn.disabled = true;
-          submitBtn.textContent = 'Kaydediliyor...';
+          submitBtn.textContent = 'NVİ Doğrulanıyor...';
         }
 
         try {
@@ -1213,7 +1254,11 @@
             subdomain: subdomainPrefix,
             adminEmail: adminEmail,
             adminPassword: adminPassword,
-            themeColor: themeColor
+            themeColor: themeColor,
+            ad: ad,
+            soyad: soyad,
+            tcKimlikNo: tcKimlikNo,
+            dogumYili: dogumYili
           };
 
           const res = await apiFetch('/admin/tenants', {
@@ -1222,7 +1267,7 @@
           });
 
           if (res && res.success) {
-            showToast('Firma başarıyla oluşturuldu', 'success');
+            showToast('Firma ve NVİ doğrulamalı yönetici başarıyla oluşturuldu', 'success');
             createFirmForm.reset();
             if (colorHexLabel) colorHexLabel.textContent = '#2563eb';
             if (themeColorInput) themeColorInput.value = '#2563eb';

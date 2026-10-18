@@ -7,6 +7,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
 const { verifyToken, checkSuperAdmin } = require('../middleware/auth');
+const { verifyTcKimlikWithNvi } = require('../lib/nviService');
 
 // Tüm süper admin rotalarına güvenlik katmanını uygula
 // Yalnızca geçerli token'a sahip ve rolü SUPER_ADMIN olan kullanıcılar erişebilir
@@ -56,14 +57,31 @@ router.get('/stats', async (req, res) => {
  */
 router.post('/tenants', async (req, res) => {
   try {
-    // 1. İstekten (req.body) firmName, subdomainPrefix, adminEmail, adminPassword ve themeColor verilerini al
-    const { firmName, subdomainPrefix, adminEmail, adminPassword, themeColor, name, subdomain } = req.body;
+    // 1. İstekten (req.body) verileri al
+    const { firmName, subdomainPrefix, adminEmail, adminPassword, themeColor, name, subdomain, ad, soyad, tcKimlikNo, dogumYili } = req.body;
 
     const resolvedFirmName = (firmName || name || '').trim();
     const resolvedSubdomain = (subdomainPrefix || subdomain || '').toLowerCase().trim();
     const cleanEmail = (adminEmail || '').toLowerCase().trim();
     const rawPassword = adminPassword ? String(adminPassword) : '';
     const cleanThemeColor = themeColor ? themeColor.trim() : '#2563eb';
+
+    // NVİ Kimlik Doğrulaması (Eğer TC veya yetkili kimlik bilgisi gönderildiyse)
+    if (tcKimlikNo || ad || soyad || dogumYili) {
+      if (!tcKimlikNo || !ad || !soyad || !dogumYili) {
+        return res.status(400).json({
+          success: false,
+          message: 'Devlet (NVİ) doğrulaması için Yetkili Ad, Soyad, TC Kimlik No ve Doğum Yılı alanları zorunludur.'
+        });
+      }
+      const isNviValid = await verifyTcKimlikWithNvi({ tcKimlikNo, ad, soyad, dogumYili });
+      if (!isNviValid) {
+        return res.status(400).json({
+          success: false,
+          message: 'Girdiğiniz kimlik bilgileri devlet kayıtlarıyla uyuşmuyor.'
+        });
+      }
+    }
 
     // Zorunlu Alan Doğrulamaları
     if (!resolvedFirmName || !resolvedSubdomain || !cleanEmail || !rawPassword) {

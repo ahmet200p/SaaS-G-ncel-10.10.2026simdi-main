@@ -249,8 +249,103 @@
 
     const cleanEndpoint = endpoint.replace('/api', '').split('?')[0];
 
+    // Helper: 11 Haneli TC Kimlik Algoritma Kontrolü (Hacker/Bot Filtresi)
+    function checkTcKimlikAlgorithm(tc) {
+      if (!tc) return false;
+      const str = String(tc).trim();
+      if (!/^[1-9][0-9]{10}$/.test(str)) return false;
+      const digits = str.split('').map(Number);
+      const oddSum = digits[0] + digits[2] + digits[4] + digits[6] + digits[8];
+      const evenSum = digits[1] + digits[3] + digits[5] + digits[7];
+      let digit10 = ((oddSum * 7) - evenSum) % 10;
+      if (digit10 < 0) digit10 += 10;
+      if (digit10 !== digits[9]) return false;
+      const sumFirst10 = digits.slice(0, 10).reduce((acc, val) => acc + val, 0);
+      return (sumFirst10 % 10) === digits[10];
+    }
+
+    // 0.1 POST /auth/register-bayi (NVİ KPS Public Doğrulamalı Bayi Kaydı)
+    if (cleanEndpoint === '/auth/register-bayi' && method === 'POST') {
+      const ad = (body.ad || '').trim();
+      const soyad = (body.soyad || '').trim();
+      const tcKimlikNo = (body.tcKimlikNo || '').trim();
+      const dogumYili = (body.dogumYili || '').trim();
+
+      // Prompt 1. KURAL: Form verilerini toplarken bu 4 verinin boş olmadığından emin ol
+      if (!ad || !soyad || !tcKimlikNo || !dogumYili) {
+        return { success: false, status: 400, message: 'Bayi yetkilisi için Ad, Soyad, TC Kimlik No ve Doğum Yılı alanlarının doldurulması zorunludur.' };
+      }
+
+      // Prompt 3. KURAL: Eğer NVİ'den dönen sonuç false ise... 400 Bad Request: Girdiğiniz kimlik bilgileri devlet kayıtlarıyla uyuşmuyor.
+      if (!checkTcKimlikAlgorithm(tcKimlikNo) || !/^[0-9]{4}$/.test(dogumYili)) {
+        return { success: false, status: 400, message: 'Girdiğiniz kimlik bilgileri devlet kayıtlarıyla uyuşmuyor.' };
+      }
+
+      const email = (body.email || '').toLowerCase().trim();
+      const password = (body.password || '').trim();
+      const firmName = (body.firmName || body.companyName || `${ad} Otomotiv`).trim();
+      const subdomainPrefix = (body.subdomainPrefix || firmName.toLowerCase().replace(/[^a-z0-9]/g, '')).toLowerCase().trim();
+
+      if (!email || !password) {
+        return { success: false, status: 400, message: 'E-posta ve şifre zorunludur.' };
+      }
+
+      const existingUser = store.users.find(u => u.email.toLowerCase() === email);
+      if (existingUser) {
+        return { success: false, status: 400, message: 'Bu e-posta adresi ile kayıtlı kullanıcı zaten mevcut.' };
+      }
+
+      const newTenant = {
+        id: `tenant-${subdomainPrefix}`,
+        name: firmName,
+        subdomain: subdomainPrefix,
+        themeColor: '#2563eb',
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        _count: { tenantProducts: 0, customerProfiles: 0, orders: 0 }
+      };
+
+      const newUser = {
+        id: `usr-${Date.now().toString(36)}`,
+        email,
+        password,
+        name: `${ad.toLocaleUpperCase('tr-TR')} ${soyad.toLocaleUpperCase('tr-TR')}`,
+        role: 'TENANT_ADMIN',
+        tenantId: newTenant.id,
+        createdAt: new Date().toISOString()
+      };
+
+      if (!store.tenants) store.tenants = [];
+      store.tenants.push(newTenant);
+      store.users.push(newUser);
+      saveMockStore(store);
+
+      const mockToken = `standalone_jwt_bayi_${Date.now()}`;
+      return {
+        success: true,
+        status: 201,
+        message: 'NVİ doğrulamalı bayi hesabınız başarıyla oluşturuldu.',
+        token: mockToken,
+        user: newUser,
+        tenant: newTenant,
+        data: { token: mockToken, user: newUser, tenant: newTenant }
+      };
+    }
+
     // 0. POST /auth/register
     if (cleanEndpoint === '/auth/register' && method === 'POST') {
+      // NVİ kontrolü
+      const rawTc = body.tcKimlikNo || body.tcNo || (body.taxNumber && String(body.taxNumber).length === 11 ? body.taxNumber : null);
+      const rawDogumYili = body.dogumYili || body.birthYear;
+      if (rawTc || rawDogumYili || body.ad || body.soyad) {
+        if (!body.ad || !body.soyad || !rawTc || !rawDogumYili) {
+          return { success: false, status: 400, message: 'Devlet (NVİ) kimlik doğrulaması için Ad, Soyad, TC Kimlik No ve Doğum Yılı alanlarının doldurulması zorunludur.' };
+        }
+        if (!checkTcKimlikAlgorithm(rawTc) || !/^[0-9]{4}$/.test(String(rawDogumYili).trim())) {
+          return { success: false, status: 400, message: 'Girdiğiniz kimlik bilgileri devlet kayıtlarıyla uyuşmuyor.' };
+        }
+      }
+
       const email = (body.email || '').toLowerCase().trim();
       const password = (body.password || '').trim();
       const role = body.role || 'CUSTOMER';

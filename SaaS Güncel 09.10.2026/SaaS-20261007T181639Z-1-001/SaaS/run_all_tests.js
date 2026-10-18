@@ -2,7 +2,7 @@ const fs = require('fs');
 const { spawnSync } = require('child_process');
 const path = require('path');
 
-const { startServer } = require('./dev_pg_server');
+const { startServer } = require('./backend-api/dev_pg_server');
 
 async function main() {
   await startServer();

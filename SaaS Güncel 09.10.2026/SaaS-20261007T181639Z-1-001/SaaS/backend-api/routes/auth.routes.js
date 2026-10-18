@@ -12,170 +12,23 @@ const config = require('../config');
 const { verifyToken, isSuperAdmin, checkSuperAdmin } = require('../middleware/auth');
 const { loginLimiter, registerLimiter, passwordResetLimiter } = require('../middleware/rateLimiter');
 
+const authController = require('../controllers/authController');
+
 /**
  * @route   POST /api/auth/register
- * @desc    Yeni müşteri/kullanıcı kaydı (Herkese açık vitrin kaydı)
+ * @desc    Yeni müşteri/kullanıcı/otoservis kaydı (NVİ TC Kimlik Doğrulamalı)
  * @access  Public
  */
-router.post('/register', registerLimiter, async (req, res) => {
-  try {
-    const {
-      email,
-      password,
-      // GÜVENLİK (Mass Assignment Önleme): role parametresi KESİNLİKLE kabul edilmez, dışarıdan gelse bile yok sayılır.
-      tenantId,
-      subdomain,
-      fullName,
-      name,
-      phone,
-      customerType,
-      companyName,
-      taxNumber,
-      address
-    } = req.body;
+router.post('/register', registerLimiter, authController.register);
 
-    // 1. Girdi Kontrolleri
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'E-posta ve şifre alanları zorunludur.'
-      });
-    }
+/**
+ * @route   POST /api/auth/register-bayi
+ * @desc    Yeni bayi başvurusu ve kaydı (NVİ TC Kimlik Doğrulamalı)
+ * @access  Public
+ */
+router.post('/register-bayi', registerLimiter, authController.registerBayi);
 
-    if (password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: 'Şifre en az 6 karakter uzunluğunda olmalıdır.'
-      });
-    }
-
-    const cleanEmail = email.toLowerCase().trim();
-
-    // 2. E-posta tekillik kontrolü
-    const existingUser = await prisma.user.findUnique({
-      where: { email: cleanEmail }
-    });
-
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: 'Bu e-posta adresi ile kayıtlı bir kullanıcı zaten mevcut.'
-      });
-    }
-
-    // 3. Hedef Bayi (Tenant) Belirleme
-    let targetTenantId = tenantId || null;
-    if (!targetTenantId) {
-      const subToFind = subdomain || 'ahmetoto';
-      const tenantMatch = await prisma.tenant.findUnique({
-        where: { subdomain: subToFind }
-      });
-      if (tenantMatch) {
-        targetTenantId = tenantMatch.id;
-      } else {
-        const defaultTenant = await prisma.tenant.findFirst({
-          where: { isActive: true }
-        });
-        targetTenantId = defaultTenant ? defaultTenant.id : null;
-      }
-    }
-
-    // 4. Şifrenin bcrypt ile hashlenmesi
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-    // 5. Rol ve Müşteri Tipi Belirleme (Mass Assignment Koruması)
-    // 1. ADIM: Herkese açık kayıt uç noktasında rol parametresi dışarıdan ASLA alınmaz; doğrudan CUSTOMER olarak sabitlenir (hardcode).
-    const assignedRole = 'CUSTOMER';
-
-    // 2. ADIM: Tamirci (B2B MECHANIC) vs Bireysel (B2C RETAIL) Ayrımı
-    // Bu ayrım yalnızca CustomerProfile tablosundaki detayları ve onay sürecini etkiler; kullanıcının erişim yetkisi (Role: CUSTOMER) değişmez.
-    const validTypes = ['MECHANIC', 'RETAIL'];
-    const assignedCustomerType = customerType && validTypes.includes(String(customerType).toUpperCase())
-      ? String(customerType).toUpperCase()
-      : 'MECHANIC';
-
-    const displayName = (fullName || name || cleanEmail.split('@')[0]).trim();
-    const finalCompanyName = (companyName || '').trim() ||
-      (assignedCustomerType === 'MECHANIC' ? `${displayName} Oto Servis` : displayName);
-
-    // 6. Prisma Transaction ile User ve CustomerProfile kaydı
-    const result = await prisma.$transaction(async (tx) => {
-      const newUser = await tx.user.create({
-        data: {
-          email: cleanEmail,
-          password: hashedPassword,
-          role: 'CUSTOMER', // GÜVENLİK: Dışarıdan yetki yükseltme engellenmiştir.
-          name: displayName,
-          tenantId: targetTenantId
-        }
-      });
-
-      let profile = null;
-      if (assignedRole === 'CUSTOMER' && targetTenantId) {
-        profile = await tx.customerProfile.create({
-          data: {
-            userId: newUser.id,
-            tenantId: targetTenantId,
-            companyName: finalCompanyName,
-            phone: (phone || '').trim(),
-            customerType: assignedCustomerType,
-            taxNumber: (taxNumber || '').trim() || null,
-            address: (address || '').trim() || null,
-            status: assignedCustomerType === 'MECHANIC' ? 'PENDING_APPROVAL' : 'APPROVED',
-            discountRate: 0.0,
-            balance: 0.0,
-            currentBalance: 0.0
-          }
-        });
-      }
-
-      return { user: newUser, profile };
-    });
-
-    const isMechanic = assignedCustomerType === 'MECHANIC';
-
-    // JWT token üretimi
-    const effectiveTenantId = result.user.tenantId;
-    const token = jwt.sign(
-      { id: result.user.id, email: result.user.email, role: result.user.role, tenantId: effectiveTenantId },
-      config.JWT_SECRET,
-      { expiresIn: config.JWT_EXPIRES_IN }
-    );
-
-    const userPayload = {
-      id: result.user.id,
-      email: result.user.email,
-      name: result.user.name,
-      role: result.user.role,
-      tenantId: effectiveTenantId,
-      customerProfile: result.profile
-    };
-
-    return res.status(201).json({
-      success: true,
-      message: isMechanic
-        ? 'Otoservis kayıt başvurunuz başarıyla alındı. Bayi onayının ardından iskontolu toptan alışveriş yapabilirsiniz.'
-        : 'Bireysel müşteri kaydınız başarıyla tamamlandı. Şimdi giriş yapabilirsiniz.',
-      customerType: assignedCustomerType,
-      token,
-      user: userPayload,
-      data: {
-        token,
-        customerType: assignedCustomerType,
-        user: userPayload
-      }
-    });
-
-  } catch (error) {
-    console.error('[AUTH_REGISTER_ERROR]:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Kayıt işlemi sırasında bir sunucu hatası oluştu.',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
+router.verifyNviTcKimlik = authController.verifyNviTcKimlik;
 
 // ============================================================================
 // 3. ADIM: YETKİLİ OLUŞTURMA ROTALARININ (ADMIN CREATION) GÜVENLİĞE ALINMASI

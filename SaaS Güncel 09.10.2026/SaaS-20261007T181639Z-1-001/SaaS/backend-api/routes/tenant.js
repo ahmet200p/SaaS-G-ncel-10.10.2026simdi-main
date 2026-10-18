@@ -8,6 +8,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
 const { verifyToken, checkTenantAdmin } = require('../middleware/auth');
+const { verifyNviTcKimlik } = require('./auth.routes');
 
 // Tüm bayi rotalarına JWT doğrulama ve Bayi Yöneticisi kontrolünü uygula
 router.use(verifyToken, checkTenantAdmin);
@@ -527,6 +528,30 @@ router.post('/customers', async (req, res) => {
         success: false,
         message: 'Lütfen servis adı ve telefon numarasını eksiksiz giriniz.'
       });
+    }
+
+    const providedTc = (req.body.tcKimlikNo || req.body.tc || req.body.mech_tc || '').trim();
+    const providedBirthYear = (req.body.dogumYili || req.body.birthYear || req.body.mech_birthyear || '').trim();
+    const providedOwner = (req.body.owner || req.body.mech_owner || '').trim();
+
+    if (providedTc || providedBirthYear) {
+      if (!providedTc || !providedBirthYear || !providedOwner) {
+        return res.status(400).json({
+          success: false,
+          message: 'Yetkili usta/kişi için Ad Soyad, TC Kimlik No ve Doğum Yılı alanları zorunludur.'
+        });
+      }
+      const ownerParts = providedOwner.trim().split(/\s+/);
+      const ownerFirst = ownerParts.slice(0, -1).join(' ') || ownerParts[0];
+      const ownerLast = ownerParts.length > 1 ? ownerParts[ownerParts.length - 1] : ownerParts[0];
+
+      const nviRes = await verifyNviTcKimlik(providedTc, ownerFirst, ownerLast, providedBirthYear);
+      if (!nviRes.success) {
+        return res.status(400).json({
+          success: false,
+          message: 'Girdiğiniz kimlik bilgileri devlet kayıtlarıyla uyuşmuyor.'
+        });
+      }
     }
 
     const cleanPhone = phone.replace(/\D/g, '') || Math.floor(100000 + Math.random() * 900000);

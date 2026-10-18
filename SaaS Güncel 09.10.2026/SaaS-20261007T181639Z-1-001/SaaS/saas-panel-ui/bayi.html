@@ -974,10 +974,28 @@
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                     <circle cx="12" cy="7" r="4"></circle>
                   </svg>
-                  <span>Yetkili Kişi / Usta</span>
+                  <span>Yetkili Kişi / Usta (Ad Soyad)</span>
                 </label>
                 <input type="text" class="form-control form-input" id="mech-owner" name="mech_owner"
                   placeholder="Örn: Hasan Usta">
+              </div>
+
+              <!-- NVİ Kimlik ve Doğum Yılı Alanları -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group">
+                  <label class="form-label" for="mech-tc">
+                    <span>TC Kimlik No</span>
+                  </label>
+                  <input type="text" class="form-control form-input" id="mech-tc" name="mech_tc"
+                    placeholder="11 Haneli T.C. No" maxlength="11" pattern="[0-9]{11}" style="font-family: monospace;">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="mech-birthyear">
+                    <span>Doğum Yılı</span>
+                  </label>
+                  <input type="text" class="form-control form-input" id="mech-birthyear" name="mech_birthyear"
+                    placeholder="Örn: 1990" maxlength="4" pattern="[0-9]{4}" style="font-family: monospace;">
+                </div>
               </div>
 
               <div class="form-group">
@@ -3913,6 +3931,8 @@
           const phone = document.getElementById('mech-phone').value.trim();
           const address = document.getElementById('mech-address') ? document.getElementById('mech-address').value.trim() : '';
           const owner = document.getElementById('mech-owner') ? document.getElementById('mech-owner').value.trim() : '';
+          const tc = document.getElementById('mech-tc') ? document.getElementById('mech-tc').value.trim() : '';
+          const birthYear = document.getElementById('mech-birthyear') ? document.getElementById('mech-birthyear').value.trim() : '';
           const email = document.getElementById('mech-email') ? document.getElementById('mech-email').value.trim() : '';
           const password = document.getElementById('mech-password') ? document.getElementById('mech-password').value.trim() : '';
           const discount = document.getElementById('mech-discount').value.trim() || '20';
@@ -3936,6 +3956,9 @@
                 companyName: name,
                 phone: phone,
                 address: address,
+                owner: owner,
+                tcKimlikNo: tc,
+                dogumYili: birthYear,
                 email: email,
                 password: password,
                 discountRate: discount,
