@@ -1,5 +1,5 @@
-const app = require('./app');
-const prisma = require('./lib/prisma');
+const app = require('./backend-api/app');
+const prisma = require('./backend-api/lib/prisma');
 
 async function runSettingsE2ETests() {
   console.log('====================================================');

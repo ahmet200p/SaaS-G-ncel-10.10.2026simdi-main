@@ -17,6 +17,7 @@ const authRoutes = require('./routes/auth.routes');
 const superAdminRoutes = require('./routes/superAdmin');
 const tenantRoutes = require('./routes/tenant');
 const storeRoutes = require('./routes/store');
+const catalogRoutes = require('./routes/catalog.routes');
 const securityHeaders = require('./middleware/security');
 const { tenantApiKeyInterceptor } = require('./middleware/tenantApiKey');
 
@@ -196,6 +197,11 @@ app.use('/api/tenant', tenantRoutes);
 // D. B2B Vitrin (Otoservis/Tamirci): İskonto hesaplanmış ürün listesi (finalPrice) ve sipariş verme (Transaction)
 // GET /api/store/products, POST /api/store/orders
 app.use('/api/store', storeRoutes);
+
+// E. Parts Catalogs: OE/OEM Numarası ile Parça Detayı Arama
+// GET /api/catalog/search-oe/:oeNumber
+app.use('/api/catalog', catalogRoutes);
+app.use('/catalog', catalogRoutes);
 
 // ----------------------------------------------------------------------------
 // 4. BULUNAMAYAN ROTA (404) VE MERKEZİ HATA YÖNETİMİ

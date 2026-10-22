@@ -560,6 +560,18 @@
         }
       }
 
+      // Organik Yönlendirme (Promotional Link): Eğer kullanıcı ?register=bayi veya ?action=register ile gelmişse kayıt modalını otomatik aç
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('action') === 'register' || urlParams.get('register') === 'bayi') {
+          setTimeout(() => {
+            if (typeof openBayiRegisterModal === 'function') {
+              openBayiRegisterModal();
+            }
+          }, 150);
+        }
+      } catch (e) {}
+
       // Şifremi Unuttum Bağlantısı
       const forgotLink = document.querySelector('.forgot-link');
       if (forgotLink) {

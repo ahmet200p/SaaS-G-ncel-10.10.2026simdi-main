@@ -27,12 +27,14 @@ async function runTests() {
 
   // 1. Türkçe Karakter Büyütme
   console.log('--- 1. Türkçe Büyük Harf ve Güvenlik Sanitization ---');
+  assert.strictEqual(formatTurkishUpper('İlçi'), 'İLÇİ', "İlçi kelimesi İLÇİ olarak dönüştürülmelidir");
   assert.strictEqual(formatTurkishUpper('ilker'), 'İLKER');
   assert.strictEqual(formatTurkishUpper('ışıl'), 'IŞIL');
   assert.strictEqual(formatTurkishUpper('çetin şahin'), 'ÇETİN ŞAHİN');
+  assert.strictEqual(formatTurkishUpper('ahmet hadi ilçi'), 'AHMET HADİ İLÇİ');
   assert.strictEqual(formatTurkishUpper('   ömer güler   '), 'ÖMER GÜLER');
   assert.strictEqual(formatTurkishUpper('<script>alert("hack")</script>ali'), 'ALİ');
-  console.log('  ✅ [PASS] i/İ, ı/I dönüşümleri ve XSS script temizleme başarılı.');
+  console.log('  ✅ [PASS] i/İ, ı/I, İlçi -> İLÇİ dönüşümleri ve XSS script temizleme başarılı.');
   passed++;
 
   // 2. Doğum Yılı Formatı (Kesinlikle 4 hane olmalı)
@@ -75,8 +77,31 @@ async function runTests() {
   console.log('  ✅ [PASS] 4 alandan herhangi biri eksik veya hatalı olduğunda kayıt kesinlikle bloke ediliyor.');
   passed++;
 
+  // 5. Hem Nesne Hem Sıralı Parametre Desteği & Türkçe Karakter ile Doğrulama
+  console.log('--- 5. Türkçe İsim (İlçi) ve Parametre Uyumluluk Testi ---');
+  const resObject = await verifyTcKimlikWithNvi({
+    tcKimlikNo: '10000000146',
+    ad: 'İlçi',
+    soyad: 'İlçi',
+    dogumYili: 1990
+  });
+  assert.strictEqual(resObject, true, 'Geçerli TC ve İlçi ismi doğrulanmalıdır');
+
+  const resPositional = await verifyTcKimlikWithNvi('10000000146', 'İlçi', 'İlçi', 1990);
+  assert.strictEqual(resPositional, true, 'Sıralı 4 parametre çağrısı başarıyla çalışmalıdır');
+
+  const resInvalidTc = await verifyTcKimlikWithNvi({
+    tcKimlikNo: '12345678901',
+    ad: 'İlçi',
+    soyad: 'İlçi',
+    dogumYili: 1990
+  });
+  assert.strictEqual(resInvalidTc, false, 'Geçersiz TC checksum derhal reddedilmelidir');
+  console.log('  ✅ [PASS] İlçi -> İLÇİ dönüşümü, nesne ve sıralı parametre çağrıları başarıyla doğrulandı.');
+  passed++;
+
   console.log('\n====================================================');
-  console.log(`🎉 TOPLAM ${passed}/4 ADIMDA TÜM NVİ GÜVENLİK TESTLERİ BAŞARIYLA GEÇTİ!`);
+  console.log(`🎉 TOPLAM ${passed}/5 ADIMDA TÜM NVİ GÜVENLİK TESTLERİ BAŞARIYLA GEÇTİ!`);
   console.log('====================================================');
 }
 

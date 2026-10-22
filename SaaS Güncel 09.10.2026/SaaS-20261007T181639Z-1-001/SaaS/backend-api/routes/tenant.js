@@ -188,6 +188,22 @@ const handleCreateOrUpdateProduct = async (req, res) => {
       imagePaths = [req.body.imageUrl];
     }
 
+    // Katalogdan gelen şemalar ve görseller (Katalog Görselleri Önizleme Alanı)
+    if (req.body.catalogImages) {
+      try {
+        const catImgs = typeof req.body.catalogImages === 'string'
+          ? JSON.parse(req.body.catalogImages)
+          : req.body.catalogImages;
+        if (Array.isArray(catImgs)) {
+          imagePaths = [...imagePaths, ...catImgs.filter(u => typeof u === 'string' && u.trim().length > 0)];
+        }
+      } catch (e) {
+        if (typeof req.body.catalogImages === 'string' && req.body.catalogImages.trim()) {
+          imagePaths.push(req.body.catalogImages.trim());
+        }
+      }
+    }
+
     const primaryImage = imagePaths.length > 0 ? imagePaths[0] : (req.body.imageUrl || null);
     const imagesJson = imagePaths.length > 0 ? JSON.stringify(imagePaths) : (req.body.images || null);
 
@@ -463,6 +479,20 @@ const handleUpdateTenantProduct = async (req, res) => {
     } else if (req.file) {
       updateImages = [`/uploads/${req.file.filename}`];
     }
+    if (req.body.catalogImages) {
+      try {
+        const catImgs = typeof req.body.catalogImages === 'string'
+          ? JSON.parse(req.body.catalogImages)
+          : req.body.catalogImages;
+        if (Array.isArray(catImgs)) {
+          updateImages = [...updateImages, ...catImgs.filter(u => typeof u === 'string' && u.trim().length > 0)];
+        }
+      } catch (e) {
+        if (typeof req.body.catalogImages === 'string' && req.body.catalogImages.trim()) {
+          updateImages.push(req.body.catalogImages.trim());
+        }
+      }
+    }
     if (updateImages.length > 0) {
       productUpdates.imageUrl = updateImages[0];
       productUpdates.images = JSON.stringify(updateImages);
@@ -546,7 +576,8 @@ router.post('/customers', async (req, res) => {
       const ownerLast = ownerParts.length > 1 ? ownerParts[ownerParts.length - 1] : ownerParts[0];
 
       const nviRes = await verifyNviTcKimlik(providedTc, ownerFirst, ownerLast, providedBirthYear);
-      if (!nviRes.success) {
+      const isNviValid = (nviRes && typeof nviRes === 'object') ? nviRes.success : Boolean(nviRes);
+      if (!isNviValid) {
         return res.status(400).json({
           success: false,
           message: 'Girdiğiniz kimlik bilgileri devlet kayıtlarıyla uyuşmuyor.'

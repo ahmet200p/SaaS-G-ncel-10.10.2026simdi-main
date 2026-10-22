@@ -524,6 +524,52 @@
   </main>
 
   <!-- ==========================================================================
+       5. ADIM: FOOTER VE SAAS ORGANİK BAYİ KAZANIM ROZETİ (PROMOTIONAL BADGE)
+       ========================================================================== -->
+  <footer class="store-footer" id="store-main-footer">
+    <div class="store-footer-container">
+      <div class="store-footer-content">
+        
+        <!-- Sol Taraf: Telif Hakkı ve Bayi Bilgisi -->
+        <div class="store-footer-left">
+          <div class="footer-copyright">
+            <span class="copyright-icon">©</span>
+            <span id="footer-year">2026</span>
+            <strong id="footer-dealer-name">Ahmet Oto Yedek Parça</strong>.
+            <span class="footer-subtext">Tüm hakları saklıdır. B2B Profesyonel Müşteri Vitrini.</span>
+          </div>
+        </div>
+
+        <!-- Sağ / Orta: Organik Bayi Kazanım Rozeti (SaaS Tanıtım Linki) -->
+        <div class="store-footer-right">
+          <div class="saas-infra-badge" id="saas-infra-badge" role="region" aria-label="SaaS Altyapı Rozeti">
+            <span class="saas-badge-prefix">
+              <svg class="saas-badge-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                <polyline points="2 17 12 22 22 17"></polyline>
+                <polyline points="2 12 12 17 22 12"></polyline>
+              </svg>
+              Altyapı: <strong class="saas-system-name" id="saas-system-brand-name">SaaS Platform</strong>
+            </span>
+            <span class="saas-badge-divider" aria-hidden="true">|</span>
+            <a href="http://localhost:5500/saas-panel-ui/login.html" 
+               target="_blank" 
+               rel="noopener noreferrer" 
+               referrerpolicy="strict-origin-when-cross-origin"
+               class="saas-badge-link" 
+               id="saas-partner-cta-link"
+               title="Siz de Kendi Yedek Parça B2B Sitenizi Kurun 🚀">
+              <span class="saas-link-text">Siz de Kendi Yedek Parça B2B Sitenizi Kurun</span>
+              <span class="saas-rocket-emoji" aria-hidden="true">🚀</span>
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==========================================================================
        4. ADIM: SEPET ÇEKMECESİ VE SİPARİŞİ TAMAMLAMA (CART & CHECKOUT)
        Sağdan açılan şık Çekmece (Offcanvas/Drawer), adet artırma/azaltma (+ -),
        'Toplam Tutar' ve 'Siparişi Onayla' butonu. SweetAlert2 Entegrasyonu.
@@ -1328,6 +1374,8 @@
                 const formatted = formatDealerName(t.name);
                 dealerNameEl.textContent = formatted;
                 document.title = `${formatted} | B2B Parça Vitrini`;
+                const footerDealerEl = document.getElementById('footer-dealer-name');
+                if (footerDealerEl) footerDealerEl.textContent = formatted;
               }
               if (t.logoUrl) {
                 dealerLogoImg.src = t.logoUrl;
@@ -1338,10 +1386,18 @@
                 document.documentElement.style.setProperty('--tenant-primary', t.themeColor);
               }
             } else if (dealerNameEl) {
-              dealerNameEl.textContent = formatDealerName('Ahmet Oto');
+              const defName = formatDealerName('Ahmet Oto');
+              dealerNameEl.textContent = defName;
+              const footerDealerEl = document.getElementById('footer-dealer-name');
+              if (footerDealerEl) footerDealerEl.textContent = defName;
             }
           } catch (e) {
-            if (dealerNameEl) dealerNameEl.textContent = formatDealerName('Ahmet Oto');
+            if (dealerNameEl) {
+              const defName = formatDealerName('Ahmet Oto');
+              dealerNameEl.textContent = defName;
+              const footerDealerEl = document.getElementById('footer-dealer-name');
+              if (footerDealerEl) footerDealerEl.textContent = defName;
+            }
           }
           return;
         }
@@ -1357,6 +1413,8 @@
             const formatted = formatDealerName(profile.tenant.name);
             dealerNameEl.textContent = formatted;
             document.title = `${formatted} | B2B Parça Vitrini`;
+            const footerDealerEl = document.getElementById('footer-dealer-name');
+            if (footerDealerEl) footerDealerEl.textContent = formatted;
           }
 
           if (profile.tenant && profile.tenant.logoUrl) {
@@ -2086,6 +2144,31 @@
       const btnHeaderCart = document.getElementById('btn-header-cart');
       if (btnHeaderCart) {
         btnHeaderCart.addEventListener('click', openCartDrawer);
+      }
+
+      // 5. ADIM: SaaS Organik Bayi Kazanım Rozeti (Promotional Badge)
+      setupSaasBadge();
+    }
+
+    function setupSaasBadge() {
+      // Telif yılını dinamik güncelle
+      const yearEl = document.getElementById('footer-year');
+      if (yearEl) {
+        yearEl.textContent = new Date().getFullYear();
+      }
+
+      // Rozet Linki Güvenlik & Davranış Güvencesi:
+      const saasLink = document.getElementById('saas-partner-cta-link');
+      if (saasLink) {
+        // Güvenlik: Reverse Tabnabbing Saldırısı Önleme (window.opener izolasyonu)
+        saasLink.setAttribute('target', '_blank');
+        saasLink.setAttribute('rel', 'noopener noreferrer');
+        saasLink.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+
+        // Dinamik yapılandırma (varsayılan: http://localhost:5500/saas-panel-ui/login.html)
+        if (window.SAAS_PANEL_LOGIN_URL) {
+          saasLink.href = window.SAAS_PANEL_LOGIN_URL;
+        }
       }
     }
 

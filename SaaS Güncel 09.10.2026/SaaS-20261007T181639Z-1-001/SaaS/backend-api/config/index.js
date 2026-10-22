@@ -46,6 +46,7 @@ const config = {
   DATABASE_URL: validatedDatabaseUrl,
   JWT_SECRET: validatedJwtSecret,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
+  PARTS_CATALOG_API_KEY: process.env.PARTS_CATALOG_API_KEY || null,
   RATE_LIMIT_WINDOW_MS: 15 * 60 * 1000, // 15 dakika
   RATE_LIMIT_MAX_ATTEMPTS: 10,           // Maksimum 10 deneme
   DEFAULT_VAT_RATE: 20.00,               // %20 Standart KDV Oranı

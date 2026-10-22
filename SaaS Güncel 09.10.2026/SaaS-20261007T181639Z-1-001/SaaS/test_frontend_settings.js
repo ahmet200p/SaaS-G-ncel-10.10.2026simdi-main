@@ -20,8 +20,12 @@ function runFrontendSettingsTests() {
     }
   }
 
-  const adminHtmlPath = path.join(__dirname, 'admin.html');
-  const indexHtmlPath = path.join(__dirname, 'index.html');
+  const adminHtmlPath = fs.existsSync(path.join(__dirname, 'admin.html'))
+    ? path.join(__dirname, 'admin.html')
+    : path.join(__dirname, 'saas-panel-ui', 'admin.html');
+  const indexHtmlPath = fs.existsSync(path.join(__dirname, 'index.html'))
+    ? path.join(__dirname, 'index.html')
+    : path.join(__dirname, 'saas-panel-ui', 'index.html');
 
   assert(fs.existsSync(adminHtmlPath), 'admin.html dosyası mevcut.');
   assert(fs.existsSync(indexHtmlPath), 'index.html dosyası mevcut.');
@@ -30,8 +34,10 @@ function runFrontendSettingsTests() {
   const indexContent = fs.readFileSync(indexHtmlPath, 'utf8');
 
   // 1. Form alanları ve id kontrolleri (setting-tecdoc-key, setting-tax-rate vb.)
-  assert(adminContent.includes('id="setting-tecdoc-key"'), 'TecDoc API Key için id="setting-tecdoc-key" mevcut.');
-  assert(adminContent.includes('id="setting-tecdoc-endpoint"'), 'TecDoc Endpoint için id="setting-tecdoc-endpoint" mevcut.');
+  assert(adminContent.includes('id="setting-tecdoc-key"'), 'Parts Catalogs / TecDoc API Key için id="setting-tecdoc-key" mevcut.');
+  assert(adminContent.includes('Parts Catalogs API Anahtarı'), 'Sistem Ayarları sekmesinde "Parts Catalogs API Anahtarı" başlığı mevcut.');
+  assert(!adminContent.includes('OEM-API-BD39DFA8-9AE9-4E7F-8B6D-3D1011BF973F'), 'PARTS_CATALOG_API_KEY frontend dosyasına hardcoded olarak ASLA yazılmamalıdır (Güvenlik Kuralı).');
+  assert(adminContent.includes('id="setting-tecdoc-endpoint"'), 'Sağlayıcı Endpoint için id="setting-tecdoc-endpoint" mevcut.');
   assert(adminContent.includes('id="setting-default-discount"'), 'B2B İskonto için id="setting-default-discount" mevcut.');
   assert(adminContent.includes('id="setting-tax-rate"'), 'KDV Oranı için id="setting-tax-rate" mevcut.');
   assert(adminContent.includes('id="setting-currency"'), 'Para Birimi için id="setting-currency" mevcut.');

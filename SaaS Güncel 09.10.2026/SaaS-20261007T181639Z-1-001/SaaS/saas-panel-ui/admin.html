@@ -678,8 +678,8 @@
           </div>
           <div class="settings-card-body">
             <div class="form-group">
-              <label for="setting-tecdoc-key" class="form-label" style="display: block; font-size: 0.84rem; font-weight: 600; color: var(--text-dark); margin-bottom: 6px;">TecDoc API Anahtarı (API Key)</label>
-              <input type="password" id="setting-tecdoc-key" class="form-input" style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-light); border-radius: 8px; font-size: 0.9rem;" placeholder="tc_live_89f02a4b872c91..." value="tc_live_demo_984182938472">
+              <label for="setting-tecdoc-key" class="form-label" style="display: block; font-size: 0.84rem; font-weight: 600; color: var(--text-dark); margin-bottom: 6px;">Parts Catalogs API Anahtarı</label>
+              <input type="password" id="setting-tecdoc-key" class="form-input" style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-light); border-radius: 8px; font-size: 0.9rem;" placeholder="API Anahtarı (.env üzerinden otomatik yüklenir)" value="">
             </div>
             <div class="form-group">
               <label for="setting-tecdoc-endpoint" class="form-label" style="display: block; font-size: 0.84rem; font-weight: 600; color: var(--text-dark); margin-bottom: 6px;">Sağlayıcı API Endpoint URL</label>
@@ -1684,7 +1684,10 @@
           const currencyEl = document.getElementById('setting-currency');
           const emailEl = document.getElementById('setting-admin-email');
 
-          if (keyEl && s.tecdocApiKey !== undefined && s.tecdocApiKey !== null) keyEl.value = s.tecdocApiKey;
+          if (keyEl) {
+            const apiVal = s.partsCatalogApiKey !== undefined ? s.partsCatalogApiKey : s.tecdocApiKey;
+            if (apiVal !== undefined && apiVal !== null) keyEl.value = apiVal;
+          }
           if (endpointEl && s.tecdocEndpoint) endpointEl.value = s.tecdocEndpoint;
           if (discountEl && s.defaultB2BDiscount !== undefined && s.defaultB2BDiscount !== null) discountEl.value = s.defaultB2BDiscount;
           if (vatEl && s.defaultTaxRate !== undefined && s.defaultTaxRate !== null) vatEl.value = s.defaultTaxRate;
@@ -1738,6 +1741,7 @@
 
           const payload = {
             tecdocApiKey: keyInput ? keyInput.value.trim() : '',
+            partsCatalogApiKey: keyInput ? keyInput.value.trim() : '',
             tecdocEndpoint: endpointInput ? endpointInput.value.trim() : '',
             defaultB2BDiscount: discountInput ? (parseFloat(discountInput.value) || 0) : 20.0,
             defaultTaxRate: vatInput ? (parseFloat(vatInput.value) || 0) : 20.0,
@@ -1760,7 +1764,10 @@
             if (pwdConfirmInput) pwdConfirmInput.value = '';
             if (res.data) {
               const s = res.data;
-              if (keyInput && s.tecdocApiKey !== undefined && s.tecdocApiKey !== null) keyInput.value = s.tecdocApiKey;
+              if (keyInput) {
+                const apiVal = s.partsCatalogApiKey !== undefined ? s.partsCatalogApiKey : s.tecdocApiKey;
+                if (apiVal !== undefined && apiVal !== null) keyInput.value = apiVal;
+              }
               if (endpointInput && s.tecdocEndpoint) endpointInput.value = s.tecdocEndpoint;
               if (discountInput && s.defaultB2BDiscount !== undefined) discountInput.value = s.defaultB2BDiscount;
               if (vatInput && s.defaultTaxRate !== undefined) vatInput.value = s.defaultTaxRate;

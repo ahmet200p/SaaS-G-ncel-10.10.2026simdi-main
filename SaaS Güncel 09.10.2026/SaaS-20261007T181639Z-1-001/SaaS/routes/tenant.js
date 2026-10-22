@@ -132,6 +132,21 @@ const handleCreateOrUpdateProduct = async (req, res) => {
       imagePaths = [req.body.imageUrl];
     }
 
+    if (req.body.catalogImages) {
+      try {
+        const catImgs = typeof req.body.catalogImages === 'string'
+          ? JSON.parse(req.body.catalogImages)
+          : req.body.catalogImages;
+        if (Array.isArray(catImgs)) {
+          imagePaths = [...imagePaths, ...catImgs.filter(u => typeof u === 'string' && u.trim().length > 0)];
+        }
+      } catch (e) {
+        if (typeof req.body.catalogImages === 'string' && req.body.catalogImages.trim()) {
+          imagePaths.push(req.body.catalogImages.trim());
+        }
+      }
+    }
+
     const primaryImage = imagePaths.length > 0 ? imagePaths[0] : (req.body.imageUrl || null);
     const imagesJson = imagePaths.length > 0 ? JSON.stringify(imagePaths) : (req.body.images || null);
 

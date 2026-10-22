@@ -173,6 +173,8 @@ const handleShutdown = async (signal) => {
 process.on('SIGTERM', () => handleShutdown('SIGTERM'));
 process.on('SIGINT', () => handleShutdown('SIGINT'));
 
-module.exports = server;
-module.exports.ensureInitialData = ensureInitialData;
-module.exports.bootstrap = bootstrap;
+module.exports = {
+  get server() { return server; },
+  ensureInitialData,
+  bootstrap
+};

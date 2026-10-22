@@ -652,9 +652,17 @@ router.get('/settings', async (req, res) => {
       });
     }
 
+    // Backend .env dosyasındaki PARTS_CATALOG_API_KEY ortam değişkenini dinamik ve güvenli olarak entegre et
+    const isCustomDbKey = settings.tecdocApiKey && settings.tecdocApiKey !== 'tc_live_demo_984182938472';
+    const effectiveApiKey = isCustomDbKey ? settings.tecdocApiKey : (process.env.PARTS_CATALOG_API_KEY || settings.tecdocApiKey || '');
+
     return res.status(200).json({
       success: true,
-      data: settings
+      data: {
+        ...settings,
+        tecdocApiKey: effectiveApiKey,
+        partsCatalogApiKey: effectiveApiKey
+      }
     });
   } catch (error) {
     console.error('[SUPER_ADMIN_GET_SETTINGS_ERROR]:', error);
@@ -675,6 +683,7 @@ router.put('/settings', async (req, res) => {
   try {
     const {
       tecdocApiKey,
+      partsCatalogApiKey,
       tecdocEndpoint,
       defaultB2BDiscount,
       defaultTaxRate,
@@ -684,8 +693,9 @@ router.put('/settings', async (req, res) => {
 
     const updateData = {};
 
-    if (tecdocApiKey !== undefined) {
-      updateData.tecdocApiKey = tecdocApiKey ? String(tecdocApiKey).trim() : null;
+    const incomingApiKey = partsCatalogApiKey !== undefined ? partsCatalogApiKey : tecdocApiKey;
+    if (incomingApiKey !== undefined) {
+      updateData.tecdocApiKey = incomingApiKey ? String(incomingApiKey).trim() : null;
     }
 
     if (tecdocEndpoint !== undefined) {
@@ -778,10 +788,16 @@ router.put('/settings', async (req, res) => {
       });
     }
 
+    const effectiveApiKey = (updateData.tecdocApiKey !== undefined ? updateData.tecdocApiKey : (process.env.PARTS_CATALOG_API_KEY || updatedSettings.tecdocApiKey)) || '';
+
     return res.status(200).json({
       success: true,
       message: 'Sistem ayarları ve yönetici hesabı başarıyla güncellendi.',
-      data: updatedSettings
+      data: {
+        ...updatedSettings,
+        tecdocApiKey: effectiveApiKey,
+        partsCatalogApiKey: effectiveApiKey
+      }
     });
 
   } catch (error) {

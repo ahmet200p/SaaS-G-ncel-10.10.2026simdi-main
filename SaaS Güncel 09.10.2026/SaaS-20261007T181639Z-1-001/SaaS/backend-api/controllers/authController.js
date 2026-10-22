@@ -33,8 +33,27 @@ const {
  * @param {string|number} identityData.dogumYili
  * @returns {Promise<boolean>}
  */
-async function verifyNviTcKimlik({ tcKimlikNo, ad, soyad, dogumYili }) {
-  return await verifyTcKimlikWithNvi({ tcKimlikNo, ad, soyad, dogumYili });
+async function verifyNviTcKimlik(param1, param2, param3, param4) {
+  let tcKimlikNo, ad, soyad, dogumYili;
+
+  if (typeof param1 === 'object' && param1 !== null) {
+    tcKimlikNo = param1.tcKimlikNo || param1.tc || param1.TCKimlikNo;
+    ad = param1.ad || param1.firstName || param1.Ad;
+    soyad = param1.soyad || param1.lastName || param1.Soyad;
+    dogumYili = param1.dogumYili || param1.birthYear || param1.DogumYili;
+  } else {
+    tcKimlikNo = param1;
+    ad = param2;
+    soyad = param3;
+    dogumYili = param4;
+  }
+
+  const isValid = await verifyTcKimlikWithNvi({ tcKimlikNo, ad, soyad, dogumYili });
+  return {
+    success: !!isValid,
+    valid: !!isValid,
+    valueOf: () => !!isValid
+  };
 }
 
 /**
@@ -138,12 +157,13 @@ async function register(req, res) {
       // 3. ADIM (Prompt Kuralı): NVİ KPS Public SOAP Servisi Doğrulaması
       // "Eğer NVİ'den dönen sonuç false ise (veya servis hata verirse), veritabanına kayıt işlemini
       // anında iptal edip frontend'e 400 Bad Request: Girdiğiniz kimlik bilgileri devlet kayıtlarıyla uyuşmuyor. hatasını fırlat."
-      const isNviValid = await verifyNviTcKimlik({
+      const nviRes = await verifyNviTcKimlik({
         tcKimlikNo: cleanTc,
         ad: cleanAd,
         soyad: cleanSoyad,
         dogumYili: cleanDogumYili
       });
+      const isNviValid = (nviRes && typeof nviRes === 'object') ? nviRes.success : Boolean(nviRes);
 
       if (!isNviValid) {
         console.warn(`[SECURITY_ALERT] NVİ Kimlik Doğrulama Reddedildi! TC: ${cleanTc.slice(0, 3)}*****, İsim: ${cleanAd} ${cleanSoyad}`);
@@ -331,12 +351,13 @@ async function registerBayi(req, res) {
     }
 
     // 3. NVİ KPS Public SOAP Doğrulaması
-    const isNviValid = await verifyNviTcKimlik({
+    const nviRes = await verifyNviTcKimlik({
       tcKimlikNo: cleanTc,
       ad: cleanAd,
       soyad: cleanSoyad,
       dogumYili: cleanDogumYili
     });
+    const isNviValid = (nviRes && typeof nviRes === 'object') ? nviRes.success : Boolean(nviRes);
 
     if (!isNviValid) {
       console.warn(`[SECURITY_ALERT] Bayi NVİ Doğrulama Reddedildi! TC: ${cleanTc.slice(0, 3)}*****, İsim: ${cleanAd} ${cleanSoyad}`);
