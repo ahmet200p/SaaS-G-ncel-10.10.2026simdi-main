@@ -61,7 +61,8 @@ const allowedOrigins = new Set([
   'http://panel.saas.com',
   'https://panel.saas.com',
   'http://ahmetoto.com',
-  'https://ahmetoto.com'
+  'https://ahmetoto.com',
+  'https://saas-g-ncel-10-10-2026simdi-main.onrender.com'
 ]);
 
 if (process.env.ALLOWED_ORIGINS) {
