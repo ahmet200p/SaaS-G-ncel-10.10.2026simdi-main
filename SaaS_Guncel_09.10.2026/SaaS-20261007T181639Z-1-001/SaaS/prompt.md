@@ -1,11 +1,7 @@
-"Bayi onaylama (approve) işlemi sırasında Prisma'dan şu hatayı alıyorum: Invalid prisma.tenant.update() invocation: Unknown argument 'status'.
+"Sistemde Bayi (Tenant) hesabını onayladıktan sonra Bayi portalına giriş yaptım. Ancak sol menüden sekmelere tıkladığımda /api/orders, /api/products, /api/customers, /api/discounts ve /api/returns endpoint'lerine gelen GET istekleri 400 Bad Request hatası döndürüyor.
 
-Bu hata, backend controller'ımızın Tenant tablosunu güncellerken status: 'APPROVED' verisini yolladığını, ancak schema.prisma dosyasındaki Tenant modelinde status adında bir alan olmadığını gösteriyor.
+Lütfen bu endpoint'lerin bağlı olduğu Controller'ları ve Middleware (özellikle yetkilendirme ve tenant doğrulama) dosyalarını kontrol et.
 
-Lütfen şunları yap:
+Backend, bu isteklerde zorunlu bir Tenant-ID header'ı, Authorization token'ı veya page/limit gibi zorunlu query parametreleri bekliyor ve bulamadığı için 400 döndürüyor olabilir mi?
 
-schema.prisma dosyasındaki Tenant modelini kontrol et. Onay durumu için halihazırda hangi alan kullanılıyor? (Örneğin isActive, approvalStatus vb. mi var?)
-
-Eğer onay durumu için farklı bir alan varsa (örn: isActive: true), bayi onaylama controller'ını status yerine bu doğru alanı güncelleyecek şekilde düzelt.
-
-Eğer Tenant modelinde onay durumunu tutacak hiçbir alan yoksa, schema.prisma dosyasına status String @default("PENDING") (veya projenin yapısına uygun bir enum/boolean) ekle, ardından veritabanını güncellemek için gerekli Prisma migrate/push komutlarını çalıştır."
+Lütfen bu endpoint'lere gelen hatalı istekleri (req.headers, req.query) konsola yazdıracak loglar (console.error) ekle ve validation (doğrulama) kurallarını kontrol ederek hatayı düzelt."

@@ -141,6 +141,14 @@ const corsOptionsDelegate = function (req, callback) {
         'content-type',
         'Authorization',
         'authorization',
+        'X-Tenant-Id',
+        'x-tenant-id',
+        'Tenant-ID',
+        'tenant-id',
+        'X-Tenant-Id',
+        'x-tenant-id',
+        'Tenant-ID',
+        'tenant-id',
         'X-Tenant-Slug',
         'x-tenant-slug',
         'X-Tenant-API-Key',
@@ -294,36 +302,48 @@ app.use(['/api/pending-tenants', '/pending-tenants'], (req, res, next) => {
 // POST & GET /api/tenant/catalog, GET & PATCH /api/tenant/orders
 app.use('/api/tenant', tenantRoutes);
 
-// C.1 /api/products ve /products Doğrudan Rota Köprüsü (Prompt Adım 2 İzolasyon ve Güvenlik Standardı)
-app.use(['/api/products', '/products'], (req, res, next) => {
-  if (req.method === 'OPTIONS') {
-    return next();
-  }
+// C.1 Bayi ve Vitrin Doğrudan Rota Köprüleri (/api/orders, /api/products, /api/customers, /api/discounts, /api/returns, /api/dashboard-stats)
+const directTenantBridgeRoutes = [
+  { path: '/api/products', alias: '/products', target: '/products' },
+  { path: '/api/orders', alias: '/orders', target: '/orders' },
+  { path: '/api/customers', alias: '/customers', target: '/customers' },
+  { path: '/api/discounts', alias: '/discounts', target: '/discounts' },
+  { path: '/api/returns', alias: '/returns', target: '/returns' },
+  { path: '/api/dashboard-stats', alias: '/dashboard-stats', target: '/dashboard-stats' }
+];
 
-  const authHeader = req.headers['authorization'] || req.headers['Authorization'];
-  let isTenantAdmin = false;
-  if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
-    try {
-      const token = authHeader.split(' ')[1];
-      const jwt = require('jsonwebtoken');
-      const decoded = jwt.verify(token, config.JWT_SECRET);
-      if (decoded && (decoded.role === 'TENANT_ADMIN' || decoded.role === 'SUPER_ADMIN')) {
-        isTenantAdmin = true;
-      }
-    } catch (e) {
-      isTenantAdmin = false;
+directTenantBridgeRoutes.forEach(({ path: routePath, alias, target }) => {
+  app.use([routePath, alias], (req, res, next) => {
+    if (req.method === 'OPTIONS') return next();
+
+    const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+    let isTenantAdminOrSuper = false;
+    let isCustomer = false;
+
+    if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, config.JWT_SECRET);
+        if (decoded) {
+          if (decoded.role === 'TENANT_ADMIN' || decoded.role === 'SUPER_ADMIN') {
+            isTenantAdminOrSuper = true;
+          } else if (decoded.role === 'CUSTOMER') {
+            isCustomer = true;
+          }
+        }
+      } catch (e) {}
     }
-  }
 
-  req.url = '/products' + (req.url === '/' ? '' : req.url);
+    const subPath = req.url === '/' ? '' : req.url;
+    req.url = target + subPath;
 
-  if (isTenantAdmin) {
+    if (isCustomer && (target === '/products' || target === '/orders')) {
+      return storeRoutes(req, res, next);
+    }
+
     return tenantRoutes(req, res, next);
-  }
-
-  // Vitrin, Müşteri veya Ziyaretçi:
-  // resolveTenant ara yazılımı üzerinden X-Tenant-Slug veya subdomain ile izole ürün kataloğunu sunar
-  return storeRoutes(req, res, next);
+  });
 });
 
 // D. B2B Vitrin (Otoservis/Tamirci): İskonto hesaplanmış ürün listesi (finalPrice) ve sipariş verme (Transaction)

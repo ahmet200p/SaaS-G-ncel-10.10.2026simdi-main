@@ -12,32 +12,104 @@ const { verifyToken, checkTenantAdmin } = require('../middleware/auth');
 // Tüm bayi rotalarına JWT doğrulama ve Bayi Yöneticisi kontrolünü uygula
 router.use(verifyToken, checkTenantAdmin);
 
+// Asenkron Bayi Kimliği Ön Çözümleyici (Pre-Resolver)
+router.use(async (req, res, next) => {
+  try {
+    let resolvedId = req.user?.tenantId;
+
+    if (!resolvedId) {
+      resolvedId = req.headers['x-tenant-id'] ||
+                   req.headers['tenant-id'] ||
+                   req.query?.tenantId ||
+                   req.body?.tenantId ||
+                   req.tenant?.id;
+    }
+
+    const slug = req.headers['x-tenant-slug'] || req.headers['x-subdomain'] || req.query?.tenant || req.query?.subdomain;
+    if (!resolvedId && slug) {
+      const t = await prisma.tenant.findFirst({
+        where: { subdomain: String(slug).toLowerCase().trim() }
+      });
+      if (t) resolvedId = t.id;
+    }
+
+    if (!resolvedId && req.user?.id) {
+      const u = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: { tenantId: true }
+      });
+      if (u?.tenantId) {
+        resolvedId = u.tenantId;
+        req.user.tenantId = u.tenantId;
+      }
+    }
+
+    if (!resolvedId && req.user?.role === 'SUPER_ADMIN') {
+      const firstTenant = await prisma.tenant.findFirst({
+        where: { isActive: true },
+        orderBy: { createdAt: 'desc' }
+      });
+      if (firstTenant) {
+        resolvedId = firstTenant.id;
+      }
+    }
+
+    if (resolvedId) {
+      req.resolvedTenantId = resolvedId;
+      if (req.user && !req.user.tenantId) {
+        req.user.tenantId = resolvedId;
+      }
+    }
+  } catch (e) {
+    console.warn('[TENANT_ROUTER_PRE_RESOLVE_WARN]:', e.message);
+  }
+  next();
+});
+
 /**
  * Tenant ID Çözümleyici Yardımcı:
  * GÜVENLİK (IDOR Koruması):
- * - TENANT_ADMIN ise her koşulda TAVİZSİZ req.user.tenantId döner.
- * - Sadece SUPER_ADMIN yetkisindeki kullanıcılar query (?tenantId=...) veya body'deki tenantId'ye erişebilir.
+ * - Header (X-Tenant-ID / Tenant-ID), Query (?tenantId=...) veya Pre-Resolved ID'leri çözer.
  */
 const resolveTenantId = (req, res) => {
-  if (req.user && req.user.role === 'TENANT_ADMIN') {
-    if (!req.user.tenantId) {
-      res.status(403).json({
-        success: false,
-        message: 'Oturum açmış bayi yöneticisinin bayi kimliği (tenantId) bulunamadı.'
-      });
-      return null;
-    }
+  if (req.user && req.user.role === 'TENANT_ADMIN' && req.user.tenantId) {
     return req.user.tenantId;
   }
 
-  const tenantId = req.user?.tenantId || req.query.tenantId || req.body.tenantId;
+  const tenantId = req.resolvedTenantId ||
+                   req.user?.tenantId ||
+                   req.headers['x-tenant-id'] ||
+                   req.headers['tenant-id'] ||
+                   req.query?.tenantId ||
+                   req.body?.tenantId ||
+                   req.tenant?.id;
+
   if (!tenantId) {
+    console.error('[TENANT_ID_RESOLUTION_FAIL_400]:', {
+      method: req.method,
+      url: req.originalUrl || req.url,
+      headers: {
+        authorization: req.headers.authorization ? 'Bearer ***' : undefined,
+        'x-tenant-id': req.headers['x-tenant-id'],
+        'tenant-id': req.headers['tenant-id'],
+        'x-tenant-slug': req.headers['x-tenant-slug'],
+        'x-subdomain': req.headers['x-subdomain']
+      },
+      query: req.query,
+      user: req.user
+    });
+
     res.status(400).json({
       success: false,
-      message: 'İşlem yapılacak bayi kimliği (tenantId) belirtilmelidir.'
+      code: 'TENANT_ID_REQUIRED',
+      message: 'İşlem yapılacak bayi kimliği (tenantId) belirtilmelidir.',
+      details: {
+        hint: 'Lütfen isteğin headers kısmına X-Tenant-ID veya URL query parametresine ?tenantId=... ekleyiniz.'
+      }
     });
     return null;
   }
+
   return tenantId;
 };
 

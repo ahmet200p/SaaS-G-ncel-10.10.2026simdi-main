@@ -112,29 +112,41 @@ async function getAllTenants(req, res) {
     }
 
     // Veri normalizasyonu (Null değerleri ve tip uyuşmazlıklarını temizleme)
-    const normalized = (tenants || []).map(t => ({
-      id: t.id,
-      name: t.name || 'İsimsiz Firma',
-      subdomain: t.subdomain || '',
-      themeColor: t.themeColor || '#2563eb',
-      isActive: t.isActive !== false,
-      status: (t.status || 'PENDING').toUpperCase(),
-      createdAt: t.createdAt || new Date().toISOString(),
-      updatedAt: t.updatedAt || new Date().toISOString(),
-      users: Array.isArray(t.users) ? t.users.map(u => ({
-        id: u.id,
-        email: u.email,
-        name: u.name || '',
-        role: u.role || 'TENANT_ADMIN',
-        status: (u.status || 'PENDING').toUpperCase(),
-        createdAt: u.createdAt
-      })) : [],
-      _count: {
-        tenantProducts: t._count?.tenantProducts || 0,
-        customerProfiles: t._count?.customerProfiles || 0,
-        orders: t._count?.orders || 0
+    const normalized = (tenants || []).map(t => {
+      const isActuallyActive = t.isActive !== false;
+      let effectiveStatus = (t.status || '').toUpperCase();
+      if (effectiveStatus === 'REJECTED') {
+        effectiveStatus = 'REJECTED';
+      } else if (isActuallyActive) {
+        effectiveStatus = 'APPROVED';
+      } else {
+        effectiveStatus = effectiveStatus || 'PENDING';
       }
-    }));
+
+      return {
+        id: t.id,
+        name: t.name || 'İsimsiz Firma',
+        subdomain: t.subdomain || '',
+        themeColor: t.themeColor || '#2563eb',
+        isActive: isActuallyActive,
+        status: effectiveStatus,
+        createdAt: t.createdAt || new Date().toISOString(),
+        updatedAt: t.updatedAt || new Date().toISOString(),
+        users: Array.isArray(t.users) ? t.users.map(u => ({
+          id: u.id,
+          email: u.email,
+          name: u.name || '',
+          role: u.role || 'TENANT_ADMIN',
+          status: (u.status || effectiveStatus).toUpperCase(),
+          createdAt: u.createdAt
+        })) : [],
+        _count: {
+          tenantProducts: t._count?.tenantProducts || 0,
+          customerProfiles: t._count?.customerProfiles || 0,
+          orders: t._count?.orders || 0
+        }
+      };
+    });
 
     return res.status(200).json({
       success: true,
@@ -258,30 +270,38 @@ async function getPendingTenants(req, res) {
       }
     }
 
-    // Normalizasyon
-    const normalized = (pendingTenants || []).map(t => ({
-      id: t.id,
-      name: t.name || 'İsimsiz Firma',
-      subdomain: t.subdomain || '',
-      themeColor: t.themeColor || '#2563eb',
-      isActive: t.isActive !== false,
-      status: (t.status || 'PENDING').toUpperCase(),
-      createdAt: t.createdAt || new Date().toISOString(),
-      updatedAt: t.updatedAt || new Date().toISOString(),
-      users: Array.isArray(t.users) ? t.users.map(u => ({
-        id: u.id,
-        email: u.email,
-        name: u.name || '',
-        role: u.role || 'TENANT_ADMIN',
-        status: (u.status || 'PENDING').toUpperCase(),
-        createdAt: u.createdAt
-      })) : [],
-      _count: {
-        tenantProducts: t._count?.tenantProducts || 0,
-        customerProfiles: t._count?.customerProfiles || 0,
-        orders: t._count?.orders || 0
-      }
-    }));
+    // Normalizasyon ve Onaylanmış olanları filtreleme
+    const normalized = (pendingTenants || [])
+      .filter(t => {
+        const rawStatus = (t.status || '').toUpperCase();
+        if (t.isActive === true || rawStatus === 'APPROVED' || rawStatus === 'REJECTED') {
+          return false;
+        }
+        return true;
+      })
+      .map(t => ({
+        id: t.id,
+        name: t.name || 'İsimsiz Firma',
+        subdomain: t.subdomain || '',
+        themeColor: t.themeColor || '#2563eb',
+        isActive: false,
+        status: 'PENDING',
+        createdAt: t.createdAt || new Date().toISOString(),
+        updatedAt: t.updatedAt || new Date().toISOString(),
+        users: Array.isArray(t.users) ? t.users.map(u => ({
+          id: u.id,
+          email: u.email,
+          name: u.name || '',
+          role: u.role || 'TENANT_ADMIN',
+          status: (u.status || 'PENDING').toUpperCase(),
+          createdAt: u.createdAt
+        })) : [],
+        _count: {
+          tenantProducts: t._count?.tenantProducts || 0,
+          customerProfiles: t._count?.customerProfiles || 0,
+          orders: t._count?.orders || 0
+        }
+      }));
 
     return res.status(200).json({
       success: true,
@@ -373,10 +393,17 @@ async function approveTenant(req, res) {
 
     console.log(`[TENANT_CONTROLLER] Bayi Onaylandı: "${tenant.name}" (${tenant.subdomain})`);
 
+    const returnTenant = {
+      ...updated,
+      isActive: true,
+      status: 'APPROVED'
+    };
+
     return res.status(200).json({
       success: true,
-      message: `"${updated.name}" bayisi başarıyla onaylandı ve vitrin yetkileri açıldı.`,
-      data: updated
+      message: `"${returnTenant.name}" bayisi başarıyla onaylandı ve vitrin yetkileri açıldı.`,
+      data: returnTenant,
+      tenant: returnTenant
     });
   } catch (error) {
     console.error('[TENANT_APPROVE_ERROR]:', error);
@@ -457,10 +484,17 @@ async function rejectTenant(req, res) {
 
     console.log(`[TENANT_CONTROLLER] Bayi Reddedildi: "${tenant.name}" - ${reason || 'Gerekçe belirtilmedi'}`);
 
+    const returnTenant = {
+      ...updated,
+      isActive: false,
+      status: 'REJECTED'
+    };
+
     return res.status(200).json({
       success: true,
-      message: `"${updated.name}" bayilik başvurusu reddedildi.`,
-      data: updated
+      message: `"${returnTenant.name}" bayilik başvurusu reddedildi.`,
+      data: returnTenant,
+      tenant: returnTenant
     });
   } catch (error) {
     console.error('[TENANT_REJECT_ERROR]:', error);

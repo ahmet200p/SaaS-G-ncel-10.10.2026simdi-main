@@ -1682,8 +1682,21 @@
       headers.set('Authorization', `Bearer ${token}`);
     }
 
+    // Dinamik Kullanıcı ve Bayi (Tenant) Kimliği Enjeksiyonu
+    let storedUser = null;
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) storedUser = JSON.parse(userStr);
+    } catch (e) {}
+
+    const resolvedTenantId = storedUser?.tenantId || storedUser?.tenant?.id || localStorage.getItem('tenantId');
+    if (resolvedTenantId) {
+      if (!headers.has('X-Tenant-ID')) headers.set('X-Tenant-ID', resolvedTenantId);
+      if (!headers.has('Tenant-ID')) headers.set('Tenant-ID', resolvedTenantId);
+    }
+
     // 5. ADIM: Tenant Algılama (Subdomain/Slug Resolution)
-    // URL parametresinden (?tenant=slug veya ?subdomain=slug) veya hostname subdomain'inden tenant slug algıla
+    // URL parametresinden (?tenant=slug veya ?subdomain=slug) veya kullanıcı bilgisinden tenant slug algıla
     if (!headers.has('X-Tenant-Slug')) {
       let slug = null;
       if (typeof window !== 'undefined' && window.location) {
@@ -1695,12 +1708,13 @@
             slug = parts[0];
           }
         }
-        if (!slug) {
-          slug = localStorage.getItem('tenantSlug') || 'ahmetoto';
-        }
+      }
+      if (!slug) {
+        slug = storedUser?.tenant?.subdomain || storedUser?.subdomain || localStorage.getItem('tenantSlug') || 'ahmetoto';
       }
       if (slug) {
         headers.set('X-Tenant-Slug', slug);
+        headers.set('X-Subdomain', slug);
       }
     }
 
