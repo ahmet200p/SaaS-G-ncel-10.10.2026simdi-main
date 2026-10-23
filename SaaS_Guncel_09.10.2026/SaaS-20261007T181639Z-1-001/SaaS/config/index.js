@@ -31,12 +31,26 @@ function validateJwtSecret() {
 const validatedJwtSecret = validateJwtSecret();
 
 function validateDatabaseUrl() {
-  const dbUrl = process.env.DATABASE_URL;
+  let dbUrl = process.env.DATABASE_URL;
   if (!dbUrl || typeof dbUrl !== 'string' || (!dbUrl.trim().startsWith('postgresql://') && !dbUrl.trim().startsWith('postgres://'))) {
     console.error('Kritik Hata: Geçerli bir DATABASE_URL tanımlanmadı');
     process.exit(1);
   }
-  return dbUrl.trim();
+  dbUrl = dbUrl.trim();
+
+  // 1. Neon ve PostgreSQL için 'postgres://' protokolünü standart 'postgresql://' protokolüne dönüştür
+  if (dbUrl.startsWith('postgres://')) {
+    dbUrl = 'postgresql://' + dbUrl.slice('postgres://'.length);
+  }
+
+  // 2. Neon Cloud bağlantılarında SSL zorunludur. sslmode parametresi yoksa otomatik ekle
+  if (dbUrl.includes('.neon.tech') && !dbUrl.includes('sslmode=')) {
+    const separator = dbUrl.includes('?') ? '&' : '?';
+    dbUrl += `${separator}sslmode=require`;
+  }
+
+  process.env.DATABASE_URL = dbUrl;
+  return dbUrl;
 }
 
 const validatedDatabaseUrl = validateDatabaseUrl();

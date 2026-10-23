@@ -1,6 +1,11 @@
 // ============================================================================
 // Multi-Tenant B2B Yedek Parça SaaS - server.js (Kök Başlatıcı Proxy)
-// PostgreSQL (PGlite) + Headless REST API (Port 5000 & 3000) + Frontend (Port 5500)
+// Üretim (production) ortamında doğrudan backend-api/server.js çalışır.
+// Geliştirme (development) ortamında dev_server.js (PGlite + REST API + Frontend) çalışır.
 // ============================================================================
 
-module.exports = require('./dev_server');
+if (process.env.NODE_ENV === 'production') {
+  module.exports = require('./backend-api/server');
+} else {
+  module.exports = require('./dev_server');
+}

@@ -127,6 +127,33 @@ const ensureInitialData = async () => {
   }
 };
 
+// Neon ve Harici PostgreSQL Tablolarının Otomatik Denetimi
+const ensureNeonTables = async () => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const checkTable = await prisma.$queryRawUnsafe(`
+      SELECT 1 FROM information_schema.tables 
+      WHERE table_schema = 'public' AND table_name = 'User' 
+      LIMIT 1;
+    `);
+
+    if (!checkTable || checkTable.length === 0) {
+      console.log('📦 [NEON_DB_INIT] Veritabanında tablolar tespit edilemedi, otomatik oluşturuluyor...');
+      const migrationFile = path.join(__dirname, 'prisma', 'migrations', '20261014180000_init_postgres', 'migration.sql');
+      if (fs.existsSync(migrationFile)) {
+        const sql = fs.readFileSync(migrationFile, 'utf8');
+        await prisma.$executeRawUnsafe(sql);
+        console.log('✅ [NEON_DB_INIT] PostgreSQL şema ve tabloları başarıyla oluşturuldu.');
+      }
+    } else {
+      console.log('✅ [NEON_CONNECTED] Neon PostgreSQL veritabanı bağlantısı ve tabloları hazır.');
+    }
+  } catch (err) {
+    console.warn('⚠️ [NEON_NOTICE] Tablo kontrolü:', err.message);
+  }
+};
+
 let server = null;
 let secondaryServer = null;
 
@@ -142,12 +169,13 @@ async function bootstrap() {
       await ensureInitialData();
     } else {
       console.log(`[PRODUCTION_MODE] Ortam: "${process.env.NODE_ENV || 'production'}". dev_pg_server ve otomatik tohumlama tamamen bypass edildi.`);
+      await ensureNeonTables();
     }
   } catch (e) {
     console.error('[BOOTSTRAP_ERROR]:', e);
   }
 
-  server = app.listen(PORT, () => {
+  server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`====================================================`);
     console.log(`🚀 Multi-Tenant B2B SaaS Sunucusu Başarıyla Başlatıldı!`);
     console.log(`📡 Port:        ${PORT}`);
@@ -159,7 +187,7 @@ async function bootstrap() {
     console.log(`====================================================`);
   });
 
-  if (PORT !== 3000) {
+  if (PORT !== 3000 && process.env.NODE_ENV !== 'production') {
     try {
       secondaryServer = app.listen(3000, () => {
         console.log(`📡 Secondary API Port: http://localhost:3000/api/store/products`);

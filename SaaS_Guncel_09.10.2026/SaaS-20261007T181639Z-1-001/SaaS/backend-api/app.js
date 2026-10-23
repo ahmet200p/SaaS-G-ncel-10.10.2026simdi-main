@@ -113,6 +113,15 @@ function isAllowedOrigin(origin) {
     if (host.endsWith('.saas.com') || host === 'saas.com') {
       return true;
     }
+
+    // 7. Bulut barındırma etki alanları (Render, Vercel, Netlify):
+    if (
+      host.endsWith('.onrender.com') ||
+      host.endsWith('.vercel.app') ||
+      host.endsWith('.netlify.app')
+    ) {
+      return true;
+    }
   } catch (e) {}
 
   return false;
@@ -330,5 +339,10 @@ app.use((err, req, res, next) => {
     error: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
 });
+
+// Doğrudan 'node app.js' ile başlatıldığında sunucuyu dinlemeye al
+if (require.main === module) {
+  require('./server');
+}
 
 module.exports = app;
