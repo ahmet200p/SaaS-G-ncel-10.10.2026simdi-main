@@ -142,8 +142,31 @@ const ensureNeonTables = async () => {
       console.log('📦 [NEON_DB_INIT] Veritabanında tablolar tespit edilemedi, otomatik oluşturuluyor...');
       const migrationFile = path.join(__dirname, 'prisma', 'migrations', '20261014180000_init_postgres', 'migration.sql');
       if (fs.existsSync(migrationFile)) {
-        const sql = fs.readFileSync(migrationFile, 'utf8');
-        await prisma.$executeRawUnsafe(sql);
+        const sqlContent = fs.readFileSync(migrationFile, 'utf8');
+
+        // SQL komutlarını satır yorumlarından (-- ...) temizleyip noktalı virgüle (;) göre ayrıştır
+        const statements = sqlContent
+          .split('\n')
+          .filter(line => !line.trim().startsWith('--'))
+          .join('\n')
+          .split(';')
+          .map(stmt => stmt.trim())
+          .filter(stmt => stmt.length > 0);
+
+        console.log(`🚀 [NEON_DB_INIT] Toplam ${statements.length} adet SQL DDL komutu tek tek $executeRawUnsafe() ile çalıştırılıyor...`);
+
+        // Her bir komutu ayrı bir $executeRawUnsafe() çağrısıyla çalıştır
+        for (let i = 0; i < statements.length; i++) {
+          const statement = statements[i];
+          try {
+            await prisma.$executeRawUnsafe(statement);
+          } catch (cmdErr) {
+            // Tablo, indeks veya kısıtlama zaten mevcutsa yut, aksi halde logla
+            if (!cmdErr.message || !cmdErr.message.includes('already exists')) {
+              console.warn(`⚠️ [SQL_CMD_WARN] Komut ${i + 1}/${statements.length} uyarısı:`, cmdErr.message);
+            }
+          }
+        }
         console.log('✅ [NEON_DB_INIT] PostgreSQL şema ve tabloları başarıyla oluşturuldu.');
       }
     } else {
