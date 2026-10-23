@@ -283,30 +283,44 @@ router.post('/login', loginLimiter, async (req, res) => {
     const cleanEmail = email.toLowerCase().trim();
 
     // 2. Prisma ile User tablosunda e-posta sorgusu (Tenant ve CustomerProfile ilişkileriyle)
-    let user = await prisma.user.findUnique({
-      where: { email: cleanEmail },
-      include: {
-        tenant: true,
-        customerProfile: {
-          include: { tenant: true }
+    let user;
+    try {
+      user = await prisma.user.findUnique({
+        where: { email: cleanEmail },
+        include: {
+          tenant: true,
+          customerProfile: {
+            include: { tenant: true }
+          }
         }
+      });
+    } catch (queryErr) {
+      if (queryErr.code === 'P2022' || (queryErr.message && queryErr.message.includes('does not exist'))) {
+        console.warn('⚠️ [AUTH_LOGIN_QUERY_FALLBACK]:', queryErr.message);
+        user = await prisma.user.findUnique({
+          where: { email: cleanEmail },
+          include: { tenant: true }
+        });
+      } else {
+        throw queryErr;
       }
-    });
+    }
 
     // 2.1 Doğrudan bulunamadıysa ve SystemSettings'teki dinamik adminEmail ile eşleşiyorsa Süper Admin'i getir
     if (!user) {
-      const settings = await prisma.systemSettings.findUnique({ where: { id: 1 } });
-      const currentAdminEmail = (settings && settings.adminEmail) ? settings.adminEmail.toLowerCase().trim() : null;
-      if (currentAdminEmail && cleanEmail === currentAdminEmail) {
-        user = await prisma.user.findFirst({
-          where: { role: 'SUPER_ADMIN' },
-          include: {
-            tenant: true,
-            customerProfile: {
-              include: { tenant: true }
+      try {
+        const settings = await prisma.systemSettings.findUnique({ where: { id: 1 } });
+        const currentAdminEmail = (settings && settings.adminEmail) ? settings.adminEmail.toLowerCase().trim() : null;
+        if (currentAdminEmail && cleanEmail === currentAdminEmail) {
+          user = await prisma.user.findFirst({
+            where: { role: 'SUPER_ADMIN' },
+            include: {
+              tenant: true
             }
-          }
-        });
+          });
+        }
+      } catch (settingsErr) {
+        console.warn('⚠️ [AUTH_SETTINGS_QUERY_WARN]:', settingsErr.message);
       }
     }
 

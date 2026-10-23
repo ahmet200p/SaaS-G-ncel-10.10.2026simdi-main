@@ -203,14 +203,47 @@ const ensureNeonTables = async () => {
       console.log('✅ [NEON_CONNECTED] Neon PostgreSQL veritabanı bağlantısı ve tabloları hazır.');
     }
 
-    // Tablolarda eksik olabilecek kolon ve indeks yamalarını (status vb.) garantiye al
-    try {
-      await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'PENDING';`);
-      await prisma.$executeRawUnsafe(`ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'PENDING';`);
-      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "User_status_idx" ON "User"("status");`);
-      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Tenant_status_idx" ON "Tenant"("status");`);
-    } catch (patchErr) {
-      console.warn('⚠️ [NEON_MIGRATION_PATCH_WARN]:', patchErr.message);
+    // Tablolarda eksik olabilecek kolon ve indeks yamalarını (status, city, district vb.) garantiye al
+    const schemaPatches = [
+      `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'PENDING';`,
+      `ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'PENDING';`,
+      `CREATE INDEX IF NOT EXISTS "User_status_idx" ON "User"("status");`,
+      `CREATE INDEX IF NOT EXISTS "Tenant_status_idx" ON "Tenant"("status");`,
+      `ALTER TABLE "CustomerProfile" ADD COLUMN IF NOT EXISTS "city" TEXT;`,
+      `ALTER TABLE "CustomerProfile" ADD COLUMN IF NOT EXISTS "district" TEXT;`,
+      `ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "shippingAddress" TEXT;`,
+      `ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "crossReferences" JSONB;`,
+      `ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "compatibleVehicles" JSONB;`,
+      `ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "attributes" JSONB;`,
+      `ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "diagramUrl" TEXT;`,
+      `ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "diagrams" JSONB;`,
+      `CREATE TABLE IF NOT EXISTS "ReturnRequest" (
+        "id" TEXT NOT NULL,
+        "orderId" TEXT NOT NULL,
+        "tenantId" TEXT NOT NULL,
+        "customerId" TEXT NOT NULL,
+        "reason" TEXT NOT NULL,
+        "customerNote" TEXT,
+        "status" TEXT NOT NULL DEFAULT 'Bekliyor',
+        "adminNote" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL,
+        CONSTRAINT "ReturnRequest_pkey" PRIMARY KEY ("id")
+      );`,
+      `CREATE INDEX IF NOT EXISTS "ReturnRequest_orderId_idx" ON "ReturnRequest"("orderId");`,
+      `CREATE INDEX IF NOT EXISTS "ReturnRequest_tenantId_idx" ON "ReturnRequest"("tenantId");`,
+      `CREATE INDEX IF NOT EXISTS "ReturnRequest_customerId_idx" ON "ReturnRequest"("customerId");`,
+      `CREATE INDEX IF NOT EXISTS "ReturnRequest_status_idx" ON "ReturnRequest"("status");`
+    ];
+
+    for (const patch of schemaPatches) {
+      try {
+        await prisma.$executeRawUnsafe(patch);
+      } catch (patchErr) {
+        if (!patchErr.message || !patchErr.message.includes('already exists')) {
+          console.warn('⚠️ [NEON_MIGRATION_PATCH_WARN]:', patchErr.message);
+        }
+      }
     }
 
     // 2. İlk Yönetici Hesaplarının Otomatik Kurulumu (Veritabanında hiç Süper Admin yoksa)

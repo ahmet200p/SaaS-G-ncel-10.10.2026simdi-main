@@ -44,6 +44,11 @@ CREATE TABLE "Product" (
     "vehicleBrand" TEXT,
     "compatibleModels" TEXT,
     "partGroup" TEXT,
+    "crossReferences" JSONB,
+    "compatibleVehicles" JSONB,
+    "attributes" JSONB,
+    "diagramUrl" TEXT,
+    "diagrams" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -72,6 +77,8 @@ CREATE TABLE "CustomerProfile" (
     "companyName" TEXT NOT NULL,
     "phone" TEXT NOT NULL,
     "address" TEXT,
+    "city" TEXT,
+    "district" TEXT,
     "customerType" TEXT NOT NULL DEFAULT 'MECHANIC',
     "taxNumber" TEXT,
     "status" TEXT NOT NULL DEFAULT 'APPROVED',
@@ -99,6 +106,7 @@ CREATE TABLE "Order" (
     "rejectionReason" TEXT,
     "cargoCompany" TEXT,
     "trackingNumber" TEXT,
+    "shippingAddress" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -174,6 +182,22 @@ CREATE TABLE "DiscountRule" (
     CONSTRAINT "DiscountRule_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "ReturnRequest" (
+    "id" TEXT NOT NULL,
+    "orderId" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "customerId" TEXT NOT NULL,
+    "reason" TEXT NOT NULL,
+    "customerNote" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'Bekliyor',
+    "adminNote" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ReturnRequest_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
@@ -181,7 +205,13 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 CREATE INDEX "User_tenantId_idx" ON "User"("tenantId");
 
 -- CreateIndex
+CREATE INDEX "User_status_idx" ON "User"("status");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Tenant_subdomain_key" ON "Tenant"("subdomain");
+
+-- CreateIndex
+CREATE INDEX "Tenant_status_idx" ON "Tenant"("status");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Product_oeNumber_key" ON "Product"("oeNumber");
@@ -252,6 +282,18 @@ CREATE INDEX "CustomerLedger_customerId_idx" ON "CustomerLedger"("customerId");
 -- CreateIndex
 CREATE INDEX "DiscountRule_tenantId_idx" ON "DiscountRule"("tenantId");
 
+-- CreateIndex
+CREATE INDEX "ReturnRequest_orderId_idx" ON "ReturnRequest"("orderId");
+
+-- CreateIndex
+CREATE INDEX "ReturnRequest_tenantId_idx" ON "ReturnRequest"("tenantId");
+
+-- CreateIndex
+CREATE INDEX "ReturnRequest_customerId_idx" ON "ReturnRequest"("customerId");
+
+-- CreateIndex
+CREATE INDEX "ReturnRequest_status_idx" ON "ReturnRequest"("status");
+
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -294,38 +336,12 @@ ALTER TABLE "CustomerLedger" ADD CONSTRAINT "CustomerLedger_tenantId_fkey" FOREI
 -- AddForeignKey
 ALTER TABLE "CustomerLedger" ADD CONSTRAINT "CustomerLedger_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "CustomerProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- CreateTable
-CREATE TABLE IF NOT EXISTS "ReturnRequest" (
-    "id" TEXT NOT NULL,
-    "orderId" TEXT NOT NULL,
-    "tenantId" TEXT NOT NULL,
-    "customerId" TEXT NOT NULL,
-    "reason" TEXT NOT NULL,
-    "customerNote" TEXT,
-    "status" TEXT NOT NULL DEFAULT 'Bekliyor',
-    "adminNote" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "ReturnRequest_pkey" PRIMARY KEY ("id")
-);
-
--- CreateIndex
-CREATE INDEX IF NOT EXISTS "ReturnRequest_orderId_idx" ON "ReturnRequest"("orderId");
-CREATE INDEX IF NOT EXISTS "ReturnRequest_tenantId_idx" ON "ReturnRequest"("tenantId");
-CREATE INDEX IF NOT EXISTS "ReturnRequest_customerId_idx" ON "ReturnRequest"("customerId");
-CREATE INDEX IF NOT EXISTS "ReturnRequest_status_idx" ON "ReturnRequest"("status");
+-- AddForeignKey
+ALTER TABLE "ReturnRequest" ADD CONSTRAINT "ReturnRequest_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ReturnRequest_orderId_fkey') THEN
-        ALTER TABLE "ReturnRequest" ADD CONSTRAINT "ReturnRequest_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ReturnRequest_tenantId_fkey') THEN
-        ALTER TABLE "ReturnRequest" ADD CONSTRAINT "ReturnRequest_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ReturnRequest_customerId_fkey') THEN
-        ALTER TABLE "ReturnRequest" ADD CONSTRAINT "ReturnRequest_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "CustomerProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-    END IF;
-END $$;
+ALTER TABLE "ReturnRequest" ADD CONSTRAINT "ReturnRequest_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReturnRequest" ADD CONSTRAINT "ReturnRequest_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "CustomerProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
