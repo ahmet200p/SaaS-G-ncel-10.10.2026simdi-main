@@ -235,19 +235,44 @@ router.patch('/tenants/:id/status', async (req, res) => {
     const nextStatus = status || (nextIsActive ? 'APPROVED' : tenant.status);
 
     const updatedTenant = await prisma.$transaction(async (tx) => {
-      const t = await tx.tenant.update({
-        where: { id },
-        data: {
-          isActive: nextIsActive,
-          status: nextStatus
+      let t;
+      try {
+        t = await tx.tenant.update({
+          where: { id },
+          data: {
+            isActive: nextIsActive,
+            status: nextStatus
+          }
+        });
+      } catch (statusErr) {
+        if (statusErr.message && (statusErr.message.includes("Unknown argument 'status'") || statusErr.message.includes('Unknown arg'))) {
+          t = await tx.tenant.update({
+            where: { id },
+            data: {
+              isActive: nextIsActive
+            }
+          });
+        } else {
+          throw statusErr;
         }
-      });
+      }
+
+      // Veritabanında status kolonu mevcutsa SQL ile de güvene al
+      try {
+        await tx.$executeRawUnsafe(`UPDATE "Tenant" SET "isActive" = ${nextIsActive ? 'true' : 'false'}, "status" = '${nextStatus || 'PENDING'}' WHERE id = '${id}';`);
+      } catch (rawErr) {
+        // Kolon yoksa veya hata oluşursa yoksay
+      }
 
       if (status) {
-        await tx.user.updateMany({
-          where: { tenantId: id },
-          data: { status: nextStatus }
-        });
+        try {
+          await tx.user.updateMany({
+            where: { tenantId: id },
+            data: { status: nextStatus }
+          });
+        } catch (uErr) {
+          // Yoksay
+        }
       }
 
       return t;

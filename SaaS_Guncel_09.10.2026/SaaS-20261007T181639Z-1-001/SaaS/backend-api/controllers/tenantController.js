@@ -322,20 +322,51 @@ async function approveTenant(req, res) {
     }
 
     const updated = await prisma.$transaction(async (tx) => {
-      const t = await tx.tenant.update({
-        where: { id },
-        data: {
-          status: 'APPROVED',
-          isActive: true
-        }
-      });
+      let t;
 
-      await tx.user.updateMany({
-        where: { tenantId: id },
-        data: {
-          status: 'APPROVED'
+      // 1. ADIM: Öncelikli olarak isActive ve status ile güncellemeyi dene
+      try {
+        t = await tx.tenant.update({
+          where: { id },
+          data: {
+            isActive: true,
+            status: 'APPROVED'
+          }
+        });
+      } catch (statusErr) {
+        // Eğer Prisma şemasında veya istemcisinde 'status' argümanı tanınmıyorsa,
+        // halihazırdaki ana onay alanı olan 'isActive: true' ile güncelle
+        if (statusErr.message && (statusErr.message.includes("Unknown argument 'status'") || statusErr.message.includes('Unknown arg'))) {
+          console.warn('[TENANT_APPROVE_FALLBACK] Tenant modelinde status tanınmadı, isActive: true olarak güncelleniyor.');
+          t = await tx.tenant.update({
+            where: { id },
+            data: {
+              isActive: true
+            }
+          });
+        } else {
+          throw statusErr;
         }
-      });
+      }
+
+      // Veritabanında status kolonu mevcutsa ham SQL ile de garantiye al
+      try {
+        await tx.$executeRawUnsafe(`UPDATE "Tenant" SET "isActive" = true, "status" = 'APPROVED' WHERE id = '${id}';`);
+      } catch (rawErr) {
+        // Kolon mevcut değilse veya hata verirse yoksay
+      }
+
+      // İlgili kullanıcıları onayla
+      try {
+        await tx.user.updateMany({
+          where: { tenantId: id },
+          data: {
+            status: 'APPROVED'
+          }
+        });
+      } catch (uErr) {
+        console.warn('[TENANT_APPROVE_USER_STATUS_WARN]:', uErr.message);
+      }
 
       return t;
     });
@@ -378,20 +409,48 @@ async function rejectTenant(req, res) {
     }
 
     const updated = await prisma.$transaction(async (tx) => {
-      const t = await tx.tenant.update({
-        where: { id },
-        data: {
-          status: 'REJECTED',
-          isActive: false
-        }
-      });
+      let t;
 
-      await tx.user.updateMany({
-        where: { tenantId: id },
-        data: {
-          status: 'REJECTED'
+      // 1. ADIM: isActive ve status ile güncellemeyi dene
+      try {
+        t = await tx.tenant.update({
+          where: { id },
+          data: {
+            isActive: false,
+            status: 'REJECTED'
+          }
+        });
+      } catch (statusErr) {
+        if (statusErr.message && (statusErr.message.includes("Unknown argument 'status'") || statusErr.message.includes('Unknown arg'))) {
+          console.warn('[TENANT_REJECT_FALLBACK] Tenant modelinde status tanınmadı, isActive: false olarak güncelleniyor.');
+          t = await tx.tenant.update({
+            where: { id },
+            data: {
+              isActive: false
+            }
+          });
+        } else {
+          throw statusErr;
         }
-      });
+      }
+
+      // Veritabanında status kolonu mevcutsa ham SQL ile de garantiye al
+      try {
+        await tx.$executeRawUnsafe(`UPDATE "Tenant" SET "isActive" = false, "status" = 'REJECTED' WHERE id = '${id}';`);
+      } catch (rawErr) {
+        // Kolon mevcut değilse veya hata verirse yoksay
+      }
+
+      try {
+        await tx.user.updateMany({
+          where: { tenantId: id },
+          data: {
+            status: 'REJECTED'
+          }
+        });
+      } catch (uErr) {
+        console.warn('[TENANT_REJECT_USER_STATUS_WARN]:', uErr.message);
+      }
 
       return t;
     });

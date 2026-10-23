@@ -1,7 +1,11 @@
-"Admin panelinden GET /api/tenants ve GET /api/pending-tenants (veya ilgili endpoint'lere) istek atıldığında backend 500 Internal Server Error döndürüyor.
+"Bayi onaylama (approve) işlemi sırasında Prisma'dan şu hatayı alıyorum: Invalid prisma.tenant.update() invocation: Unknown argument 'status'.
 
-Bu endpoint'lerdeki bayi listeleme (tenant fetch) fonksiyonlarını kontrol et.
+Bu hata, backend controller'ımızın Tenant tablosunu güncellerken status: 'APPROVED' verisini yolladığını, ancak schema.prisma dosyasındaki Tenant modelinde status adında bir alan olmadığını gösteriyor.
 
-Veritabanından veriyi çeken Prisma sorgularında bir hata, eksik ilişki (relation) veya tip uyumsuzluğu var ve sunucuyu çökertiyor.
+Lütfen şunları yap:
 
-İlgili controller'lara detaylı hata loglaması (console.error) içeren try-catch blokları ekle ve veritabanı sorgusundaki problemi gidererek bayilerin JSON formatında hatasız bir şekilde dönmesini sağla."
+schema.prisma dosyasındaki Tenant modelini kontrol et. Onay durumu için halihazırda hangi alan kullanılıyor? (Örneğin isActive, approvalStatus vb. mi var?)
+
+Eğer onay durumu için farklı bir alan varsa (örn: isActive: true), bayi onaylama controller'ını status yerine bu doğru alanı güncelleyecek şekilde düzelt.
+
+Eğer Tenant modelinde onay durumunu tutacak hiçbir alan yoksa, schema.prisma dosyasına status String @default("PENDING") (veya projenin yapısına uygun bir enum/boolean) ekle, ardından veritabanını güncellemek için gerekli Prisma migrate/push komutlarını çalıştır."
