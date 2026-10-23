@@ -203,6 +203,16 @@ const ensureNeonTables = async () => {
       console.log('✅ [NEON_CONNECTED] Neon PostgreSQL veritabanı bağlantısı ve tabloları hazır.');
     }
 
+    // Tablolarda eksik olabilecek kolon ve indeks yamalarını (status vb.) garantiye al
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'PENDING';`);
+      await prisma.$executeRawUnsafe(`ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'PENDING';`);
+      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "User_status_idx" ON "User"("status");`);
+      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Tenant_status_idx" ON "Tenant"("status");`);
+    } catch (patchErr) {
+      console.warn('⚠️ [NEON_MIGRATION_PATCH_WARN]:', patchErr.message);
+    }
+
     // 2. İlk Yönetici Hesaplarının Otomatik Kurulumu (Veritabanında hiç Süper Admin yoksa)
     const adminCount = await prisma.user.count({ where: { role: 'SUPER_ADMIN' } });
     if (adminCount === 0) {
@@ -213,45 +223,100 @@ const ensureNeonTables = async () => {
       const hash = await bcrypt.hash(adminPass, 10);
 
       // Süper Admin Hesabı
-      await prisma.user.create({
-        data: {
-          email: 'admin@sistem.com',
-          password: hash,
-          role: 'SUPER_ADMIN',
-          status: 'APPROVED',
-          name: 'Süper Admin'
+      try {
+        await prisma.user.create({
+          data: {
+            email: 'admin@sistem.com',
+            password: hash,
+            role: 'SUPER_ADMIN',
+            status: 'APPROVED',
+            name: 'Süper Admin'
+          }
+        });
+      } catch (adminErr) {
+        if (adminErr.message && adminErr.message.includes('status')) {
+          await prisma.user.create({
+            data: {
+              email: 'admin@sistem.com',
+              password: hash,
+              role: 'SUPER_ADMIN',
+              name: 'Süper Admin'
+            }
+          });
+          try {
+            await prisma.$executeRawUnsafe(`UPDATE "User" SET "status" = 'APPROVED' WHERE "email" = 'admin@sistem.com';`);
+          } catch (_) {}
+        } else {
+          throw adminErr;
         }
-      });
+      }
       console.log('✅ [NEON_INIT] Süper Admin hesabı hazır: admin@sistem.com');
 
       // Varsayılan Bayi ve Bayi Yöneticisi
       let tenant = await prisma.tenant.findUnique({ where: { subdomain: 'ahmetoto' } });
       if (!tenant) {
-        tenant = await prisma.tenant.create({
-          data: {
-            name: 'Ahmet Oto Yedek Parça',
-            subdomain: 'ahmetoto',
-            themeColor: '#2563eb',
-            status: 'APPROVED',
-            isActive: true
+        try {
+          tenant = await prisma.tenant.create({
+            data: {
+              name: 'Ahmet Oto Yedek Parça',
+              subdomain: 'ahmetoto',
+              themeColor: '#2563eb',
+              status: 'APPROVED',
+              isActive: true
+            }
+          });
+        } catch (tErr) {
+          if (tErr.message && tErr.message.includes('status')) {
+            tenant = await prisma.tenant.create({
+              data: {
+                name: 'Ahmet Oto Yedek Parça',
+                subdomain: 'ahmetoto',
+                themeColor: '#2563eb',
+                isActive: true
+              }
+            });
+            try {
+              await prisma.$executeRawUnsafe(`UPDATE "Tenant" SET "status" = 'APPROVED' WHERE "subdomain" = 'ahmetoto';`);
+            } catch (_) {}
+          } else {
+            throw tErr;
           }
-        });
+        }
       }
 
       const dealerPass = process.env.DEFAULT_DEALER_PASSWORD || adminPass;
       const dealerHash = await bcrypt.hash(dealerPass, 10);
       const existingDealer = await prisma.user.findUnique({ where: { email: 'ahmet@ahmetoto.com' } });
       if (!existingDealer) {
-        await prisma.user.create({
-          data: {
-            email: 'ahmet@ahmetoto.com',
-            password: dealerHash,
-            role: 'TENANT_ADMIN',
-            status: 'APPROVED',
-            tenantId: tenant.id,
-            name: 'Ahmet Yılmaz'
+        try {
+          await prisma.user.create({
+            data: {
+              email: 'ahmet@ahmetoto.com',
+              password: dealerHash,
+              role: 'TENANT_ADMIN',
+              status: 'APPROVED',
+              tenantId: tenant.id,
+              name: 'Ahmet Yılmaz'
+            }
+          });
+        } catch (dErr) {
+          if (dErr.message && dErr.message.includes('status')) {
+            await prisma.user.create({
+              data: {
+                email: 'ahmet@ahmetoto.com',
+                password: dealerHash,
+                role: 'TENANT_ADMIN',
+                tenantId: tenant.id,
+                name: 'Ahmet Yılmaz'
+              }
+            });
+            try {
+              await prisma.$executeRawUnsafe(`UPDATE "User" SET "status" = 'APPROVED' WHERE "email" = 'ahmet@ahmetoto.com';`);
+            } catch (_) {}
+          } else {
+            throw dErr;
           }
-        });
+        }
         console.log('✅ [NEON_INIT] Bayi hesabı hazır: ahmet@ahmetoto.com');
       }
 

@@ -8,6 +8,7 @@ CREATE TABLE "User" (
     "password" TEXT NOT NULL,
     "role" TEXT NOT NULL DEFAULT 'CUSTOMER',
     "name" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'PENDING',
     "tenantId" TEXT,
     "resetToken" TEXT,
     "resetTokenExpiry" TIMESTAMP(3),
@@ -24,6 +25,7 @@ CREATE TABLE "Tenant" (
     "subdomain" TEXT NOT NULL,
     "themeColor" TEXT NOT NULL DEFAULT '#2563eb',
     "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "status" TEXT NOT NULL DEFAULT 'PENDING',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

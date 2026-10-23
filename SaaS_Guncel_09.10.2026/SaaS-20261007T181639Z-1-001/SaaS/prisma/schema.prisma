@@ -22,6 +22,7 @@ model User {
   password         String
   role             String           @default("CUSTOMER") // SUPER_ADMIN, TENANT_ADMIN, CUSTOMER
   name             String?          // Ad Soyad
+  status           String           @default("PENDING")  // PENDING, APPROVED, REJECTED
 
   // Super Admin için null; Tenant Admin ve Customer için zorunlu (1-n Tenant İlişkisi)
   tenantId         String?
@@ -38,6 +39,7 @@ model User {
   updatedAt        DateTime         @updatedAt
 
   @@index([tenantId])
+  @@index([status])
 }
 
 // ----------------------------------------------------------------------------
@@ -50,6 +52,7 @@ model Tenant {
   subdomain        String            @unique
   themeColor       String            @default("#2563eb")
   isActive         Boolean           @default(true)
+  status           String            @default("PENDING") // PENDING, APPROVED, REJECTED
 
   // İlişkiler (1-n)
   users            User[]
@@ -62,6 +65,8 @@ model Tenant {
 
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
+
+  @@index([status])
 }
 
 // ----------------------------------------------------------------------------
