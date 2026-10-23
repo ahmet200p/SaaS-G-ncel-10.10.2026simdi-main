@@ -127,6 +127,44 @@ const ensureInitialData = async () => {
   }
 };
 
+// SQL komutlarını satır yorumlarından arındırıp PL/pgSQL DO $$ ... $$ bloklarını bozmadan ayrıştıran yardımcı fonksiyon
+function parseSqlStatements(sql) {
+  const statements = [];
+  let current = '';
+  let inDollarQuote = false;
+
+  const lines = sql.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!inDollarQuote && trimmed.startsWith('--')) {
+      continue;
+    }
+
+    // DO $$ ... $$ PL/pgSQL bloklarını tespit et ve içindeki noktalı virgülleri bölme
+    let pos = 0;
+    while ((pos = line.indexOf('$$', pos)) !== -1) {
+      inDollarQuote = !inDollarQuote;
+      pos += 2;
+    }
+
+    current += line + '\n';
+
+    if (!inDollarQuote && trimmed.endsWith(';')) {
+      const stmt = current.trim();
+      if (stmt.length > 0) {
+        statements.push(stmt);
+      }
+      current = '';
+    }
+  }
+
+  if (current.trim().length > 0) {
+    statements.push(current.trim());
+  }
+
+  return statements;
+}
+
 // Neon ve Harici PostgreSQL Tablolarının Otomatik Denetimi
 const ensureNeonTables = async () => {
   try {
@@ -143,25 +181,17 @@ const ensureNeonTables = async () => {
       const migrationFile = path.join(__dirname, 'prisma', 'migrations', '20261014180000_init_postgres', 'migration.sql');
       if (fs.existsSync(migrationFile)) {
         const sqlContent = fs.readFileSync(migrationFile, 'utf8');
-
-        // SQL komutlarını satır yorumlarından (-- ...) temizleyip noktalı virgüle (;) göre ayrıştır
-        const statements = sqlContent
-          .split('\n')
-          .filter(line => !line.trim().startsWith('--'))
-          .join('\n')
-          .split(';')
-          .map(stmt => stmt.trim())
-          .filter(stmt => stmt.length > 0);
+        const statements = parseSqlStatements(sqlContent);
 
         console.log(`🚀 [NEON_DB_INIT] Toplam ${statements.length} adet SQL DDL komutu tek tek $executeRawUnsafe() ile çalıştırılıyor...`);
 
-        // Her bir komutu ayrı bir $executeRawUnsafe() çağrısıyla çalıştır
+        // Her bir geçerli DDL komutunu ayrı bir $executeRawUnsafe() çağrısıyla sırayla çalıştır
         for (let i = 0; i < statements.length; i++) {
           const statement = statements[i];
           try {
             await prisma.$executeRawUnsafe(statement);
           } catch (cmdErr) {
-            // Tablo, indeks veya kısıtlama zaten mevcutsa yut, aksi halde logla
+            // Tablo, indeks veya kısıtlama zaten mevcutsa hatayı yut, aksi halde logla
             if (!cmdErr.message || !cmdErr.message.includes('already exists')) {
               console.warn(`⚠️ [SQL_CMD_WARN] Komut ${i + 1}/${statements.length} uyarısı:`, cmdErr.message);
             }
