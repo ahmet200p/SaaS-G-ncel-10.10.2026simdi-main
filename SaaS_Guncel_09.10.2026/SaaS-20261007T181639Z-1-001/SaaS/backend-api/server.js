@@ -202,8 +202,77 @@ const ensureNeonTables = async () => {
     } else {
       console.log('✅ [NEON_CONNECTED] Neon PostgreSQL veritabanı bağlantısı ve tabloları hazır.');
     }
+
+    // 2. İlk Yönetici Hesaplarının Otomatik Kurulumu (Veritabanında hiç Süper Admin yoksa)
+    const adminCount = await prisma.user.count({ where: { role: 'SUPER_ADMIN' } });
+    if (adminCount === 0) {
+      console.log('👑 [NEON_INIT] Veritabanında Süper Admin bulunamadı, başlangıç hesabı oluşturuluyor...');
+      const adminPass = process.env.DEFAULT_ADMIN_PASSWORD || 'SaaS_Super_Admin_2026!#Secure';
+      let bcrypt;
+      try { bcrypt = require('bcrypt'); } catch (e) { bcrypt = require('bcryptjs'); }
+      const hash = await bcrypt.hash(adminPass, 10);
+
+      // Süper Admin Hesabı
+      await prisma.user.create({
+        data: {
+          email: 'admin@sistem.com',
+          password: hash,
+          role: 'SUPER_ADMIN',
+          status: 'APPROVED',
+          name: 'Süper Admin'
+        }
+      });
+      console.log('✅ [NEON_INIT] Süper Admin hesabı hazır: admin@sistem.com');
+
+      // Varsayılan Bayi ve Bayi Yöneticisi
+      let tenant = await prisma.tenant.findUnique({ where: { subdomain: 'ahmetoto' } });
+      if (!tenant) {
+        tenant = await prisma.tenant.create({
+          data: {
+            name: 'Ahmet Oto Yedek Parça',
+            subdomain: 'ahmetoto',
+            themeColor: '#2563eb',
+            status: 'APPROVED',
+            isActive: true
+          }
+        });
+      }
+
+      const dealerPass = process.env.DEFAULT_DEALER_PASSWORD || adminPass;
+      const dealerHash = await bcrypt.hash(dealerPass, 10);
+      const existingDealer = await prisma.user.findUnique({ where: { email: 'ahmet@ahmetoto.com' } });
+      if (!existingDealer) {
+        await prisma.user.create({
+          data: {
+            email: 'ahmet@ahmetoto.com',
+            password: dealerHash,
+            role: 'TENANT_ADMIN',
+            status: 'APPROVED',
+            tenantId: tenant.id,
+            name: 'Ahmet Yılmaz'
+          }
+        });
+        console.log('✅ [NEON_INIT] Bayi hesabı hazır: ahmet@ahmetoto.com');
+      }
+
+      // Sistem Ayarları
+      const settings = await prisma.systemSettings.findUnique({ where: { id: 1 } });
+      if (!settings) {
+        await prisma.systemSettings.create({
+          data: {
+            id: 1,
+            tecdocApiKey: process.env.PARTS_CATALOG_API_KEY || 'OEM-API-BD39DFA8-9AE9-4E7F-8B6D-3D1011BF973F',
+            tecdocEndpoint: 'https://api.parts-catalogs.com',
+            defaultB2BDiscount: 15.0,
+            defaultTaxRate: 20.0,
+            platformCurrency: 'TRY',
+            adminEmail: 'admin@sistem.com'
+          }
+        });
+      }
+    }
   } catch (err) {
-    console.warn('⚠️ [NEON_NOTICE] Tablo kontrolü:', err.message);
+    console.warn('⚠️ [NEON_NOTICE] Tablo / Başlangıç denetimi:', err.message);
   }
 };
 
