@@ -47,6 +47,7 @@
             password: '123456',
             role: 'SUPER_ADMIN',
             name: 'Süper Admin',
+            status: 'APPROVED',
             tenantId: null,
             tenant: null
           },
@@ -56,12 +57,14 @@
             password: '123456',
             role: 'TENANT_ADMIN',
             name: 'Ahmet Yılmaz',
+            status: 'APPROVED',
             tenantId: 'tenant-ahmet-oto',
             tenant: {
               id: 'tenant-ahmet-oto',
               name: 'Ahmet Oto Yedek Parça',
               subdomain: 'ahmetoto',
               themeColor: '#f97316',
+              status: 'APPROVED',
               isActive: true
             }
           }
@@ -72,6 +75,7 @@
             name: 'Ahmet Oto Yedek Parça',
             subdomain: 'ahmetoto',
             themeColor: '#f97316',
+            status: 'APPROVED',
             isActive: true,
             createdAt: '2026-03-01T10:00:00.000Z',
             _count: { tenantProducts: 0, customerProfiles: 0, orders: 0 }
@@ -288,6 +292,7 @@
         name: firmName,
         subdomain: subdomainPrefix,
         themeColor: '#2563eb',
+        status: 'PENDING',
         isActive: true,
         createdAt: new Date().toISOString(),
         _count: { tenantProducts: 0, customerProfiles: 0, orders: 0 }
@@ -299,6 +304,7 @@
         password,
         name: `${ad.toLocaleUpperCase('tr-TR')} ${soyad.toLocaleUpperCase('tr-TR')}`,
         role: 'TENANT_ADMIN',
+        status: 'PENDING',
         tenantId: newTenant.id,
         createdAt: new Date().toISOString()
       };
@@ -460,6 +466,80 @@
         count: store.tenants.length,
         data: store.tenants
       };
+    }
+
+    // 2.1 GET /admin/pending-tenants (Onay bekleyen bayiler)
+    if (cleanEndpoint === '/admin/pending-tenants' && method === 'GET') {
+      const pending = (store.tenants || []).filter(t => t.status === 'PENDING').map(t => ({
+        ...t,
+        users: (store.users || []).filter(u => u.tenantId === t.id)
+      }));
+      return {
+        success: true,
+        count: pending.length,
+        data: pending
+      };
+    }
+
+    // 2.2 PUT /admin/tenants/:id/approve (Bayi Onayla)
+    if (cleanEndpoint.startsWith('/admin/tenants/') && cleanEndpoint.endsWith('/approve') && method === 'PUT') {
+      const parts = cleanEndpoint.split('/');
+      const tenantId = parts[3];
+      const tenant = (store.tenants || []).find(t => t.id === tenantId);
+      if (tenant) {
+        tenant.status = 'APPROVED';
+        tenant.isActive = true;
+        (store.users || []).forEach(u => {
+          if (u.tenantId === tenantId) u.status = 'APPROVED';
+        });
+        saveMockStore(store);
+        return {
+          success: true,
+          message: `"${tenant.name}" bayisi başarıyla onaylandı.`,
+          data: tenant
+        };
+      }
+      return { success: false, message: 'Bayi bulunamadı.' };
+    }
+
+    // 2.3 PUT /admin/tenants/:id/reject (Bayi Reddet)
+    if (cleanEndpoint.startsWith('/admin/tenants/') && cleanEndpoint.endsWith('/reject') && method === 'PUT') {
+      const parts = cleanEndpoint.split('/');
+      const tenantId = parts[3];
+      const tenant = (store.tenants || []).find(t => t.id === tenantId);
+      if (tenant) {
+        tenant.status = 'REJECTED';
+        tenant.isActive = false;
+        (store.users || []).forEach(u => {
+          if (u.tenantId === tenantId) u.status = 'REJECTED';
+        });
+        saveMockStore(store);
+        return {
+          success: true,
+          message: `"${tenant.name}" bayisi başvurusu reddedildi.`,
+          data: tenant
+        };
+      }
+      return { success: false, message: 'Bayi bulunamadı.' };
+    }
+
+    // 2.4 GET /auth/me
+    if (cleanEndpoint === '/auth/me' && method === 'GET') {
+      let currentUser = null;
+      try {
+        currentUser = JSON.parse(localStorage.getItem('user'));
+      } catch (e) {}
+      if (currentUser && currentUser.email) {
+        const dbUser = (store.users || []).find(u => u.email.toLowerCase() === currentUser.email.toLowerCase()) || currentUser;
+        const tenant = dbUser.tenantId ? (store.tenants || []).find(t => t.id === dbUser.tenantId) : null;
+        return {
+          success: true,
+          data: {
+            user: { ...dbUser, tenant }
+          }
+        };
+      }
+      return { success: true, data: { user: currentUser } };
     }
 
     // 2b. GET /admin/stats
@@ -916,6 +996,20 @@
 
     // 7b. POST /tenant/products & POST /tenant/catalog
     if ((cleanEndpoint === '/tenant/products' || cleanEndpoint === '/tenant/catalog') && method === 'POST') {
+      // Onay Kontrolü (requireApprovedDealer)
+      let storedUser = null;
+      try { storedUser = JSON.parse(localStorage.getItem('user')); } catch (e) {}
+      if (storedUser && storedUser.role !== 'SUPER_ADMIN') {
+        const uStatus = storedUser.status || (storedUser.tenant ? storedUser.tenant.status : 'APPROVED');
+        if (uStatus === 'PENDING') {
+          return {
+            success: false,
+            status: 403,
+            message: 'Bayi hesabınız henüz onaylanmamıştır. Destek ekibimiz onaylayana kadar ürün ekleyemezsiniz.'
+          };
+        }
+      }
+
       const prodName = String(body.name || body.productName || '').trim() || 'Yeni Parça';
       const oe = String(body.oeNumber || '').trim();
       const cat = String(body.category || body.partGroup || 'Genel').trim();
@@ -1502,12 +1596,21 @@
       const paymentMethod = body.paymentMethod || null;
       const orderStatus = 'PENDING_APPROVAL';
 
+      let snapshotShippingAddress = body.shippingAddress || body.deliveryAddress;
+      if (!snapshotShippingAddress && (body.address || body.city || body.district)) {
+        snapshotShippingAddress = [body.address, body.district, body.city].filter(Boolean).join(', ');
+      }
+      if (!snapshotShippingAddress && firstCust) {
+        snapshotShippingAddress = [firstCust.address, firstCust.district, firstCust.city].filter(Boolean).join(', ');
+      }
+
       const newOrder = {
         id: `ord-${Date.now().toString(36)}`,
         orderNumber: orderNumber,
         tenantId: 'tenant-ahmet-oto',
         customerId: firstCust ? firstCust.id : 'cust-kemal-usta',
         paymentMethod: paymentMethod,
+        shippingAddress: snapshotShippingAddress || 'Adres belirtilmedi',
         subtotal: subtotal,
         vatRate: 20.00,
         vatAmount: vatAmount,
@@ -1847,5 +1950,6 @@
   window.escapeHtml = escapeHtml;
   window.parseJwtPayload = parseJwtPayload;
   window.jwtDecode = window.jwtDecode || parseJwtPayload;
+  window.getResolvedTenantSlug = getResolvedTenantSlug;
 
 })(window);

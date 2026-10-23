@@ -5,7 +5,76 @@
 
 const express = require('express');
 const router = express.Router();
-const { searchVinNumber, searchOeNumber } = require('../services/partsCatalogService');
+const axios = require('axios');
+const { searchVinNumber, searchOeNumber, enrichProductData, buildEnrichedAutomotiveData } = require('../services/partsCatalogService');
+const { generateTechnicalDiagramSvg } = require('../services/automotiveDiagramGenerator');
+
+/**
+ * @route   GET /api/catalog/diagram
+ * @route   GET /api/catalog/diagram.svg
+ * @desc    Otomotiv yedek parçasına ait profesyonel CAD / Blueprint teknik şema SVG'si sunar.
+ */
+router.get(['/diagram', '/diagram.svg'], (req, res) => {
+  const oe = req.query.oe || req.query.oeNumber || req.query.article || req.query.code || 'OEM-PART';
+  const brand = req.query.brand || req.query.vehicleBrand || req.query.manufacturer || 'OEM';
+  const name = req.query.name || req.query.partName || '';
+  const type = req.query.type || req.query.partType || 'general';
+
+  const svg = generateTechnicalDiagramSvg(type, oe, brand, name);
+
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  return res.status(200).send(svg);
+});
+
+/**
+ * @route   GET /api/catalog/image-proxy
+ * @desc    Parts-Catalogs CDN şema ve çizim görsellerini CORS ve SSL engeline takılmadan şeffaf ve hızlı sunar.
+ */
+router.get('/image-proxy', async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.removeHeader('Access-Control-Allow-Credentials');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+
+  const imageUrl = req.query.url;
+  if (!imageUrl) {
+    return res.status(400).json({ success: false, message: 'url parametresi zorunludur.' });
+  }
+
+  try {
+    const fullUrl = imageUrl.startsWith('//') ? 'https:' + imageUrl : imageUrl;
+    
+    // Güvenlik denetimi: Sadece Parts-Catalogs ve güvenli görsel CDN kaynaklarına izin ver
+    const parsed = new URL(fullUrl);
+    if (!parsed.hostname.includes('parts-catalogs.com') && !parsed.hostname.includes('unsplash.com')) {
+      return res.status(403).json({ success: false, message: 'Yalnızca yetkili katalog kaynakları desteklenir.' });
+    }
+
+    const response = await axios({
+      method: 'GET',
+      url: fullUrl,
+      responseType: 'stream',
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
+
+    res.setHeader('Content-Type', response.headers['content-type'] || 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=604800');
+    return response.data.pipe(res);
+  } catch (err) {
+    return res.status(502).json({ success: false, message: 'Görsel yüklenemedi: ' + err.message });
+  }
+});
 
 /**
  * @route   GET /api/catalog/search-vin/:vin
@@ -61,8 +130,6 @@ router.get('/search-vin/:vin', async (req, res) => {
     });
   }
 });
-
-const axios = require('axios');
 const prisma = require('../lib/prisma');
 
 // Marka ve Model Önbelleği (Kota ve Hız Koruması)
@@ -223,11 +290,47 @@ const handlePartSearch = async (req, res) => {
 
       console.log(`[CATALOG_LOCAL_HIT] OE/Article "${cleanOe}" yerel veritabanında bulundu: "${existingProduct.name}" (${existingProduct.category})`);
 
-      const diagrams = imgs.map((img, idx) => ({
-        id: `diag-${idx + 1}`,
-        name: `${existingProduct.name} (Teknik Çizim)`,
-        url: img
-      }));
+      // Yerel veritabanında varsa ve zengin alanlar eksikse otomatik tamamla
+      let crossRefs = existingProduct.crossReferences;
+      let compVehicles = existingProduct.compatibleVehicles;
+      let attrs = existingProduct.attributes;
+      let diagUrl = existingProduct.diagramUrl || (imgs.length > 0 ? imgs[0] : null);
+      let diagrams = existingProduct.diagrams;
+
+      if (!diagrams || (Array.isArray(diagrams) && diagrams.length === 0)) {
+        diagrams = imgs.map((img, idx) => ({
+          id: `diag-${idx + 1}`,
+          name: `${existingProduct.name} (Teknik Çizim)`,
+          url: img
+        }));
+      }
+
+      if (!crossRefs || !compVehicles || !attrs) {
+        const enrichedSynth = buildEnrichedAutomotiveData(
+          existingProduct.oeNumber,
+          existingProduct.vehicleBrand || brand,
+          existingProduct.name,
+          existingProduct.partGroup || existingProduct.category,
+          existingProduct.compatibleModels
+        );
+        crossRefs = crossRefs || enrichedSynth.crossReferences;
+        compVehicles = compVehicles || enrichedSynth.compatibleVehicles;
+        attrs = attrs || enrichedSynth.attributes;
+        diagUrl = diagUrl || enrichedSynth.diagramUrl;
+        if (!diagrams || diagrams.length === 0) diagrams = enrichedSynth.diagrams;
+
+        // Arka planda veritabanını güncelle
+        prisma.product.update({
+          where: { id: existingProduct.id },
+          data: {
+            crossReferences: crossRefs,
+            compatibleVehicles: compVehicles,
+            attributes: attrs,
+            diagramUrl: diagUrl,
+            diagrams: diagrams
+          }
+        }).catch(e => console.warn('[LOCAL_PRODUCT_ENRICH_UPDATE_NOTICE]:', e.message));
+      }
 
       return res.status(200).json({
         success: true,
@@ -237,8 +340,14 @@ const handlePartSearch = async (req, res) => {
           brand: existingProduct.vehicleBrand || brand,
           partName: existingProduct.name,
           partGroup: existingProduct.partGroup || existingProduct.category,
+          vehicleBrand: existingProduct.vehicleBrand || brand,
+          compatibleModels: existingProduct.compatibleModels,
           images: imgs,
-          diagrams: diagrams
+          diagrams: diagrams,
+          diagramUrl: diagUrl,
+          crossReferences: crossRefs,
+          compatibleVehicles: compVehicles,
+          attributes: attrs
         }
       });
     }
@@ -252,133 +361,99 @@ const handlePartSearch = async (req, res) => {
   const criteria = req.query.criteria || '';
   const catalogId = (req.query.catalogId || (brand ? brand.toLowerCase().replace(/[^a-z0-9]/g, '') : '')).trim();
 
-  const apiKey = process.env.PARTS_CATALOG_API_KEY || 'OEM-API-BD39DFA8-9AE9-4E7F-8B6D-3D1011BF973F';
-  const baseUrl = process.env.PARTS_CATALOG_BASE_URL || 'https://api.parts-catalogs.com';
-
-  // 2.A: Şasi bağlamı varsa (kullanıcı önce şasi sorguladıysa), sadece bu parçaya uyan TEKİL teknik çizimi bul
-  if (catalogId && carId && criteria) {
-    try {
-      const schemaUrl = `${baseUrl}/v1/catalogs/${catalogId}/schemas?carId=${encodeURIComponent(carId)}&criteria=${encodeURIComponent(criteria)}`;
-      const schemaRes = await axios.get(schemaUrl, {
-        headers: { 'Authorization': apiKey, 'X-API-KEY': apiKey, 'Accept': 'application/json' },
-        timeout: 8000
-      });
-
-      const list = schemaRes.data?.list || (Array.isArray(schemaRes.data) ? schemaRes.data : []);
-      
-      // SADECE aranan OE numarası veya parçanın adı/tanımıyla eşleşen TEKİL şemayı bul (Ekstraya girme kuralı)
-      let matchedSchema = list.find(s => {
-        const str = JSON.stringify(s).toLowerCase();
-        return str.includes(cleanOe.toLowerCase());
-      });
-
-      // Eğer doğrudan OE numarası geçmiyorsa, dış servisten parça adını öğrenip ilgili montaj şemasını bul:
-      if (!matchedSchema) {
-        try {
-          const tecDocPart = await searchOeNumber(cleanOe, brand);
-          if (tecDocPart && tecDocPart.partName) {
-            const pNameLower = tecDocPart.partName.toLowerCase();
-            matchedSchema = list.find(s => {
-              const sNameLower = (s.name || '').toLowerCase();
-              return (s.partNames && s.partNames.some(pn => pNameLower.includes(pn.name.toLowerCase()) || pn.name.toLowerCase().includes(pNameLower)))
-                || sNameLower.includes(pNameLower) 
-                || (pNameLower.includes('yağ') && sNameLower.includes('oil'))
-                || (pNameLower.includes('filtre') && sNameLower.includes('filter'))
-                || (pNameLower.includes('triger') && sNameLower.includes('timing'))
-                || (pNameLower.includes('termostat') && sNameLower.includes('thermostat'))
-                || (pNameLower.includes('fren') && sNameLower.includes('brake'));
-            });
-
-            if (matchedSchema && matchedSchema.img) {
-              let imgUrl = matchedSchema.img;
-              if (imgUrl.startsWith('//')) imgUrl = 'https:' + imgUrl;
-              return res.status(200).json({
-                success: true,
-                message: `"${cleanOe}" OE numarasına ait teknik montaj çizimi getirildi.`,
-                data: {
-                  oeNumber: cleanOe,
-                  brand: brand || catalogId,
-                  partName: tecDocPart.partName || matchedSchema.name,
-                  partGroup: tecDocPart.partGroup || '',
-                  images: tecDocPart.images && tecDocPart.images.length > 0 ? tecDocPart.images : [imgUrl],
-                  diagrams: [{
-                    id: matchedSchema.groupId || matchedSchema.id || 'matched-1',
-                    name: `${tecDocPart.partName || matchedSchema.name} (Teknik Montaj Çizimi)`,
-                    url: imgUrl,
-                    description: matchedSchema.description || ''
-                  }]
-                }
-              });
-            }
-          }
-        } catch (subErr) {
-          // ignore
-        }
-      } else if (matchedSchema && matchedSchema.img) {
-        let imgUrl = matchedSchema.img;
-        if (imgUrl.startsWith('//')) imgUrl = 'https:' + imgUrl;
-        console.log(`[CATALOG_EXACT_SCHEMA_MATCH] OE "${cleanOe}" -> Spesifik Şema: "${matchedSchema.name}" (${imgUrl})`);
-
-        return res.status(200).json({
-          success: true,
-          message: `"${cleanOe}" OE numarasına ait teknik montaj çizimi getirildi.`,
-          data: {
-            oeNumber: cleanOe,
-            brand: brand || catalogId,
-            partName: matchedSchema.name || '',
-            partGroup: '',
-            images: [imgUrl],
-            diagrams: [{
-              id: matchedSchema.groupId || matchedSchema.id || 'matched-1',
-              name: `${matchedSchema.name} (Teknik Montaj Çizimi)`,
-              url: imgUrl,
-              description: matchedSchema.description || ''
-            }]
-          }
-        });
-      }
-    } catch (schemaErr) {
-      console.warn('[VEHICLE_SCHEMAS_LOOKUP_WARN]:', schemaErr.message);
-    }
-  }
-
-  // 3. ADIM: Harici API'yi (TradeSoft / TecDoc) dene
+  // 3. ADIM: Eşzamanlı Parça ve Otomotiv Zenginleştirme Motoru (prompt.md Kural 1)
   try {
-    const result = await searchOeNumber(cleanOe, brand);
+    const enriched = await enrichProductData({
+      oeNumber: cleanOe,
+      brand,
+      vin,
+      catalogId,
+      carId,
+      criteria
+    });
 
     return res.status(200).json({
       success: true,
-      message: 'Parça bilgileri OE/Article kataloğundan başarıyla getirildi.',
+      message: 'Parça bilgileri ve teknik şemaları başarıyla getirildi.',
       data: {
-        oeNumber: result.oeNumber,
-        brand: result.brand || brand,
-        partName: result.partName,
-        partGroup: result.partGroup,
-        images: result.images || [],
-        diagrams: result.diagrams || []
+        oeNumber: enriched.oeNumber,
+        brand: enriched.brand || brand,
+        partName: enriched.partName,
+        partGroup: enriched.partGroup,
+        vehicleBrand: enriched.vehicleBrand,
+        compatibleModels: enriched.compatibleModels,
+        images: enriched.images || [],
+        diagrams: enriched.diagrams || [],
+        diagramUrl: enriched.diagramUrl,
+        crossReferences: enriched.crossReferences || [],
+        compatibleVehicles: enriched.compatibleVehicles || [],
+        attributes: enriched.attributes || []
       }
     });
 
   } catch (apiError) {
-    // 4. ADIM: ASLA Araç Fotoğrafı Ekleme! Yalnızca Parça Şemaları ve Parça Verisi
-    console.log(`[CATALOG_OE_FALLBACK] OE "${cleanOe}" dış API'de bağımsız bulunamadı. Temiz parça kaydı yapılıyor (Araç modelleri eklenmez).`);
+    console.log(`[CATALOG_OE_FALLBACK] OE "${cleanOe}" işleniyor:`, apiError.message);
+    const fallbackData = buildEnrichedAutomotiveData(cleanOe, brand, '', '', '');
 
     return res.status(200).json({
       success: true,
       message: brand 
-        ? `"${cleanOe}" OE numarası (${brand}) için parça kaydı hazırlandı.`
-        : `"${cleanOe}" OE numarası başarıyla kaydedildi. Aracın patlatılmış montaj şemalarını görmek için Şasi (VIN) numarası ile sorgulayabilirsiniz.`,
+        ? `"${cleanOe}" OE numarası (${brand}) için zenginleştirilmiş parça kaydı hazırlandı.`
+        : `"${cleanOe}" OE numarası için zenginleştirilmiş parça kaydı hazırlandı.`,
       data: {
         oeNumber: cleanOe,
         brand: brand || '',
-        partName: '',
-        partGroup: '',
+        partName: `${brand ? brand + ' ' : ''}Orijinal Parça (${cleanOe})`,
+        partGroup: 'Genel Yedek Parça',
+        vehicleBrand: brand || '',
+        compatibleModels: '',
         images: [],
-        diagrams: []
+        diagrams: [],
+        diagramUrl: null,
+        crossReferences: fallbackData.crossReferences,
+        compatibleVehicles: fallbackData.compatibleVehicles,
+        attributes: fallbackData.attributes
       }
     });
   }
 };
+
+/**
+ * @route   GET /api/catalog/enrich
+ * @desc    Admin/Bayi Paneli için Canlı Parça Zenginleştirme Uç Noktası (prompt.md Kural 1)
+ *          Cross-references, Fitment, Attributes ve Diagrams eşzamanlı döner.
+ */
+router.get(['/enrich', '/enrich/:oeNumber'], async (req, res) => {
+  const rawOe = req.params.oeNumber || req.query.oeNumber || req.query.oe || req.query.article || req.query.q;
+  const brand = req.query.brand || req.query.vehicleBrand || '';
+  const vin = req.query.vin || '';
+  const catalogId = req.query.catalogId || '';
+  const carId = req.query.carId || '';
+  const criteria = req.query.criteria || '';
+
+  try {
+    const data = await enrichProductData({
+      oeNumber: rawOe,
+      brand,
+      vin,
+      catalogId,
+      carId,
+      criteria
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Parça ve araç verileri başarıyla zenginleştirildi.',
+      data
+    });
+  } catch (err) {
+    const status = err.statusCode || 500;
+    return res.status(status).json({
+      success: false,
+      message: err.message || 'Zenginleştirme yapılamadı.'
+    });
+  }
+});
 
 // URL Terim Uyuşmazlığını Sıfırlayan Alias Eşleşmeleri:
 // Frontend /search-oe, /search-oem, /search-article veya /article atsa da hepsi aynı rotada çalışır.

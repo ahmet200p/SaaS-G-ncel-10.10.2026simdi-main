@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
-const app = require('./app');
+const app = fs.existsSync(path.join(__dirname, 'app.js')) ? require('./app') : require('./backend-api/app');
 
 let server;
 let serverPort;
@@ -120,7 +120,7 @@ async function runTests() {
       method: 'POST',
       body: {
         email: 'ahmet@ahmetoto.com',
-        password: '123456'
+        password: process.env.DEFAULT_DEALER_PASSWORD || 'SaaS_Dealer_Admin_2026!#Secure'
       }
     });
 

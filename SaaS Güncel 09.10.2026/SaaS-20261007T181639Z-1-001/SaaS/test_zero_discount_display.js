@@ -10,8 +10,12 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const jwt = require('jsonwebtoken');
-const prisma = require('./lib/prisma');
-const app = require('./app');
+const prisma = fs.existsSync(path.join(__dirname, 'backend-api', 'lib', 'prisma.js'))
+  ? require('./backend-api/lib/prisma')
+  : require('./lib/prisma');
+const app = fs.existsSync(path.join(__dirname, 'backend-api', 'app.js'))
+  ? require('./backend-api/app')
+  : require('./app');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'b2b-super-secret-key-2026';
 
@@ -155,8 +159,10 @@ async function runTest() {
 
   // 3. CANLI BACKEND API DOĞRULAMASI
   console.log('3. Canlı Express API & Prisma Veritabanı Testi...');
-  const testTenant = await prisma.tenant.findFirst();
-  assert(testTenant, 'Veritabanında en az 1 tenant olmalı');
+  const testTenant = await prisma.tenant.findFirst({
+    where: { subdomain: 'ahmetoto', isActive: true }
+  }) || await prisma.tenant.findFirst({ where: { isActive: true, status: 'APPROVED' } });
+  assert(testTenant, 'Veritabanında onaylı en az 1 tenant olmalı');
 
   // Test kullanıcısı oluştur (%0 iskontolu)
   const testUserZero = await prisma.user.create({
@@ -211,7 +217,7 @@ async function runTest() {
   const getZeroRes = await apiRequest({
     path: `/api/store/products?search=${encodeURIComponent(testProduct.oeNumber)}`,
     method: 'GET',
-    headers: { Authorization: `Bearer ${tokenZero}` }
+    headers: { Authorization: `Bearer ${tokenZero}`, 'X-Tenant-Slug': testTenant.subdomain }
   });
 
   assert(getZeroRes.status === 200, 'Ürünler 200 dönmeli');
@@ -247,7 +253,7 @@ async function runTest() {
   const getTwentyRes = await apiRequest({
     path: `/api/store/products?search=${encodeURIComponent(testProduct.oeNumber)}`,
     method: 'GET',
-    headers: { Authorization: `Bearer ${tokenZero}` }
+    headers: { Authorization: `Bearer ${tokenZero}`, 'X-Tenant-Slug': testTenant.subdomain }
   });
 
   assert(getTwentyRes.status === 200);
@@ -271,7 +277,7 @@ async function runTest() {
   const getZeroAgain = await apiRequest({
     path: `/api/store/products?search=${encodeURIComponent(testProduct.oeNumber)}`,
     method: 'GET',
-    headers: { Authorization: `Bearer ${tokenZero}` }
+    headers: { Authorization: `Bearer ${tokenZero}`, 'X-Tenant-Slug': testTenant.subdomain }
   });
 
   const prodZeroAgain = getZeroAgain.data.data.find(p => p.tenantProductId === testTenantProduct.id);

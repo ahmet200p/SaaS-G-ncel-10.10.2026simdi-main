@@ -1,0 +1,2349 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="SaaS Süper Admin Paneli - Müşteri firmalar, merkezi parça havuzu ve sistem yönetimi">
+  <title>Süper Admin Paneli | SaaS Yönetim Platformu</title>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+  <script src="assets/js/api.js"></script>
+</head>
+
+<body>
+
+  <!-- SOL KENAR ÇUBUĞU (SIDEBAR) -->
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <!-- Logo & Başlık -->
+      <div class="sidebar-brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1 class="brand-title">Süper Admin</h1>
+          <span class="brand-badge">SaaS v2.4</span>
+        </div>
+      </div>
+
+      <!-- Gezinme Menüsü -->
+      <nav class="sidebar-nav">
+        <ul class="sidebar-menu">
+          <li class="menu-item active" data-target="section-dashboard">
+            <a href="#dashboard" id="nav-dashboard">
+              <svg class="menu-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+              <span>Dashboard</span>
+            </a>
+          </li>
+          <li class="menu-item" data-target="section-tenants">
+            <a href="#tenants" id="nav-tenants">
+              <svg class="menu-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 21h18"></path>
+                <path d="M9 8h1"></path>
+                <path d="M9 12h1"></path>
+                <path d="M9 16h1"></path>
+                <path d="M14 8h1"></path>
+                <path d="M14 12h1"></path>
+                <path d="M14 16h1"></path>
+                <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"></path>
+              </svg>
+              <span>Müşteri Firmalar (Tenants)</span>
+              <span class="nav-count">24</span>
+              <span class="badge" id="pending-tenants-badge" style="display:none; margin-left: 6px; font-size: 11px; padding: 2px 7px; border-radius: 9999px; background: #f59e0b; color: #ffffff; font-weight: 700; box-shadow: 0 1px 3px rgba(245,158,11,0.3);">0 Onay</span>
+            </a>
+          </li>
+          <li class="menu-item" data-target="section-pool">
+            <a href="#parts-pool" id="nav-parts">
+              <svg class="menu-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path
+                  d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+                </path>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              </svg>
+              <span>Merkezi Parça Havuzu</span>
+            </a>
+          </li>
+          <li class="menu-item" data-target="section-admins">
+            <a href="#admins" id="nav-admins">
+              <svg class="menu-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="8.5" cy="7" r="4"></circle>
+                <line x1="20" y1="8" x2="20" y2="14"></line>
+                <line x1="23" y1="11" x2="17" y2="11"></line>
+              </svg>
+              <span>Admin Kadrosu</span>
+              <span class="nav-count" id="nav-admins-count">1</span>
+            </a>
+          </li>
+          <li class="menu-item" data-target="section-settings">
+            <a href="#settings" id="nav-settings">
+              <svg class="menu-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path
+                  d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                </path>
+              </svg>
+              <span>Ayarlar</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+
+    <!-- Sidebar Alt Bilgi (Sistem Durumu) -->
+    <div class="sidebar-footer">
+      <div class="system-status-card">
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span class="status-text">Sistem Aktif</span>
+        </div>
+        <p class="status-detail">%99.98 Uptime • Bulut Kümesi</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- SAĞ ANA İÇERİK ALANI (MAIN CONTENT) -->
+  <div class="main-content">
+
+    <!-- HEADER -->
+    <header class="top-header">
+      <div class="header-left">
+        <div class="page-title-group">
+          <h2 class="page-heading">Süper Admin Kontrol Paneli</h2>
+          <span class="page-breadcrumb">Ana Sayfa / Sistem Özeti</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- Arama ve Bildirim -->
+        <div class="header-search">
+          <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" placeholder="Tenant veya parça ara..." class="search-input" id="search-bar">
+        </div>
+
+        <button class="header-action-btn" title="Bildirimler" aria-label="Bildirimler">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span class="notification-badge"></span>
+        </button>
+
+        <div class="header-divider"></div>
+
+        <!-- Admin Profil Bilgisi -->
+        <div class="admin-profile" id="admin-profile">
+          <div class="avatar-wrapper">
+            <img class="profile-avatar"
+              src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'><defs><linearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%232563eb'/><stop offset='100%25' stop-color='%231e293b'/></linearGradient></defs><rect width='80' height='80' rx='40' fill='url(%23grad)'/><circle cx='40' cy='32' r='14' fill='%23ffffff' opacity='0.95'/><path d='M20 66 C20 52, 28 46, 40 46 C52 46, 60 52, 60 66 Z' fill='%23ffffff' opacity='0.95'/></svg>"
+              alt="Admin Profil Resmi" width="40" height="40">
+            <span class="online-indicator" title="Çevrimiçi"></span>
+          </div>
+          <div class="profile-info">
+            <span class="admin-name">Burak Yıldız</span>
+            <span class="admin-role">Süper Yönetici</span>
+          </div>
+        </div>
+
+        <!-- Çıkış Yap Butonu -->
+        <button class="logout-btn" id="logout-button" onclick="logout()" title="Oturumu Kapat">
+          <svg class="logout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span>Çıkış Yap</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ==========================================================================
+         BÖLÜM 1: DASHBOARD (section-dashboard) - Varsayılan Olarak Açık
+         ========================================================================== -->
+    <div id="section-dashboard" class="content-section active page-view">
+
+      <!-- KPI Grid: 3 adet beyaz, köşesi yuvarlak, hafif gölgeli kutu -->
+      <section class="kpi-grid">
+        <!-- Kutu 1: Aktif Firmalar -->
+        <div class="kpi-card">
+          <div class="kpi-icon-box bg-blue">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 21h18"></path>
+              <path d="M9 8h1"></path>
+              <path d="M9 12h1"></path>
+              <path d="M9 16h1"></path>
+              <path d="M14 8h1"></path>
+              <path d="M14 12h1"></path>
+              <path d="M14 16h1"></path>
+              <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"></path>
+            </svg>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-label">Aktif Firmalar</span>
+            <div class="kpi-value" id="kpi-tenants-count">0</div>
+            <span class="kpi-text-raw">Aktif Firmalar</span>
+          </div>
+        </div>
+
+        <!-- Kutu 2: Havuzdaki Parça Sayısı (Başlangıç 0) -->
+        <div class="kpi-card">
+          <div class="kpi-icon-box bg-emerald">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+              </path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-label">Havuzdaki Parça Sayısı</span>
+            <div class="kpi-value" id="kpi-products-count">0</div>
+            <span class="kpi-text-raw">Havuzdaki Parça Sayısı</span>
+          </div>
+        </div>
+
+        <!-- Kutu 3: Sistemdeki Tamirciler -->
+        <div class="kpi-card">
+          <div class="kpi-icon-box bg-indigo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z">
+              </path>
+            </svg>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-label">Sistemdeki Tamirciler</span>
+            <div class="kpi-value" id="kpi-customers-count">0</div>
+            <span class="kpi-text-raw">Sistemdeki Tamirciler</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Dashboard Ekstra Widget Alanları: Sistem Durumu & Hızlı İşlemler & Son Aktiviteler -->
+      <div class="dashboard-widgets-grid">
+        <!-- Widget 1: Hızlı İşlemler & Kısayollar -->
+        <div class="dashboard-card">
+          <div class="dashboard-card-header">
+            <h4 class="dashboard-card-title">Hızlı İşlemler & Kısayollar</h4>
+            <span class="dashboard-card-subtitle">Sık kullanılan yönetim aksiyonlarına tek tıkla geçiş yapın</span>
+          </div>
+          <div class="quick-actions-list">
+            <button type="button" class="quick-action-btn" onclick="switchTab('section-tenants')">
+              <div class="quick-action-icon bg-blue">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </div>
+              <div class="quick-action-text">
+                <strong>Firmaları Listele</strong>
+                <span>Kayıtlı bayileri, aktiflik durumunu ve mağaza bağlantılarını incele</span>
+              </div>
+              <span class="quick-action-arrow">→</span>
+            </button>
+
+            <button type="button" class="quick-action-btn" onclick="switchTab('section-tenants'); setTimeout(openDrawer, 150);">
+              <div class="quick-action-icon bg-emerald">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </div>
+              <div class="quick-action-text">
+                <strong>Yeni Bayi Ekle</strong>
+                <span>Hemen yeni bir firma subdomain'i ve yönetici hesabı oluştur</span>
+              </div>
+              <span class="quick-action-arrow">→</span>
+            </button>
+
+            <button type="button" class="quick-action-btn" onclick="switchTab('section-pool')">
+              <div class="quick-action-icon bg-indigo">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+              </div>
+              <div class="quick-action-text">
+                <strong>Merkezi Parça Havuzu</strong>
+                <span>Orijinal parça kataloğu ve OE envanter havuzuna göz at</span>
+              </div>
+              <span class="quick-action-arrow">→</span>
+            </button>
+
+            <button type="button" class="quick-action-btn" onclick="switchTab('section-settings')">
+              <div class="quick-action-icon bg-orange">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+              </div>
+              <div class="quick-action-text">
+                <strong>Platform Ayarları</strong>
+                <span>Parts-Catalogs API entegrasyonu ve finansal iskonto parametrelerini yapılandır</span>
+              </div>
+              <span class="quick-action-arrow">→</span>
+            </button>
+
+            <button type="button" class="quick-action-btn" onclick="switchTab('section-admins')">
+              <div class="quick-action-icon bg-indigo">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="8.5" cy="7" r="4"></circle>
+                  <line x1="20" y1="8" x2="20" y2="14"></line>
+                  <line x1="23" y1="11" x2="17" y2="11"></line>
+                </svg>
+              </div>
+              <div class="quick-action-text">
+                <strong>Admin Ekle & Yetkilendir</strong>
+                <span>Sisteme yeni yönetici atayın veya mevcut kullanıcıya adminlik verin</span>
+              </div>
+              <span class="quick-action-arrow">→</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Widget 2: Sistem Denetim Özeti -->
+        <div class="dashboard-card">
+          <div class="dashboard-card-header">
+            <h4 class="dashboard-card-title">Sistem Denetim & Güvenlik Özeti</h4>
+            <span class="dashboard-card-subtitle">Platform güvenliği, oturum yönetimi ve veritabanı durumu</span>
+          </div>
+          <div class="activity-feed">
+            <div class="activity-item">
+              <span class="activity-dot bg-emerald"></span>
+              <div class="activity-body">
+                <span class="activity-title">Pasif Bayi Güvenlik Koruması Devrede</span>
+                <span class="activity-time">Pasife alınan bayilerin yöneticileri ve müşterileri anında engellenmektedir.</span>
+              </div>
+            </div>
+            <div class="activity-item">
+              <span class="activity-dot bg-blue"></span>
+              <div class="activity-body">
+                <span class="activity-title">Veritabanı Sağlığı (SQLite dev.db)</span>
+                <span class="activity-time">Prisma ORM bağlantı havuzu kararlı çalışıyor.</span>
+              </div>
+            </div>
+            <div class="activity-item">
+              <span class="activity-dot bg-indigo"></span>
+              <div class="activity-body">
+                <span class="activity-title">B2B Vitrin ve Mağaza Modülü</span>
+                <span class="activity-time">Subdomain dinamik izolasyonu ve müşteri fiyatlandırması aktif.</span>
+              </div>
+            </div>
+            <div class="activity-item">
+              <span class="activity-dot bg-orange"></span>
+              <div class="activity-body">
+                <span class="activity-title">Audit Log & Stok Hareketi Takibi</span>
+                <span class="activity-time">Her sipariş onayında otomatik stok ve cari bakiye güncellenir.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==========================================================================
+         BÖLÜM 2: MÜŞTERİ FİRMALAR (section-tenants)
+         ========================================================================== -->
+    <div id="section-tenants" class="content-section page-view" style="display: none;">
+
+      <!-- Başlık ve Sağa Yaslı Buton Bölümü -->
+      <section class="section-action-header">
+        <div>
+          <h3 class="section-title">Kayıtlı Firmalar (Tenants)</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">Sistemde kayıtlı bayiler, durum yönetimi ve B2B mağaza erişimleri</p>
+        </div>
+        <button class="btn-primary" id="btn-add-tenant">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span> Yeni Firma Ekle</span>
+        </button>
+      </section>
+
+      <!-- Onay Bekleyen Bayi Başvuruları Bölümü (Yeni Bayi Kaydı Admin Onayı) -->
+      <section id="pending-tenants-section" style="display: none; margin-bottom: 28px;">
+        <div style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1.5px solid #f59e0b; border-radius: 12px; padding: 18px 22px; margin-bottom: 14px; box-shadow: 0 4px 12px rgba(245,158,11,0.08);">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 40px; height: 40px; border-radius: 10px; background: #fef08a; border: 1.5px solid #fde047; display: flex; align-items: center; justify-content: center; color: #b45309; flex-shrink: 0;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              </div>
+              <div>
+                <h4 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: #92400e; display: flex; align-items: center; gap: 8px;">
+                  Onay Bekleyen Bayi Başvuruları
+                  <span id="pending-count-badge" style="background: #f59e0b; color: #ffffff; font-size: 0.75rem; padding: 2px 8px; border-radius: 9999px;">0</span>
+                </h4>
+                <p style="margin: 3px 0 0 0; font-size: 0.835rem; color: #b45309;">
+                  Yeni kayıt olan bayiler sistem yöneticisi onay verene kadar ürün kataloğu ekleyemezler ve mağaza vitrinleri pasiftir.
+                </p>
+              </div>
+            </div>
+            <button type="button" onclick="loadPendingTenants()" class="btn-table-action" style="background: #ffffff; border: 1px solid #fde68a; color: #92400e; padding: 7px 14px; border-radius: 8px; cursor: pointer; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+              Yenile
+            </button>
+          </div>
+        </div>
+
+        <div class="table-container" style="border: 1.5px solid #fde68a; border-radius: 12px; overflow: hidden; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+          <table class="tenants-table" style="margin: 0;">
+            <thead>
+              <tr style="background: #fffbeb;">
+                <th>Firma Adı</th>
+                <th>Subdomain</th>
+                <th>Yönetici</th>
+                <th>Başvuru Tarihi</th>
+                <th>Durum</th>
+                <th style="text-align: right;">Onay İşlemleri</th>
+              </tr>
+            </thead>
+            <tbody id="pending-tenants-tbody">
+              <!-- JS ile dinamik doldurulacak -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Kayıtlı Firmalar Tablosu -->
+      <section class="table-container">
+        <table class="tenants-table">
+          <thead>
+            <tr>
+              <th>Firma Adı</th>
+              <th>Subdomain</th>
+              <th>Tema Rengi</th>
+              <th>Durum</th>
+              <th>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Satır 1: Ahmet Oto -->
+            <tr data-tenant-id="tenant-ahmet-oto">
+              <td>
+                <div class="firm-identity">
+                  <div class="firm-avatar" style="background-color: #f97316;">AO</div>
+                  <span class="firm-name">Ahmet Oto</span>
+                </div>
+              </td>
+              <td>
+                <a href="../storefront-ui/store.html?subdomain=ahmetoto" class="subdomain-text" target="_blank" title="B2B Mağazasını Aç">ahmetoto.sistem.com ↗</a>
+              </td>
+              <td>
+                <div class="color-badge-wrapper">
+                  <span class="color-swatch-box" style="background-color: #f97316;" title="Turuncu"></span>
+                  <span class="color-name">#f97316 (Turuncu)</span>
+                </div>
+              </td>
+              <td>
+                <span class="badge-status-green"><span class="badge-dot-green"></span>Aktif</span>
+              </td>
+              <td>
+                <div class="actions-group">
+                  <a href="store.html?subdomain=ahmetoto" class="btn-table-action btn-store" target="_blank" title="B2B Mağazasına Git" style="text-decoration: none;">Mağaza</a>
+                  <button class="btn-table-action btn-edit" title="Firma Düzenle">Düzenle</button>
+                  <button class="btn-table-action btn-status-toggle btn-deactivate" style="background:#fff7ed; color:#ea580c; border:1px solid #fed7aa; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600;" title="Firmayı Pasife Al">Pasife Al</button>
+                  <button class="btn-table-action btn-delete" style="background: #fee2e2; color: #ef4444; border: 1px solid #fecaca; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600;" title="Firmayı Sil">Sil</button>
+                </div>
+              </td>
+            </tr>
+
+          </tbody>
+        </table>
+      </section>
+
+    </div>
+
+    <!-- ==========================================================================
+         BÖLÜM 3: MERKEZİ PARÇA HAVUZU (section-pool)
+         ========================================================================== -->
+    <div id="section-pool" class="content-section page-view" style="display: none;">
+
+      <!-- Başlık Bölümü -->
+      <section class="section-action-header">
+        <div>
+          <h3 class="section-title">Merkezi Parça Havuzu</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">Platform genelindeki orijinal OE yedek parça ve katalog envanteri</p>
+        </div>
+      </section>
+
+            <!-- Parts-Catalogs Entegrasyon Bilgi Kutusu -->
+      <div class="integration-active-banner">
+        <div class="integration-icon-box">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+        </div>
+        <div class="integration-text">
+          <div class="integration-badge">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #4ade80; display: inline-block;"></span>
+            Entegrasyon Başarılı
+          </div>
+          <h4 class="integration-title">Merkezi Parça Havuzu & Parts-Catalogs Entegrasyonu Aktif</h4>
+          <p class="integration-desc">Bu modül, Parts-Catalogs API altyapısı ile tam entegre çalışmaktadır. Tüm şasi (VIN) ve orijinal yedek parça (OE) sorgulamalarınız küresel veri ağı üzerinden anlık ve otomatik olarak listelenmektedir.</p>
+        </div>
+      </div>
+
+      <!-- Üst Büyük Arama Çubuğu -->
+      <div class="parts-search-container" style="margin-bottom: 20px;">
+        <div class="parts-search-bar">
+          <svg class="parts-search-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" class="parts-search-input"
+            placeholder="OE Numarası, Barkod veya Parça Adı ile Havuzda Ara..." id="parts-search">
+        </div>
+      </div>
+
+      <!-- Parça Grid Sistemi (.parts-grid) -->
+      <div class="parts-grid" id="parts-grid-container">
+
+        <!-- Parça 1: Fren Balatası -->
+        <div class="part-item">
+          <button class="part-edit-btn" title="Parçayı Düzenle" aria-label="Düzenle">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </button>
+          <div class="part-image-wrapper">
+            <svg class="part-placeholder-icon" width="48" height="48" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M6 12h.01M18 12h.01"></path>
+            </svg>
+          </div>
+          <div class="part-details">
+            <span class="part-oe-number">OE: 41060-AX085</span>
+            <span class="part-name">Fren Balatası</span>
+            <span class="part-model-tag">Renault Clio</span>
+          </div>
+        </div>
+
+        <!-- Parça 2: Hava Filtresi -->
+        <div class="part-item">
+          <button class="part-edit-btn" title="Parçayı Düzenle" aria-label="Düzenle">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </button>
+          <div class="part-image-wrapper">
+            <svg class="part-placeholder-icon" width="48" height="48" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12h18M3 6h18M3 18h18"></path>
+              <circle cx="12" cy="12" r="9"></circle>
+            </svg>
+          </div>
+          <div class="part-details">
+            <span class="part-oe-number">OE: 16546-7674R</span>
+            <span class="part-name">Hava Filtresi</span>
+            <span class="part-model-tag">Renault Clio</span>
+          </div>
+        </div>
+
+        <!-- Parça 3: Ön Amortisör -->
+        <div class="part-item">
+          <button class="part-edit-btn" title="Parçayı Düzenle" aria-label="Düzenle">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </button>
+          <div class="part-image-wrapper">
+            <svg class="part-placeholder-icon" width="48" height="48" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v20M8 7h8M8 12h8M8 17h8"></path>
+              <circle cx="12" cy="2" r="1"></circle>
+              <circle cx="12" cy="22" r="1"></circle>
+            </svg>
+          </div>
+          <div class="part-details">
+            <span class="part-oe-number">OE: 54302-0048R</span>
+            <span class="part-name">Ön Amortisör</span>
+            <span class="part-model-tag">Renault Clio</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ==========================================================================
+         BÖLÜM: YÖNETİCİLER & ADMİN YETKİLENDİRME (section-admins)
+         ========================================================================== -->
+    <div id="section-admins" class="content-section page-view" style="display: none;">
+
+      <!-- Başlık ve Yeni Admin Ekle Butonu -->
+      <section class="section-action-header">
+        <div>
+          <h3 class="section-title">Yönetici Kadrosu & Admin Yetkilendirme</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">Sisteme yeni Süper Admin atayın, bayi yöneticilerini yönetin ve dilediğiniz kullanıcıya adminlik verin</p>
+        </div>
+        <button class="btn-primary" id="btn-add-admin" type="button">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span> Yeni Admin Ekle</span>
+        </button>
+      </section>
+
+      <!-- KPI Kartları -->
+      <section class="kpi-grid" style="margin-bottom: 24px;">
+        <div class="kpi-card">
+          <div class="kpi-icon-box bg-blue">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-label">Süper Adminler</span>
+            <div class="kpi-value" id="kpi-super-admins-count">1</div>
+            <span class="kpi-text-raw">Tüm Sistem Yetkisi</span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon-box bg-orange">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-label">Bayi Yöneticileri</span>
+            <div class="kpi-value" id="kpi-tenant-admins-count">0</div>
+            <span class="kpi-text-raw">Firma Yetkilileri</span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon-box bg-emerald">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-label">Kayıtlı Müşteri & Kullanıcılar</span>
+            <div class="kpi-value" id="kpi-available-users-count">0</div>
+            <span class="kpi-text-raw">Admin Adayları</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Yöneticiler Tablosu -->
+      <section class="table-container">
+        <table class="tenants-table" id="admins-table">
+          <thead>
+            <tr>
+              <th>Yönetici</th>
+              <th>Yetki / Rol</th>
+              <th>Yetki Kapsamı</th>
+              <th>Kayıt Tarihi</th>
+              <th>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody id="admins-table-body">
+            <tr>
+              <td colspan="5" style="text-align:center; padding: 30px; color: var(--text-muted);">
+                Yöneticiler yükleniyor...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+    </div>
+
+    <!-- ==========================================================================
+         BÖLÜM 4: AYARLAR (section-settings)
+         ========================================================================== -->
+    <div id="section-settings" class="content-section page-view" style="display: none;">
+
+      <!-- Başlık Bölümü -->
+      <section class="section-action-header">
+        <div>
+          <h3 class="section-title">Sistem Ayarları & Yapılandırma</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">Platform genel parametreleri, Parts-Catalogs API anahtarları ve iskonto kuralları</p>
+        </div>
+      </section>
+
+      <form id="system-settings-form" class="settings-form-container">
+        <!-- Kart 1: TecDoc API Entegrasyonu -->
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <div class="settings-card-icon bg-blue">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                <line x1="6" y1="18" x2="6.01" y2="18"></line>
+              </svg>
+            </div>
+            <div>
+              <h4 class="settings-card-title">Parts-Catalogs & Parça Veri Entegrasyonu</h4>
+              <p class="settings-card-desc">Küresel katalog sağlayıcısı ve OE parça eşleştirme API anahtarları</p>
+            </div>
+          </div>
+          <div class="settings-card-body">
+            <div class="form-group">
+              <label for="setting-tecdoc-key" class="form-label" style="display: block; font-size: 0.84rem; font-weight: 600; color: var(--text-dark); margin-bottom: 6px;">Parts Catalogs API Anahtarı</label>
+              <input type="password" id="setting-tecdoc-key" class="form-input" style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-light); border-radius: 8px; font-size: 0.9rem;" placeholder="API Anahtarı (.env üzerinden otomatik yüklenir)" value="">
+            </div>
+            <div class="form-group">
+              <label for="setting-tecdoc-endpoint" class="form-label" style="display: block; font-size: 0.84rem; font-weight: 600; color: var(--text-dark); margin-bottom: 6px;">Sağlayıcı API Endpoint URL</label>
+              <input type="text" id="setting-tecdoc-endpoint" class="form-input" style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-light); border-radius: 8px; font-size: 0.9rem;" placeholder="https://webservice.tecalliance.net/v2" value="https://api.tecalliance.net/v2/catalog">
+            </div>
+          </div>
+        </div>
+
+        <!-- Kart 2: Fiyatlandırma & İskonto Kuralları -->
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <div class="settings-card-icon bg-emerald">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </div>
+            <div>
+              <h4 class="settings-card-title">Genel İskonto ve Vergilendirme</h4>
+              <p class="settings-card-desc">Sisteme yeni kaydolan otoservis ve bayiler için varsayılan mali kurallar</p>
+            </div>
+          </div>
+          <div class="settings-card-body">
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="setting-default-discount" class="form-label" style="display: block; font-size: 0.84rem; font-weight: 600; color: var(--text-dark); margin-bottom: 6px;">Varsayılan B2B İskonto Oranı (%)</label>
+                <input type="number" id="setting-default-discount" class="form-input" style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-light); border-radius: 8px; font-size: 0.9rem;" min="0" max="100" step="0.5" value="20.0">
+              </div>
+              <div class="form-group">
+                <label for="setting-tax-rate" class="form-label" style="display: block; font-size: 0.84rem; font-weight: 600; color: var(--text-dark); margin-bottom: 6px;">Varsayılan KDV Oranı (%)</label>
+                <input type="number" id="setting-tax-rate" name="defaultTaxRate" class="form-input" style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-light); border-radius: 8px; font-size: 0.9rem;" min="0" max="100" step="1" value="20">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="setting-currency" class="form-label" style="display: block; font-size: 0.84rem; font-weight: 600; color: var(--text-dark); margin-bottom: 6px;">Platform Para Birimi</label>
+              <select id="setting-currency" class="form-input" style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-light); border-radius: 8px; font-size: 0.9rem; background: #fff;">
+                <option value="TRY" selected>Türk Lirası (₺ - TRY)</option>
+                <option value="USD">Amerikan Doları ($ - USD)</option>
+                <option value="EUR">Euro (€ - EUR)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kart 3: Süper Admin Yönetici Hesabı & Bildirimler -->
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <div class="settings-card-icon bg-indigo">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+            </div>
+            <div>
+              <h4 class="settings-card-title">Süper Admin Yönetici Hesabı & Bildirimler</h4>
+              <p class="settings-card-desc">Süper Admin oturum açma e-postası, şifresi ve kritik bildirim alıcı adresi</p>
+            </div>
+          </div>
+          <div class="settings-card-body">
+            <div class="form-group">
+              <label for="setting-admin-email" class="form-label" style="display: block; font-size: 0.84rem; font-weight: 600; color: var(--text-dark); margin-bottom: 6px;">Yönetici E-Posta Adresi (Kullanıcı Adı)</label>
+              <input type="email" id="setting-admin-email" class="form-input" style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-light); border-radius: 8px; font-size: 0.9rem;" value="admin@sistem.com" required autocomplete="email">
+              <span style="display: block; font-size: 0.76rem; color: var(--text-muted); margin-top: 4px;">* Bu adres panel girişi (kullanıcı adı) ve yerel veritabanı Süper Admin hesap kimliği olarak eşitlenir.</span>
+            </div>
+            <div class="form-row-2col" style="margin-top: 14px;">
+              <div class="form-group">
+                <label for="setting-admin-password" class="form-label" style="display: block; font-size: 0.84rem; font-weight: 600; color: var(--text-dark); margin-bottom: 6px;">Yeni Yönetici Şifresi</label>
+                <input type="password" id="setting-admin-password" class="form-input" style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-light); border-radius: 8px; font-size: 0.9rem;" placeholder="Değiştirmek istemiyorsanız boş bırakın" autocomplete="new-password">
+              </div>
+              <div class="form-group">
+                <label for="setting-admin-password-confirm" class="form-label" style="display: block; font-size: 0.84rem; font-weight: 600; color: var(--text-dark); margin-bottom: 6px;">Yeni Şifre Tekrar</label>
+                <input type="password" id="setting-admin-password-confirm" class="form-input" style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-light); border-radius: 8px; font-size: 0.9rem;" placeholder="Yeni şifreyi onaylayın" autocomplete="new-password">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- İşlem Butonları -->
+        <div class="settings-actions-bar">
+          <button type="submit" class="btn-primary" id="btn-save-settings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+              <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            <span>Ayarları Kaydet</span>
+          </button>
+          <button type="button" class="btn-secondary" id="btn-reset-settings" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:10px 18px; border-radius:8px; font-weight:600; cursor:pointer;">
+            <span>Varsayılana Dön</span>
+          </button>
+        </div>
+      </form>
+
+    </div>
+
+  </div>
+
+  <!-- ==========================================================================
+       AŞAMA 3: YENİ FİRMA EKLEME ÇEKMECESİ (RIGHT DRAWER)
+       ========================================================================== -->
+  <div class="drawer-overlay" id="firm-drawer">
+    <div class="drawer-content">
+
+      <!-- Çekmece Başlığı ve Kapatma Butonu -->
+      <div class="drawer-header">
+        <div>
+          <h3 class="drawer-title">Yeni Firma Tanımla</h3>
+          <p class="drawer-subtitle">Sisteme yeni bir bayi firması tahsis edin.</p>
+        </div>
+        <button class="drawer-close-btn" id="btn-close-drawer" aria-label="Kapat" type="button">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Çekmece Formu (Hepsi label ve input şeklinde alt alta) -->
+      <form class="drawer-form" id="create-firm-form" onsubmit="event.preventDefault();">
+        <div class="drawer-body">
+
+          <!-- 1. Firma Adı -->
+          <div class="form-group">
+            <label class="form-label" for="firm-name">Firma Adı</label>
+            <input type="text" class="form-input" id="firm-name" name="firmName" placeholder="Örn: Mehmet Oto" required>
+          </div>
+
+          <!-- 2. Subdomain Öneki -->
+          <div class="form-group">
+            <label class="form-label" for="subdomain-prefix">Subdomain Öneki</label>
+            <div class="subdomain-input-wrap">
+              <input type="text" class="form-input subdomain-input" id="subdomain-prefix" name="subdomainPrefix"
+                placeholder="Örn: mehmetoto" required>
+              <span class="subdomain-addon">.sistem.com</span>
+            </div>
+          </div>
+
+          <!-- NVİ Doğrulama Kartı -->
+          <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 12px; margin: 12px 0; font-size: 0.78rem; color: #1e40af;">
+            <strong>🔒 Devlet (NVİ) Doğrulaması:</strong> Sahte bayilikleri önlemek için yetkili kimlik bilgileri Nüfus ve Vatandaşlık İşleri KPS Public servisiyle anlık sorgulanır.
+          </div>
+
+          <!-- Yetkili Adı ve Soyadı -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" for="firm-owner-ad">Yetkili Adı <span style="color: #ef4444;">*</span></label>
+              <input type="text" class="form-input" id="firm-owner-ad" name="ad" placeholder="Örn: Mehmet" required>
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" for="firm-owner-soyad">Yetkili Soyadı <span style="color: #ef4444;">*</span></label>
+              <input type="text" class="form-input" id="firm-owner-soyad" name="soyad" placeholder="Örn: Demir" required>
+            </div>
+          </div>
+
+          <!-- Yetkili TC Kimlik No ve Doğum Yılı -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" for="firm-owner-tc">Yetkili TC Kimlik No <span style="color: #ef4444;">*</span></label>
+              <input type="text" class="form-input" id="firm-owner-tc" name="tcKimlikNo" maxlength="11" pattern="[0-9]{11}" placeholder="11 Haneli T.C. No" required style="font-family: monospace;">
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" for="firm-owner-dogum-yili">Doğum Yılı <span style="color: #ef4444;">*</span></label>
+              <input type="text" class="form-input" id="firm-owner-dogum-yili" name="dogumYili" maxlength="4" pattern="[0-9]{4}" placeholder="Örn: 1990" required style="font-family: monospace;">
+            </div>
+          </div>
+
+          <!-- 3. Yönetici E-posta -->
+          <div class="form-group">
+            <label class="form-label" for="admin-email">Yönetici E-posta</label>
+            <input type="email" class="form-input" id="admin-email" name="adminEmail" placeholder="admin@mehmetoto.com"
+              required autocomplete="email">
+          </div>
+
+          <!-- 4. Yönetici Şifresi -->
+          <div class="form-group">
+            <label class="form-label" for="admin-password">Yönetici Şifresi</label>
+            <input type="password" class="form-input" id="admin-password" name="adminPassword" placeholder="••••••••"
+              required autocomplete="new-password">
+          </div>
+
+          <!-- 5. Kurumsal Tema Rengi -->
+          <div class="form-group">
+            <label class="form-label" for="theme-color">Kurumsal Tema Rengi</label>
+            <div class="color-picker-row">
+              <input type="color" class="form-color-input" id="theme-color" name="themeColor" value="#2563eb">
+              <div class="color-info-text">
+                <span class="color-code" id="color-hex-label">#2563eb</span>
+                <span class="color-description">Bayi teması için öncelikli renk</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 5. En Alttaki Butonlar -->
+        <div class="drawer-footer">
+          <button type="submit" class="btn-create-firm" id="btn-create-firm">Firmayı Oluştur</button>
+          <button type="button" class="btn-cancel" id="btn-cancel-drawer">İptal</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       YENİ ADMİN EKLEME & YETKİLENDİRME ÇEKMECESİ (ADMIN DRAWER)
+       ========================================================================== -->
+  <div class="drawer-overlay" id="admin-drawer">
+    <div class="drawer-content" style="width: 440px;">
+
+      <div class="drawer-header">
+        <div>
+          <h3 class="drawer-title">Admin Ekle & Yetkilendir</h3>
+          <p class="drawer-subtitle">Sıfırdan admin oluşturun veya mevcut kullanıcıya yetki verin.</p>
+        </div>
+        <button type="button" class="drawer-close-btn" id="btn-close-admin-drawer" aria-label="Kapat">✕</button>
+      </div>
+
+      <form id="create-admin-form" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+        <div class="drawer-body" style="padding: 24px; overflow-y: auto; flex: 1;">
+
+          <!-- Yetkilendirme Modu Seçimi -->
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label class="form-label" style="display:block; font-weight: 600; margin-bottom: 6px;">İşlem Türü</label>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" id="btn-admin-mode-new" style="flex: 1; padding: 10px; font-size: 0.82rem; font-weight: 600; border-radius: 8px; background: #2563eb; color: #ffffff; border: 1px solid #2563eb; cursor: pointer;">
+                Sıfırdan Yeni Admin
+              </button>
+              <button type="button" id="btn-admin-mode-existing" style="flex: 1; padding: 10px; font-size: 0.82rem; font-weight: 600; border-radius: 8px; background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; cursor: pointer;">
+                Mevcut Kullanıcıyı Seç
+              </button>
+            </div>
+          </div>
+
+          <!-- Mod 1: Sıfırdan Yeni E-Posta -->
+          <div class="form-group" id="group-admin-email">
+            <label class="form-label" for="new-admin-email">Admin E-Posta Adresi (Kullanıcı Adı)</label>
+            <input type="email" class="form-input" id="new-admin-email" placeholder="yeniadmin@sistem.com" autocomplete="email">
+            <span style="display: block; font-size: 0.76rem; color: var(--text-muted); margin-top: 4px;">Giriş için kullanılacak benzersiz e-posta adresi.</span>
+          </div>
+
+          <!-- Mod 2: Mevcut Kullanıcı Seçimi -->
+          <div class="form-group" id="group-admin-user-select" style="display: none;">
+            <label class="form-label" for="select-existing-user">Sistemdeki Kayıtlı Kullanıcı</label>
+            <select class="form-input" id="select-existing-user" style="background: #ffffff; width: 100%; padding: 10px 14px; border: 1px solid var(--border-light); border-radius: 8px;">
+              <option value="">-- Bir Kullanıcı Seçin --</option>
+            </select>
+            <span style="display: block; font-size: 0.76rem; color: var(--text-muted); margin-top: 4px;">Seçilen kullanıcının rolü anında yönetici olarak güncellenecektir.</span>
+          </div>
+
+          <!-- Rol Seçimi -->
+          <div class="form-group" style="margin-top: 16px;">
+            <label class="form-label" for="select-admin-role">Verilecek Yönetici Yetkisi</label>
+            <select class="form-input" id="select-admin-role" style="background: #ffffff; width: 100%; padding: 10px 14px; border: 1px solid var(--border-light); border-radius: 8px;" required>
+              <option value="SUPER_ADMIN" selected>👑 Süper Admin (Tüm Sistem Yetkilisi)</option>
+              <option value="TENANT_ADMIN">🏢 Bayi Yöneticisi (Firma Yöneticisi)</option>
+            </select>
+          </div>
+
+          <!-- Bayi Seçimi (TENANT_ADMIN için) -->
+          <div class="form-group" id="group-admin-tenant-select" style="display: none; margin-top: 16px;">
+            <label class="form-label" for="select-admin-tenant">Yetkili Olacağı Bayi (Firma)</label>
+            <select class="form-input" id="select-admin-tenant" style="background: #ffffff; width: 100%; padding: 10px 14px; border: 1px solid var(--border-light); border-radius: 8px;">
+              <option value="">-- Bir Bayi Seçin --</option>
+            </select>
+            <span style="display: block; font-size: 0.76rem; color: var(--text-muted); margin-top: 4px;">Bayi Yöneticisi yalnızca bu bayinin verilerine erişebilir.</span>
+          </div>
+
+          <!-- Şifre Belirleme -->
+          <div class="form-group" style="margin-top: 16px;">
+            <label class="form-label" for="new-admin-password">Yönetici Şifresi</label>
+            <input type="password" class="form-input" id="new-admin-password" placeholder="En az 6 karakter" autocomplete="new-password">
+            <span style="display: block; font-size: 0.76rem; color: var(--text-muted); margin-top: 4px;" id="admin-password-note">Yeni admin hesabı için giriş şifresi (en az 6 karakter).</span>
+          </div>
+
+        </div>
+
+        <div class="drawer-footer">
+          <button type="submit" class="btn-primary" id="btn-submit-admin" style="width: 100%; justify-content: center; padding: 12px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline></svg>
+            <span>Admin Yetkisini Kaydet</span>
+          </button>
+          <button type="button" class="btn-secondary" id="btn-cancel-admin-drawer" style="width: 100%; justify-content: center; margin-top: 8px; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:10px; border-radius:8px; font-weight:600; cursor:pointer;">
+            Vazgeç
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- Ekranın Sağ Alt Köşesindeki Toast Bildirim Konteyneri -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Süper Admin Paneli Etkileşim Scripti -->
+  <script>
+    // ==========================================================================
+    // 0. OTURUM VE YETKİ KONTROLÜ (SUPER_ADMIN GUARD)
+    // ==========================================================================
+    const currentUser = requireAuth(['SUPER_ADMIN']);
+    if (currentUser) {
+      const adminNameEl = document.querySelector('.admin-name');
+      if (adminNameEl && currentUser.email) {
+        adminNameEl.textContent = currentUser.email.split('@')[0].toUpperCase();
+      }
+    }
+
+    // ==========================================================================
+    // 0. BİLDİRİM (TOAST) FONKSİYONU
+    // ==========================================================================
+    function showToast(message, type = 'success') {
+      let container = document.getElementById('toast-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+      }
+
+      const toast = document.createElement('div');
+      toast.className = `toast-msg ${type}`;
+      
+      const strokeColor = type === 'warning' ? '#f59e0b' : (type === 'danger' ? '#ef4444' : '#10b981');
+      toast.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${strokeColor}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        <span>${escapeHtml(message)}</span>
+      `;
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.add('show');
+      });
+
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+          toast.remove();
+        }, 350);
+      }, 3200);
+    }
+
+    // ==========================================================================
+    // 1. ÇEKMECE (DRAWER) FONKSİYONLARI
+    // ==========================================================================
+    function openDrawer() {
+      const drawer = document.getElementById('firm-drawer');
+      if (drawer) {
+        drawer.classList.add('open');
+      }
+    }
+
+    function closeDrawer() {
+      const drawer = document.getElementById('firm-drawer');
+      if (drawer) {
+        drawer.classList.remove('open');
+      }
+    }
+
+    // Buton ve overlay dinleyicileri
+    const addFirmBtn = document.getElementById('btn-add-tenant');
+    if (addFirmBtn) {
+      addFirmBtn.addEventListener('click', openDrawer);
+    }
+
+    const cancelDrawerBtn = document.getElementById('btn-cancel-drawer');
+    if (cancelDrawerBtn) {
+      cancelDrawerBtn.addEventListener('click', closeDrawer);
+    }
+
+    const firmDrawer = document.getElementById('firm-drawer');
+    if (firmDrawer) {
+      firmDrawer.addEventListener('click', function (event) {
+        if (event.target === firmDrawer) {
+          closeDrawer();
+        }
+      });
+    }
+
+    const closeDrawerBtn = document.getElementById('btn-close-drawer');
+    if (closeDrawerBtn) {
+      closeDrawerBtn.addEventListener('click', closeDrawer);
+    }
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && firmDrawer && firmDrawer.classList.contains('open')) {
+        closeDrawer();
+      }
+    });
+
+    // Kurumsal tema rengi seçildiğinde anlık HEX kodunu güncelleme
+    const themeColorInput = document.getElementById('theme-color');
+    const colorHexLabel = document.getElementById('color-hex-label');
+    if (themeColorInput && colorHexLabel) {
+      themeColorInput.addEventListener('input', function (e) {
+        colorHexLabel.textContent = e.target.value;
+      });
+    }
+
+    // ==========================================================================
+    // 1.9 ONAY BEKLEYEN BAYİLER YÖNETİMİ (GET /api/admin/pending-tenants)
+    // ==========================================================================
+    async function loadPendingTenants() {
+      try {
+        const res = await apiFetch('/admin/pending-tenants');
+        const badge = document.getElementById('pending-tenants-badge');
+        const section = document.getElementById('pending-tenants-section');
+        const tbody = document.getElementById('pending-tenants-tbody');
+        const countBadge = document.getElementById('pending-count-badge');
+
+        if (res && res.success && Array.isArray(res.data)) {
+          const pendingList = res.data;
+          const count = pendingList.length;
+
+          if (badge) {
+            if (count > 0) {
+              badge.textContent = `${count} Onay`;
+              badge.style.display = 'inline-block';
+            } else {
+              badge.style.display = 'none';
+            }
+          }
+
+          if (countBadge) countBadge.textContent = count;
+
+          if (count > 0) {
+            if (section) section.style.display = 'block';
+            if (tbody) {
+              tbody.innerHTML = '';
+              pendingList.forEach(t => {
+                const adminUser = (t.users && t.users.length > 0) ? t.users[0] : null;
+                const adminEmail = adminUser ? escapeHtml(adminUser.email) : (t.adminEmail ? escapeHtml(t.adminEmail) : '—');
+                const safeName = escapeHtml(t.name || 'İsimsiz Firma');
+                const safeSubdomain = escapeHtml(t.subdomain || '');
+                const safeColor = escapeHtml(t.themeColor || '#f59e0b');
+                const dateStr = t.createdAt ? new Date(t.createdAt).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                  <td>
+                    <div class="firm-identity">
+                      <div class="firm-avatar" style="background-color: ${safeColor}; color:#fff; font-weight:700;">${safeName.slice(0, 2).toUpperCase()}</div>
+                      <span class="firm-name" style="font-weight: 700; color:#1e293b;">${safeName}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="subdomain-text" style="font-family: monospace; font-weight: 700; color: #2563eb;">${safeSubdomain}.sistem.com</span>
+                  </td>
+                  <td>
+                    <div style="font-size: 0.85rem;">
+                      <strong style="color: var(--text-dark);">${adminEmail}</strong>
+                    </div>
+                  </td>
+                  <td style="color: var(--text-muted); font-size: 0.85rem;">${dateStr}</td>
+                  <td>
+                    <span style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; padding: 4px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
+                      <span style="width: 6px; height: 6px; background: #f59e0b; border-radius: 50%; display: inline-block;"></span>
+                      ONAY BEKLİYOR
+                    </span>
+                  </td>
+                  <td style="text-align: right;">
+                    <div class="actions-group" style="justify-content: flex-end;">
+                      <button type="button" class="btn-table-action" onclick="approveTenant('${t.id}', '${safeName}')" style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 700;" title="Bayiyi Onayla">✓ Onayla</button>
+                      <button type="button" class="btn-table-action" onclick="rejectTenant('${t.id}', '${safeName}')" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 700;" title="Bayiyi Reddet">✕ Reddet</button>
+                    </div>
+                  </td>
+                `;
+                tbody.appendChild(tr);
+              });
+            }
+          } else {
+            if (section) section.style.display = 'none';
+          }
+        }
+      } catch (err) {
+        console.error('[LOAD_PENDING_TENANTS_ERROR]:', err);
+      }
+    }
+    window.loadPendingTenants = loadPendingTenants;
+
+    async function approveTenant(tenantId, tenantName) {
+      if (!confirm(`"${tenantName}" bayisinin başvurusunu onaylamak ve mağaza yönetimini aktif etmek istiyor musunuz?`)) return;
+      try {
+        const res = await apiFetch(`/admin/tenants/${tenantId}/approve`, { method: 'PUT' });
+        if (res && res.success) {
+          showToast(res.message || 'Bayi başarıyla onaylandı.', 'success');
+          await loadPendingTenants();
+          await loadTenants();
+          await loadAdminStats();
+        } else {
+          showToast(res && res.message ? res.message : 'Onaylama başarısız.', 'danger');
+        }
+      } catch (err) {
+        showToast('Hata: ' + err.message, 'danger');
+      }
+    }
+    window.approveTenant = approveTenant;
+
+    async function rejectTenant(tenantId, tenantName) {
+      if (!confirm(`"${tenantName}" bayisinin başvurusunu reddetmek istediğinize emin misiniz?`)) return;
+      try {
+        const res = await apiFetch(`/admin/tenants/${tenantId}/reject`, { method: 'PUT' });
+        if (res && res.success) {
+          showToast(res.message || 'Bayi başvurusu reddedildi.', 'warning');
+          await loadPendingTenants();
+          await loadTenants();
+          await loadAdminStats();
+        } else {
+          showToast(res && res.message ? res.message : 'Reddetme başarısız.', 'danger');
+        }
+      } catch (err) {
+        showToast('Hata: ' + err.message, 'danger');
+      }
+    }
+    window.rejectTenant = rejectTenant;
+
+    // ==========================================================================
+    // 2. FİRMALARI YÜKLEME VE TABLOYA BASMA (API ENTEGRASYONU & XSS SANİTİZASYONU)
+    // ==========================================================================
+    async function loadTenants() {
+      try {
+        // Önce onay bekleyenleri tazele
+        await loadPendingTenants();
+
+        const res = await apiFetch('/admin/tenants');
+        if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+          const tbody = document.querySelector('.tenants-table tbody');
+          if (!tbody) return;
+          tbody.innerHTML = '';
+
+          res.data.forEach(tenant => {
+            const safeName = escapeHtml(tenant.name || '');
+            const safeSubdomain = escapeHtml(tenant.subdomain || '');
+            const safeColor = escapeHtml(tenant.themeColor || '#2563eb');
+            const isActive = tenant.isActive !== false;
+            const initials = safeName.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || 'AO';
+
+            // DURUM sütununda: PENDING, REJECTED veya APPROVED (Aktif / Pasif)
+            let statusHtml = '';
+            if (tenant.status === 'PENDING') {
+              statusHtml = `<span style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; padding:4px 10px; border-radius:9999px; font-weight:700; font-size:0.75rem; display:inline-flex; align-items:center; gap:5px;"><span style="display:inline-block; width:6px; height:6px; background:#f59e0b; border-radius:50%;"></span>Onay Bekliyor</span>`;
+            } else if (tenant.status === 'REJECTED') {
+              statusHtml = `<span style="background:#fee2e2; color:#ef4444; border:1px solid #fca5a5; padding:4px 10px; border-radius:9999px; font-weight:700; font-size:0.75rem; display:inline-flex; align-items:center; gap:5px;"><span style="display:inline-block; width:6px; height:6px; background:#ef4444; border-radius:50%;"></span>Reddedildi</span>`;
+            } else if (isActive) {
+              statusHtml = `<span class="badge-status-green"><span class="badge-dot-green"></span>Aktif</span>`;
+            } else {
+              statusHtml = `<span class="badge-status-red" style="background:#fee2e2; color:#ef4444; border:1px solid #fca5a5; padding:4px 10px; border-radius:9999px; font-weight:700; font-size:0.75rem;"><span style="display:inline-block; width:6px; height:6px; background:#ef4444; border-radius:50%; margin-right:5px;"></span>Pasif</span>`;
+            }
+
+            // İŞLEMLER sütununda
+            const statusBtnHtml = isActive
+              ? `<button class="btn-table-action btn-status-toggle btn-deactivate" style="background:#fff7ed; color:#ea580c; border:1px solid #fed7aa; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600;" title="Firmayı Pasife Al">Pasife Al</button>`
+              : `<button class="btn-table-action btn-status-toggle btn-activate" style="background:#ecfdf5; color:#059669; border:1px solid #a7f3d0; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600;" title="Firmayı Aktifleştir">Aktife Al</button>`;
+
+            const tr = document.createElement('tr');
+            tr.dataset.tenantId = tenant.id;
+            tr.innerHTML = `
+              <td>
+                <div class="firm-identity">
+                  <div class="firm-avatar" style="background-color: ${safeColor};">${initials}</div>
+                  <span class="firm-name">${safeName}</span>
+                </div>
+              </td>
+              <td>
+                <a href="../storefront-ui/store.html?subdomain=${safeSubdomain}" class="subdomain-text" target="_blank" title="B2B Mağazasını Aç">${safeSubdomain}.sistem.com ↗</a>
+              </td>
+              <td>
+                <div class="color-badge-wrapper">
+                  <span class="color-swatch-box" style="background-color: ${safeColor};" title="${safeColor}"></span>
+                  <span class="color-name">${safeColor}</span>
+                </div>
+              </td>
+              <td>
+                ${statusHtml}
+              </td>
+              <td>
+                <div class="actions-group">
+                  <a href="store.html?subdomain=${safeSubdomain}" class="btn-table-action btn-store" target="_blank" title="B2B Mağazasına Git" style="text-decoration: none;">Mağaza</a>
+                  <button class="btn-table-action btn-edit" title="Firma Düzenle">Düzenle</button>
+                  ${statusBtnHtml}
+                  <button class="btn-table-action btn-delete" style="background: #fee2e2; color: #ef4444; border: 1px solid #fecaca; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600;" title="Firmayı Sil">Sil</button>
+                </div>
+              </td>
+            `;
+            tbody.appendChild(tr);
+            attachTenantRowEvents(tr);
+          });
+
+          // KPI Güncellemesi (Sadece Aktif Olanlar)
+          const activeCount = res.data.filter(t => t.isActive !== false).length;
+          const tenantsCountEl = document.getElementById('kpi-tenants-count');
+          if (tenantsCountEl) {
+            tenantsCountEl.textContent = activeCount;
+          }
+
+          const navCount = document.querySelector('.nav-count');
+          if (navCount) navCount.textContent = activeCount;
+        } else if (res && res.success && Array.isArray(res.data) && res.data.length === 0) {
+          const tbody = document.querySelector('.tenants-table tbody');
+          if (tbody) {
+            tbody.innerHTML = `
+              <tr>
+                <td colspan="5" style="text-align: center; padding: 48px 20px; color: #64748b;">
+                  <div style="font-size: 32px; margin-bottom: 8px;">🏢</div>
+                  <div style="font-weight: 600; font-size: 15px; color: #1e293b;">Henüz kayıtlı bir bayi bulunmuyor.</div>
+                  <div style="font-size: 13px; color: #64748b; margin-top: 4px;">Yukarıdaki "Yeni Firma Ekle" butonuna basarak ilk bayinizi oluşturabilirsiniz.</div>
+                </td>
+              </tr>
+            `;
+          }
+          const tenantsCountEl = document.getElementById('kpi-tenants-count');
+          if (tenantsCountEl) tenantsCountEl.textContent = '0';
+          const navCount = document.querySelector('.nav-count');
+          if (navCount) navCount.textContent = '0';
+        }
+      } catch (err) {
+        console.error('[LOAD_TENANTS_ERROR]:', err);
+      }
+    }
+
+    // ==========================================================================
+    // 2.1 SİSTEM GENELİ KPI İSTATİSTİKLERİNİ YÜKLEME (/api/admin/stats)
+    // ==========================================================================
+    async function loadAdminStats() {
+      try {
+        const res = await apiFetch('/admin/stats');
+        if (res && res.success && res.data) {
+          const { activeTenants, totalProducts, totalCustomers } = res.data;
+
+          const tenantsEl = document.getElementById('kpi-tenants-count');
+          const productsEl = document.getElementById('kpi-products-count');
+          const customersEl = document.getElementById('kpi-customers-count');
+
+          if (tenantsEl && activeTenants !== undefined) {
+            tenantsEl.textContent = activeTenants;
+          }
+          if (productsEl && totalProducts !== undefined) {
+            productsEl.textContent = Number(totalProducts).toLocaleString('tr-TR');
+          }
+          if (customersEl && totalCustomers !== undefined) {
+            customersEl.textContent = Number(totalCustomers).toLocaleString('tr-TR');
+          }
+
+          const navCount = document.querySelector('.nav-count');
+          if (navCount && activeTenants !== undefined) {
+            navCount.textContent = activeTenants;
+          }
+        }
+      } catch (err) {
+        console.error('[LOAD_ADMIN_STATS_ERROR]:', err);
+      }
+    }
+
+    // ==========================================================================
+    // 3. YENİ FİRMA OLUŞTURMA FORMU (#create-firm-form -> POST /api/admin/tenants)
+    // ==========================================================================
+    const createFirmForm = document.getElementById('create-firm-form');
+    if (createFirmForm) {
+      createFirmForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const firmName = document.getElementById('firm-name').value.trim();
+        const subdomainPrefix = document.getElementById('subdomain-prefix').value.trim();
+        const adminEmail = document.getElementById('admin-email').value.trim();
+        const themeColor = document.getElementById('theme-color').value || '#2563eb';
+        const adminPassword = document.getElementById('admin-password') ? document.getElementById('admin-password').value.trim() : '';
+
+        // NVİ Kimlik Bilgileri (Prompt 1. KURAL)
+        const ad = document.getElementById('firm-owner-ad') ? document.getElementById('firm-owner-ad').value.trim() : '';
+        const soyad = document.getElementById('firm-owner-soyad') ? document.getElementById('firm-owner-soyad').value.trim() : '';
+        const tcKimlikNo = document.getElementById('firm-owner-tc') ? document.getElementById('firm-owner-tc').value.trim() : '';
+        const dogumYili = document.getElementById('firm-owner-dogum-yili') ? document.getElementById('firm-owner-dogum-yili').value.trim() : '';
+
+        // Form verilerini toplarken bu 4 verinin boş olmadığından emin ol
+        if (!ad || !soyad || !tcKimlikNo || !dogumYili) {
+          showToast('Devlet (NVİ) doğrulaması için Yetkili Ad, Soyad, TC Kimlik No ve Doğum Yılı alanları zorunludur.', 'warning');
+          return;
+        }
+
+        if (!firmName || !subdomainPrefix || !adminEmail || !adminPassword) {
+          showToast('Lütfen firma adı, subdomain, yönetici e-posta ve şifresini eksiksiz girin.', 'warning');
+          return;
+        }
+
+        const submitBtn = document.getElementById('btn-create-firm');
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'NVİ Doğrulanıyor...';
+        }
+
+        try {
+          const payload = {
+            firmName: firmName,
+            subdomainPrefix: subdomainPrefix,
+            name: firmName,
+            subdomain: subdomainPrefix,
+            adminEmail: adminEmail,
+            adminPassword: adminPassword,
+            themeColor: themeColor,
+            ad: ad,
+            soyad: soyad,
+            tcKimlikNo: tcKimlikNo,
+            dogumYili: dogumYili
+          };
+
+          const res = await apiFetch('/admin/tenants', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+
+          if (res && res.success) {
+            showToast('Firma ve NVİ doğrulamalı yönetici başarıyla oluşturuldu', 'success');
+            createFirmForm.reset();
+            if (colorHexLabel) colorHexLabel.textContent = '#2563eb';
+            if (themeColorInput) themeColorInput.value = '#2563eb';
+            closeDrawer();
+            setTimeout(() => {
+              location.reload();
+            }, 500);
+          } else {
+            showToast(res && res.message ? res.message : 'Firma oluşturulamadı.', 'danger');
+          }
+        } catch (err) {
+          showToast('Bağlantı hatası: ' + err.message, 'danger');
+        } finally {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Firmayı Oluştur';
+          }
+        }
+      });
+    }
+
+    // ==========================================================================
+    // 4. FİRMA TABLOSU BUTON ETKİLEŞİMLERİ (DÜZENLE & PASİFE AL)
+    // ==========================================================================
+    function attachTenantRowEvents(row) {
+      const tenantId = row.dataset.tenantId;
+
+      // Durum Değiştirme ('Pasife Al' veya 'Aktife Al' butonu)
+      const statusBtn = row.querySelector('.btn-status-toggle, .btn-deactivate, .btn-activate');
+      if (statusBtn) {
+        statusBtn.onclick = async function () {
+          if (tenantId) {
+            try {
+              const res = await apiFetch('/admin/tenants/' + tenantId + '/status', {
+                method: 'PATCH'
+              });
+
+              if (res && res.success) {
+                showToast(res.message || 'Bayi durumu güncellendi.', 'success');
+                await loadTenants();
+                await loadAdminStats();
+              } else {
+                showToast((res && res.message) ? res.message : 'Durum güncellenemedi.', 'danger');
+              }
+            } catch (err) {
+              console.error(err);
+              showToast('Durum güncellenirken hata oluştu: ' + (err.message || 'Sunucu hatası'), 'danger');
+            }
+          }
+        };
+      }
+
+      // Silme ('Sil' butonu)
+      const deleteBtn = row.querySelector('.btn-delete');
+      if (deleteBtn) {
+        deleteBtn.onclick = async function () {
+          if (!confirm('Bu bayiyi ve tüm verilerini kalıcı olarak silmek istediğinize emin misiniz?')) return;
+
+          if (tenantId) {
+            try {
+              const res = await apiFetch('/admin/tenants/' + tenantId, {
+                method: 'DELETE'
+              });
+
+              if (res && res.success) {
+                showToast(res.message || 'Bayi ve tüm ilişkili veriler kalıcı olarak silindi.', 'success');
+                await loadTenants();
+                await loadAdminStats();
+              } else {
+                showToast((res && res.message) ? res.message : 'Bayi silinemedi.', 'danger');
+              }
+            } catch (err) {
+              console.error(err);
+              showToast('Silme işlemi sırasında hata oluştu: ' + err.message, 'danger');
+            }
+          }
+        };
+      }
+
+      const editBtn = row.querySelector('.btn-edit:not(a)');
+      if (editBtn) {
+        editBtn.onclick = async function () {
+          const tenantId = row.dataset.tenantId;
+          const firmNameEl = row.querySelector('.firm-name');
+          const currentName = firmNameEl ? firmNameEl.textContent : '';
+          const newName = prompt('Firma adını düzenleyiniz:', currentName);
+          if (newName && newName.trim() !== '' && newName.trim() !== currentName) {
+            if (tenantId) {
+              try {
+                const res = await apiFetch(`/admin/tenants/${tenantId}`, {
+                  method: 'PATCH',
+                  body: { name: newName.trim() }
+                });
+                if (!res || !res.success) {
+                  showToast(res && res.message ? res.message : 'Güncelleme yapılamadı.', 'danger');
+                  return;
+                }
+              } catch (err) {
+                console.error(err);
+              }
+            }
+            if (firmNameEl) firmNameEl.textContent = newName.trim();
+            showToast(`Firma adı "${escapeHtml(newName.trim())}" olarak güncellendi.`, 'success');
+          }
+        };
+      }
+    }
+
+    // İlk açılışta mevcut satırlara bağla ve API'den taze veriyi çek
+    document.querySelectorAll('.tenants-table tbody tr').forEach(attachTenantRowEvents);
+    loadTenants();
+    loadAdminStats();
+    loadSettings();
+    loadAdmins();
+    loadPartsPool();
+
+    // ==========================================================================
+    // 4. MERKEZİ PARÇA HAVUZU DİNAMİK YÜKLEME & CANLI ARAMA
+    // ==========================================================================
+    async function loadPartsPool() {
+      try {
+        const res = await apiFetch('/admin/products');
+        const container = document.getElementById('parts-grid-container');
+        if (!container) return;
+
+        if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+          container.innerHTML = '';
+          res.data.forEach(prod => {
+            const safeName = escapeHtml(prod.name || 'Parça');
+            const safeOe = escapeHtml(prod.oeNumber || 'OE-YOK');
+            const safeCat = escapeHtml(prod.category || 'Genel');
+            const price = prod.defaultPrice ? Number(prod.defaultPrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' ₺' : '—';
+            const imgHtml = prod.imageUrl 
+              ? `<img src="${escapeHtml(prod.imageUrl)}" alt="${safeName}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;">`
+              : `<svg class="part-placeholder-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="3"></circle><path d="M6 12h.01M18 12h.01"></path></svg>`;
+
+            const item = document.createElement('div');
+            item.className = 'part-item';
+            item.dataset.id = prod.id;
+            item.innerHTML = `
+              <button class="part-edit-btn" title="Parçayı Düzenle" aria-label="Düzenle">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </button>
+              <div class="part-image-wrapper">
+                ${imgHtml}
+              </div>
+              <div class="part-details">
+                <span class="part-oe-number">OE: ${safeOe}</span>
+                <span class="part-name">${safeName}</span>
+                <span class="part-model-tag">${safeCat} • ${price}</span>
+              </div>
+            `;
+            container.appendChild(item);
+          });
+          attachPartEditEvents();
+        } else if (res && res.success && Array.isArray(res.data) && res.data.length === 0) {
+          container.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 48px 20px; color: #64748b; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 12px;">
+              <div style="font-size: 32px; margin-bottom: 8px;">📦</div>
+              <div style="font-weight: 600; font-size: 15px; color: #1e293b;">Merkezi parça havuzunda henüz kayıtlı ürün bulunmuyor.</div>
+              <div style="font-size: 13px; color: #64748b; margin-top: 4px;">Yeni parçalar eklendiğinde veya Parts-Catalogs entegrasyonu üzerinden çekildiğinde burada görüntülenecektir.</div>
+            </div>
+          `;
+        }
+      } catch (err) {
+        console.error('[LOAD_PARTS_POOL_ERROR]:', err);
+      }
+    }
+
+    function attachPartEditEvents() {
+      document.querySelectorAll('.part-edit-btn').forEach(btn => {
+        btn.onclick = async function () {
+          const partItem = this.closest('.part-item');
+          const partId = partItem ? partItem.dataset.id : null;
+          const nameEl = partItem ? partItem.querySelector('.part-name') : null;
+          const currentName = nameEl ? nameEl.textContent : 'Parça';
+          const newName = prompt('Parça adını güncelleyin:', currentName);
+          if (newName && newName.trim() !== '' && newName.trim() !== currentName) {
+            if (partId) {
+              try {
+                const res = await apiFetch(`/admin/products/${partId}`, {
+                  method: 'PATCH',
+                  body: { name: newName.trim() }
+                });
+                if (res && res.success) {
+                  if (nameEl) nameEl.textContent = newName.trim();
+                  showToast(`Parça "${escapeHtml(newName.trim())}" olarak güncellendi.`, 'success');
+                  loadAdminStats();
+                } else {
+                  showToast(res && res.message ? res.message : 'Güncelleme yapılamadı.', 'danger');
+                }
+              } catch (e) {
+                showToast('Hata: ' + e.message, 'danger');
+              }
+            } else {
+              if (nameEl) nameEl.textContent = newName.trim();
+              showToast(`Parça "${newName.trim()}" olarak güncellendi.`, 'success');
+            }
+          }
+        };
+      });
+    }
+
+    // İlk açılıştaki statik parçalara da bağla
+    attachPartEditEvents();
+
+    // Üst arama çubuğu: Müşteri Firmaları filtreler
+    const searchBar = document.getElementById('search-bar');
+    if (searchBar) {
+      searchBar.addEventListener('input', function () {
+        const term = this.value.toLowerCase().trim();
+        const rows = document.querySelectorAll('.tenants-table tbody tr');
+        rows.forEach(r => {
+          const text = r.textContent.toLowerCase();
+          r.style.display = text.includes(term) ? '' : 'none';
+        });
+      });
+    }
+
+    // Parça Havuzu arama çubuğu
+    const partsSearch = document.getElementById('parts-search');
+    if (partsSearch) {
+      partsSearch.addEventListener('input', function () {
+        const term = this.value.toLowerCase().trim();
+        const partItems = document.querySelectorAll('.parts-grid .part-item');
+        partItems.forEach(item => {
+          const text = item.textContent.toLowerCase();
+          item.style.display = text.includes(term) ? 'flex' : 'none';
+        });
+      });
+    }
+
+    // Üst bildirim zili butonu
+    const notifBtn = document.querySelector('.header-action-btn');
+    if (notifBtn) {
+      notifBtn.addEventListener('click', function () {
+        showToast('Sistem Bildirimi: 2 yeni bayi başvurusu onay bekliyor.', 'success');
+      });
+    }
+
+    // ==========================================================================
+    // 5. SOL MENÜ TAB YÖNLENDİRME (TAB MANTIĞI) & BÖLÜM GEÇİŞLERİ
+    // ==========================================================================
+    const tabMapping = {
+      'dashboard': 'section-dashboard',
+      '#dashboard': 'section-dashboard',
+      'section-dashboard': 'section-dashboard',
+
+      'tenants': 'section-tenants',
+      '#tenants': 'section-tenants',
+      'section-tenants': 'section-tenants',
+
+      'pool': 'section-pool',
+      'parts': 'section-pool',
+      'parts-pool': 'section-pool',
+      '#parts-pool': 'section-pool',
+      'section-pool': 'section-pool',
+
+      'settings': 'section-settings',
+      '#settings': 'section-settings',
+      'section-settings': 'section-settings',
+
+      'admins': 'section-admins',
+      '#admins': 'section-admins',
+      'section-admins': 'section-admins'
+    };
+
+    const tabMeta = {
+      'section-dashboard': {
+        title: 'Süper Admin Kontrol Paneli',
+        breadcrumb: 'Ana Sayfa / Sistem Özeti'
+      },
+      'section-tenants': {
+        title: 'Müşteri Firmalar (Tenants)',
+        breadcrumb: 'Ana Sayfa / Müşteri Yönetimi'
+      },
+      'section-pool': {
+        title: 'Merkezi Parça Havuzu',
+        breadcrumb: 'Ana Sayfa / Parça Kataloğu'
+      },
+      'section-admins': {
+        title: 'Yönetici Kadrosu & Admin Yetkilendirme',
+        breadcrumb: 'Ana Sayfa / Yöneticiler'
+      },
+      'section-settings': {
+        title: 'Sistem Ayarları & Yapılandırma',
+        breadcrumb: 'Ana Sayfa / Platform Ayarları'
+      }
+    };
+
+    function switchTab(targetKey) {
+      if (!targetKey) targetKey = 'section-dashboard';
+      const cleanKey = targetKey.replace(/^#/, '');
+      const targetSectionId = tabMapping[targetKey] || tabMapping[cleanKey] || targetKey;
+
+      const targetSection = document.getElementById(targetSectionId);
+      if (!targetSection) {
+        console.warn('[SWITCH_TAB] Hedef bölüm bulunamadı:', targetSectionId);
+        return;
+      }
+
+      // 1. Tüm bölümleri gizle (display: none) ve active sınıfını kaldır
+      const allSections = document.querySelectorAll('.content-section');
+      allSections.forEach(section => {
+        section.style.display = 'none';
+        section.classList.remove('active');
+      });
+
+      // 2. Hedef bölümü görünür yap (display: block) ve active sınıfını ekle
+      targetSection.style.display = 'block';
+      targetSection.classList.add('active');
+
+      // 3. Sol menüdeki <li> elemanlarının active sınıfını senkronize et
+      const menuItems = document.querySelectorAll('.sidebar-menu .menu-item');
+      menuItems.forEach(li => {
+        const link = li.querySelector('a');
+        const dataTarget = li.getAttribute('data-target');
+        const href = link ? link.getAttribute('href') : '';
+        const hrefKey = href ? href.replace(/^#/, '') : '';
+
+        const isMatch = (dataTarget === targetSectionId) ||
+                        (tabMapping[href] === targetSectionId) ||
+                        (tabMapping[hrefKey] === targetSectionId);
+
+        if (isMatch) {
+          li.classList.add('active');
+        } else {
+          li.classList.remove('active');
+        }
+      });
+
+      // 4. Üst Header başlık ve breadcrumb metinlerini güncelle
+      const pageHeading = document.querySelector('.page-heading');
+      const pageBreadcrumb = document.querySelector('.page-breadcrumb');
+      if (tabMeta[targetSectionId]) {
+        if (pageHeading) pageHeading.textContent = tabMeta[targetSectionId].title;
+        if (pageBreadcrumb) pageBreadcrumb.textContent = tabMeta[targetSectionId].breadcrumb;
+      }
+
+      // 5. Sayfa kaydırmasını en üste al
+      const mainContent = document.querySelector('.main-content');
+      if (mainContent) {
+        mainContent.scrollTop = 0;
+      }
+
+      // 6. Bölüm bazlı dinamik veri yüklemeleri
+      if (targetSectionId === 'section-settings') {
+        loadSettings();
+      } else if (targetSectionId === 'section-tenants') {
+        loadTenants();
+      } else if (targetSectionId === 'section-dashboard') {
+        loadAdminStats();
+      } else if (targetSectionId === 'section-admins') {
+        loadAdmins();
+      } else if (targetSectionId === 'section-pool') {
+        loadPartsPool();
+      }
+
+      // 7. URL hash senkronizasyonu
+      const targetHash = Object.keys(tabMapping).find(k => k.startsWith('#') && tabMapping[k] === targetSectionId);
+      if (targetHash && window.location.hash !== targetHash) {
+        try { history.replaceState(null, '', targetHash); } catch (e) {}
+      }
+    }
+
+    // Sol menü a etiketlerine ve li elemanlarına tıklama dinleyicisi
+    const menuLinks = document.querySelectorAll('.sidebar-menu a, .sidebar-menu .menu-item');
+    menuLinks.forEach(elem => {
+      elem.addEventListener('click', function (e) {
+        e.preventDefault();
+        const aTag = this.tagName === 'A' ? this : this.querySelector('a');
+        const liTag = this.tagName === 'LI' ? this : this.closest('li');
+
+        const target = (liTag && liTag.getAttribute('data-target')) ||
+                       (aTag && aTag.getAttribute('href')) ||
+                       'section-dashboard';
+
+        switchTab(target);
+      });
+    });
+
+    // 3. Başlangıç Yüklemesi: Varsayılan olarak Dashboard aktif, URL hash varsa ilgili tab
+    window.addEventListener('DOMContentLoaded', function () {
+      const currentHash = window.location.hash;
+      if (currentHash && tabMapping[currentHash]) {
+        switchTab(currentHash);
+      } else {
+        switchTab('section-dashboard');
+      }
+    });
+
+    // Hash değişimlerini yakala (Geri/İleri butonları veya dış linkler)
+    window.addEventListener('hashchange', function () {
+      if (window.location.hash && tabMapping[window.location.hash]) {
+        switchTab(window.location.hash);
+      }
+    });
+
+    // ==========================================================================
+    // 5.1 SİSTEM AYARLARI YÜKLEME (loadSettings) VE FORMU KAYDETME (/api/admin/settings)
+    // ==========================================================================
+    async function loadSettings() {
+      try {
+        const res = await apiFetch('/admin/settings');
+        if (res && res.success && res.data) {
+          const s = res.data;
+          const keyEl = document.getElementById('setting-tecdoc-key');
+          const endpointEl = document.getElementById('setting-tecdoc-endpoint');
+          const discountEl = document.getElementById('setting-default-discount') || document.getElementById('setting-discount');
+          const vatEl = document.getElementById('setting-tax-rate') || document.getElementById('setting-default-vat');
+          const currencyEl = document.getElementById('setting-currency');
+          const emailEl = document.getElementById('setting-admin-email');
+
+          if (keyEl) {
+            const apiVal = s.partsCatalogApiKey !== undefined ? s.partsCatalogApiKey : s.tecdocApiKey;
+            if (apiVal !== undefined && apiVal !== null) keyEl.value = apiVal;
+          }
+          if (endpointEl && s.tecdocEndpoint) endpointEl.value = s.tecdocEndpoint;
+          if (discountEl && s.defaultB2BDiscount !== undefined && s.defaultB2BDiscount !== null) discountEl.value = s.defaultB2BDiscount;
+          if (vatEl && s.defaultTaxRate !== undefined && s.defaultTaxRate !== null) vatEl.value = s.defaultTaxRate;
+          if (currencyEl && s.platformCurrency) currencyEl.value = s.platformCurrency;
+          if (emailEl && s.adminEmail) emailEl.value = s.adminEmail;
+        }
+      } catch (err) {
+        console.error('[LOAD_SETTINGS_ERROR]:', err);
+      }
+    }
+    const loadAdminSettings = loadSettings;
+    window.loadSettings = loadSettings;
+    window.loadAdminSettings = loadSettings;
+
+    const settingsForm = document.getElementById('system-settings-form');
+    if (settingsForm) {
+      settingsForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const saveBtn = document.getElementById('btn-save-settings');
+        const origHtml = saveBtn ? saveBtn.innerHTML : '';
+        if (saveBtn) {
+          saveBtn.disabled = true;
+          saveBtn.innerHTML = `<span>Kaydediliyor...</span>`;
+        }
+
+        try {
+          const keyInput = document.getElementById('setting-tecdoc-key');
+          const endpointInput = document.getElementById('setting-tecdoc-endpoint');
+          const discountInput = document.getElementById('setting-default-discount') || document.getElementById('setting-discount');
+          const vatInput = document.getElementById('setting-tax-rate') || document.getElementById('setting-default-vat');
+          const currencyInput = document.getElementById('setting-currency');
+          const emailInput = document.getElementById('setting-admin-email');
+          const pwdInput = document.getElementById('setting-admin-password');
+          const pwdConfirmInput = document.getElementById('setting-admin-password-confirm');
+
+          const newPassword = pwdInput ? pwdInput.value.trim() : '';
+          const confirmPassword = pwdConfirmInput ? pwdConfirmInput.value.trim() : '';
+
+          if (newPassword !== '') {
+            if (newPassword.length < 6) {
+              showToast('Yeni yönetici şifresi en az 6 karakter olmalıdır.', 'warning');
+              if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = origHtml; }
+              return;
+            }
+            if (newPassword !== confirmPassword) {
+              showToast('Girilen yeni şifreler birbiriyle eşleşmiyor!', 'danger');
+              if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = origHtml; }
+              return;
+            }
+          }
+
+          const payload = {
+            tecdocApiKey: keyInput ? keyInput.value.trim() : '',
+            partsCatalogApiKey: keyInput ? keyInput.value.trim() : '',
+            tecdocEndpoint: endpointInput ? endpointInput.value.trim() : '',
+            defaultB2BDiscount: discountInput ? (parseFloat(discountInput.value) || 0) : 20.0,
+            defaultTaxRate: vatInput ? (parseFloat(vatInput.value) || 0) : 20.0,
+            platformCurrency: currencyInput ? currencyInput.value.trim() : 'TRY',
+            adminEmail: emailInput ? emailInput.value.trim() : ''
+          };
+
+          if (newPassword !== '') {
+            payload.adminPassword = newPassword;
+          }
+
+          const res = await apiFetch('/admin/settings', {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+          });
+
+          if (res && res.success) {
+            showToast('Ayarlar başarıyla kaydedildi.', 'success');
+            if (pwdInput) pwdInput.value = '';
+            if (pwdConfirmInput) pwdConfirmInput.value = '';
+            if (res.data) {
+              const s = res.data;
+              if (keyInput) {
+                const apiVal = s.partsCatalogApiKey !== undefined ? s.partsCatalogApiKey : s.tecdocApiKey;
+                if (apiVal !== undefined && apiVal !== null) keyInput.value = apiVal;
+              }
+              if (endpointInput && s.tecdocEndpoint) endpointInput.value = s.tecdocEndpoint;
+              if (discountInput && s.defaultB2BDiscount !== undefined) discountInput.value = s.defaultB2BDiscount;
+              if (vatInput && s.defaultTaxRate !== undefined) vatInput.value = s.defaultTaxRate;
+              if (currencyInput && s.platformCurrency) currencyInput.value = s.platformCurrency;
+              if (emailInput && s.adminEmail) emailInput.value = s.adminEmail;
+
+              const adminNameEl = document.querySelector('.admin-name');
+              if (adminNameEl && s.adminEmail) {
+                adminNameEl.textContent = s.adminEmail.split('@')[0].toUpperCase();
+              }
+            }
+          } else {
+            showToast((res && res.message) ? res.message : 'Sistem ayarları kaydedilemedi.', 'danger');
+          }
+        } catch (err) {
+          console.error('[SAVE_SETTINGS_ERROR]:', err);
+          showToast('Ayarlar kaydedilirken hata oluştu: ' + (err.message || 'Sunucu hatası'), 'danger');
+        } finally {
+          if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = origHtml;
+          }
+        }
+      });
+    }
+
+    const resetSettingsBtn = document.getElementById('btn-reset-settings');
+    if (resetSettingsBtn && settingsForm) {
+      resetSettingsBtn.addEventListener('click', async function () {
+        if (confirm('Ayarları varsayılan sistem değerlerine döndürüp kaydetmek istediğinize emin misiniz?')) {
+          const defaultPayload = {
+            tecdocApiKey: '',
+            tecdocEndpoint: 'https://api.tecalliance.net/v2/catalog',
+            defaultB2BDiscount: 20.0,
+            defaultTaxRate: 20.0,
+            platformCurrency: 'TRY',
+            adminEmail: 'admin@sistem.com'
+          };
+
+          try {
+            const res = await apiFetch('/admin/settings', {
+              method: 'PUT',
+              body: JSON.stringify(defaultPayload)
+            });
+
+            if (res && res.success) {
+              const keyInput = document.getElementById('setting-tecdoc-key');
+              const endpointInput = document.getElementById('setting-tecdoc-endpoint');
+              const discountInput = document.getElementById('setting-default-discount') || document.getElementById('setting-discount');
+              const vatInput = document.getElementById('setting-tax-rate') || document.getElementById('setting-default-vat');
+              const currencyInput = document.getElementById('setting-currency');
+              const emailInput = document.getElementById('setting-admin-email');
+
+              if (keyInput) keyInput.value = '';
+              if (endpointInput) endpointInput.value = 'https://api.tecalliance.net/v2/catalog';
+              if (discountInput) discountInput.value = '20.0';
+              if (vatInput) vatInput.value = '20';
+              if (currencyInput) currencyInput.value = 'TRY';
+              if (emailInput) emailInput.value = 'admin@sistem.com';
+              showToast('Ayarlar varsayılan değerlere sıfırlandı ve kaydedildi.', 'info');
+            } else {
+              showToast((res && res.message) ? res.message : 'Varsayılan ayarlar kaydedilemedi.', 'danger');
+            }
+          } catch (err) {
+            console.error('[RESET_SETTINGS_ERROR]:', err);
+            showToast('Ayarlar sıfırlanırken hata oluştu.', 'danger');
+          }
+        }
+      });
+    }
+
+    // ==========================================================================
+    // 5.2 YÖNETİCİLER & ADMİN YETKİLENDİRME (loadAdmins, openAdminDrawer, saveAdmin)
+    // ==========================================================================
+    const adminDrawer = document.getElementById('admin-drawer');
+    const btnAddAdmin = document.getElementById('btn-add-admin');
+    const btnCloseAdminDrawer = document.getElementById('btn-close-admin-drawer');
+    const btnCancelAdminDrawer = document.getElementById('btn-cancel-admin-drawer');
+
+    function openAdminDrawer() {
+      if (adminDrawer) {
+        adminDrawer.classList.add('open');
+      }
+    }
+
+    function closeAdminDrawer() {
+      if (adminDrawer) {
+        adminDrawer.classList.remove('open');
+      }
+    }
+
+    if (btnAddAdmin) btnAddAdmin.addEventListener('click', openAdminDrawer);
+    if (btnCloseAdminDrawer) btnCloseAdminDrawer.addEventListener('click', closeAdminDrawer);
+    if (btnCancelAdminDrawer) btnCancelAdminDrawer.addEventListener('click', closeAdminDrawer);
+
+    if (adminDrawer) {
+      adminDrawer.addEventListener('click', function (e) {
+        if (e.target === adminDrawer) closeAdminDrawer();
+      });
+    }
+
+    // Mod Değişimi: Sıfırdan Yeni Admin vs Mevcut Kullanıcıyı Seç
+    let currentAdminMode = 'new';
+    const btnModeNew = document.getElementById('btn-admin-mode-new');
+    const btnModeExisting = document.getElementById('btn-admin-mode-existing');
+    const groupAdminEmail = document.getElementById('group-admin-email');
+    const groupAdminUserSelect = document.getElementById('group-admin-user-select');
+    const newAdminEmailInput = document.getElementById('new-admin-email');
+    const selectExistingUser = document.getElementById('select-existing-user');
+    const selectAdminRole = document.getElementById('select-admin-role');
+    const groupAdminTenantSelect = document.getElementById('group-admin-tenant-select');
+    const selectAdminTenant = document.getElementById('select-admin-tenant');
+    const newAdminPasswordInput = document.getElementById('new-admin-password');
+    const adminPasswordNote = document.getElementById('admin-password-note');
+
+    if (btnModeNew && btnModeExisting) {
+      btnModeNew.addEventListener('click', function () {
+        currentAdminMode = 'new';
+        btnModeNew.style.background = '#2563eb';
+        btnModeNew.style.color = '#ffffff';
+        btnModeNew.style.borderColor = '#2563eb';
+
+        btnModeExisting.style.background = '#f8fafc';
+        btnModeExisting.style.color = '#475569';
+        btnModeExisting.style.borderColor = '#cbd5e1';
+
+        if (groupAdminEmail) groupAdminEmail.style.display = 'block';
+        if (groupAdminUserSelect) groupAdminUserSelect.style.display = 'none';
+        if (newAdminEmailInput) newAdminEmailInput.required = true;
+        if (selectExistingUser) selectExistingUser.required = false;
+        if (adminPasswordNote) adminPasswordNote.textContent = 'Yeni admin hesabı için giriş şifresi (en az 6 karakter).';
+      });
+
+      btnModeExisting.addEventListener('click', function () {
+        currentAdminMode = 'existing';
+        btnModeExisting.style.background = '#2563eb';
+        btnModeExisting.style.color = '#ffffff';
+        btnModeExisting.style.borderColor = '#2563eb';
+
+        btnModeNew.style.background = '#f8fafc';
+        btnModeNew.style.color = '#475569';
+        btnModeNew.style.borderColor = '#cbd5e1';
+
+        if (groupAdminEmail) groupAdminEmail.style.display = 'none';
+        if (groupAdminUserSelect) groupAdminUserSelect.style.display = 'block';
+        if (newAdminEmailInput) newAdminEmailInput.required = false;
+        if (selectExistingUser) selectExistingUser.required = true;
+        if (adminPasswordNote) adminPasswordNote.textContent = 'Şifreyi değiştirmek istemiyorsanız boş bırakabilirsiniz.';
+      });
+    }
+
+    if (selectAdminRole) {
+      selectAdminRole.addEventListener('change', function () {
+        if (groupAdminTenantSelect) {
+          if (this.value === 'TENANT_ADMIN') {
+            groupAdminTenantSelect.style.display = 'block';
+            if (selectAdminTenant) selectAdminTenant.required = true;
+          } else {
+            groupAdminTenantSelect.style.display = 'none';
+            if (selectAdminTenant) selectAdminTenant.required = false;
+          }
+        }
+      });
+    }
+
+    // Adminleri Yükle (loadAdmins)
+    async function loadAdmins() {
+      try {
+        const res = await apiFetch('/admin/admins');
+        if (res && res.success && res.data) {
+          const { admins, availableUsers, tenants } = res.data;
+
+          // 1. Tabloyu Doldur
+          const tbody = document.getElementById('admins-table-body');
+          if (tbody) {
+            tbody.innerHTML = '';
+            if (Array.isArray(admins) && admins.length > 0) {
+              admins.forEach(admin => {
+                const tr = document.createElement('tr');
+                const safeEmail = escapeHtml(admin.email || '');
+                const initial = safeEmail ? safeEmail[0].toUpperCase() : 'A';
+                const isSuper = admin.role === 'SUPER_ADMIN';
+
+                const roleBadge = isSuper
+                  ? `<span class="badge-status-green" style="background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; font-weight:700;"><span class="badge-dot-green" style="background:#2563eb;"></span>👑 Süper Admin</span>`
+                  : `<span class="badge-status-green" style="background:#fff7ed; color:#ea580c; border:1px solid #fed7aa; font-weight:700;"><span class="badge-dot-green" style="background:#ea580c;"></span>🏢 Bayi Yöneticisi</span>`;
+
+                const tenantName = isSuper
+                  ? `<span style="font-weight:600; color:#3b82f6;">🌐 Tüm Platform (Global)</span>`
+                  : (admin.tenant ? `<span style="font-weight:600; color:#475569;">${escapeHtml(admin.tenant.name)} (${escapeHtml(admin.tenant.subdomain)})</span>` : '—');
+
+                const dateStr = admin.createdAt ? new Date(admin.createdAt).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+
+                tr.innerHTML = `
+                  <td>
+                    <div class="firm-identity">
+                      <div class="firm-avatar" style="background-color: ${isSuper ? '#2563eb' : '#f97316'}; font-weight:bold;">${initial}</div>
+                      <div>
+                        <strong style="color:var(--text-dark); display:block;">${safeEmail}</strong>
+                        <span style="font-size:0.75rem; color:var(--text-muted);">${admin.id}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>${roleBadge}</td>
+                  <td>${tenantName}</td>
+                  <td style="color:var(--text-muted); font-size:0.85rem;">${dateStr}</td>
+                  <td>
+                    <div class="actions-group">
+                      <button class="btn-table-action btn-change-admin-pwd" data-id="${admin.id}" data-email="${safeEmail}" style="background:#f8fafc; border:1px solid #cbd5e1; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:600;">Şifre Değiştir</button>
+                      <button class="btn-table-action btn-revoke-admin" data-id="${admin.id}" data-email="${safeEmail}" style="background:#fee2e2; color:#ef4444; border:1px solid #fecaca; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:600;">Yetkiyi Kaldır</button>
+                    </div>
+                  </td>
+                `;
+                tbody.appendChild(tr);
+              });
+              attachAdminRowEvents();
+            } else {
+              tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-muted);">Henüz ekli yönetici bulunmamaktadır.</td></tr>`;
+            }
+          }
+
+          // 2. Sayaçları Güncelle
+          const superCount = admins.filter(a => a.role === 'SUPER_ADMIN').length;
+          const tenantAdminCount = admins.filter(a => a.role === 'TENANT_ADMIN').length;
+          const superCountEl = document.getElementById('kpi-super-admins-count');
+          const tenantAdminCountEl = document.getElementById('kpi-tenant-admins-count');
+          const availableCountEl = document.getElementById('kpi-available-users-count');
+          const navAdminsCount = document.getElementById('nav-admins-count');
+
+          if (superCountEl) superCountEl.textContent = superCount;
+          if (tenantAdminCountEl) tenantAdminCountEl.textContent = tenantAdminCount;
+          if (availableCountEl) availableCountEl.textContent = availableUsers.length;
+          if (navAdminsCount) navAdminsCount.textContent = admins.length;
+
+          // 3. Mevcut Kullanıcı Seçim Kutusunu Doldur
+          if (selectExistingUser && Array.isArray(availableUsers)) {
+            selectExistingUser.innerHTML = '<option value="">-- Bir Kullanıcı Seçin --</option>';
+            availableUsers.forEach(u => {
+              const opt = document.createElement('option');
+              opt.value = u.email;
+              const company = (u.customerProfile && u.customerProfile.companyName) ? ` (${u.customerProfile.companyName})` : '';
+              opt.textContent = `${u.email}${company}`;
+              selectExistingUser.appendChild(opt);
+            });
+          }
+
+          // 4. Bayi Seçim Kutusunu Doldur
+          if (selectAdminTenant && Array.isArray(tenants)) {
+            selectAdminTenant.innerHTML = '<option value="">-- Bir Bayi Seçin --</option>';
+            tenants.forEach(t => {
+              const opt = document.createElement('option');
+              opt.value = t.id;
+              opt.textContent = `${t.name} (${t.subdomain})`;
+              selectAdminTenant.appendChild(opt);
+            });
+          }
+        }
+      } catch (err) {
+        console.error('[LOAD_ADMINS_ERROR]:', err);
+      }
+    }
+
+    function attachAdminRowEvents() {
+      // Şifre Değiştir Butonları
+      document.querySelectorAll('.btn-change-admin-pwd').forEach(btn => {
+        btn.onclick = async function () {
+          const adminId = this.dataset.id;
+          const adminEmail = this.dataset.email;
+          const newPwd = prompt(`"${adminEmail}" yöneticisi için yeni şifreyi giriniz (en az 6 karakter):`);
+          if (newPwd && newPwd.trim().length >= 6) {
+            try {
+              const res = await apiFetch(`/admin/admins/${adminId}/password`, {
+                method: 'PATCH',
+                body: { newPassword: newPwd.trim() }
+              });
+              if (res && res.success) {
+                showToast(res.message || 'Şifre başarıyla güncellendi.', 'success');
+              } else {
+                showToast(res && res.message ? res.message : 'Şifre güncellenemedi.', 'danger');
+              }
+            } catch (e) {
+              showToast('İşlem sırasında hata oluştu.', 'danger');
+            }
+          } else if (newPwd !== null) {
+            showToast('Şifre en az 6 karakter olmalıdır.', 'warning');
+          }
+        };
+      });
+
+      // Yetkiyi Kaldır Butonları
+      document.querySelectorAll('.btn-revoke-admin').forEach(btn => {
+        btn.onclick = async function () {
+          const adminId = this.dataset.id;
+          const adminEmail = this.dataset.email;
+          if (confirm(`"${adminEmail}" kullanıcısının yöneticilik yetkisini kaldırmak istediğinize emin misiniz?`)) {
+            try {
+              const res = await apiFetch(`/admin/admins/${adminId}`, {
+                method: 'DELETE'
+              });
+              if (res && res.success) {
+                showToast(res.message || 'Yetki başarıyla kaldırıldı.', 'success');
+                loadAdmins();
+              } else {
+                showToast(res && res.message ? res.message : 'Yetki kaldırılamadı.', 'danger');
+              }
+            } catch (e) {
+              showToast('İşlem sırasında hata oluştu.', 'danger');
+            }
+          }
+        };
+      });
+    }
+
+    // Form Gönderimi: Admin Ekle / Yetki Tanımla
+    const createAdminForm = document.getElementById('create-admin-form');
+    if (createAdminForm) {
+      createAdminForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const email = currentAdminMode === 'new'
+          ? (newAdminEmailInput ? newAdminEmailInput.value.trim() : '')
+          : (selectExistingUser ? selectExistingUser.value.trim() : '');
+
+        const role = selectAdminRole ? selectAdminRole.value : 'SUPER_ADMIN';
+        const tenantId = (role === 'TENANT_ADMIN' && selectAdminTenant) ? selectAdminTenant.value : null;
+        const password = newAdminPasswordInput ? newAdminPasswordInput.value.trim() : '';
+
+        if (!email) {
+          showToast('Lütfen geçerli bir yönetici e-posta adresi girin veya seçin.', 'warning');
+          return;
+        }
+
+        if (role === 'TENANT_ADMIN' && !tenantId) {
+          showToast('Bayi yöneticisi için lütfen bir bayi seçiniz.', 'warning');
+          return;
+        }
+
+        if (currentAdminMode === 'new' && (!password || password.length < 6)) {
+          showToast('Yeni admin hesabı için en az 6 karakterli bir şifre girilmelidir.', 'warning');
+          return;
+        }
+
+        if (currentAdminMode === 'existing' && password && password.length < 6) {
+          showToast('Şifre belirleyecekseniz en az 6 karakter olmalıdır.', 'warning');
+          return;
+        }
+
+        const submitBtn = document.getElementById('btn-submit-admin');
+        const origBtnText = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Kaydediliyor...';
+        }
+
+        try {
+          const payload = {
+            email: email,
+            role: role,
+            tenantId: tenantId,
+            password: password
+          };
+
+          const res = await apiFetch('/admin/admins', {
+            method: 'POST',
+            body: payload
+          });
+
+          if (res && res.success) {
+            showToast(res.message || 'Admin yetkisi başarıyla kaydedildi.', 'success');
+            createAdminForm.reset();
+            closeAdminDrawer();
+            loadAdmins();
+          } else {
+            showToast(res && res.message ? res.message : 'Admin kaydedilemedi.', 'danger');
+          }
+        } catch (err) {
+          console.error('[SAVE_ADMIN_ERROR]:', err);
+          showToast('İşlem sırasında hata oluştu: ' + (err.message || 'Sunucu hatası'), 'danger');
+        } finally {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = origBtnText;
+          }
+        }
+      });
+    }
+
+    // Global erişim için switchTab fonksiyonunu pencere nesnesine bağla
+    window.switchTab = switchTab;
+
+    // ==========================================================================
+    // 6. KONSOL BİLGİLENDİRME MESAJI
+    // ==========================================================================
+    console.log('Süper Admin Paneli Başarıyla Yüklendi (Çoklu Sekme Mimarisi Devrede)');
+  </script>
+
+</body>
+
+</html>

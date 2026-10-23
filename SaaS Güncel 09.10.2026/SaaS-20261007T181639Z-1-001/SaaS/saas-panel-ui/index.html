@@ -314,7 +314,7 @@
               </div>
               <div class="quick-action-text">
                 <strong>Platform Ayarları</strong>
-                <span>TecDoc API entegrasyonu ve finansal iskonto parametrelerini yapılandır</span>
+                <span>Parts-Catalogs API entegrasyonu ve finansal iskonto parametrelerini yapılandır</span>
               </div>
               <span class="quick-action-arrow">→</span>
             </button>
@@ -421,7 +421,7 @@
                 </div>
               </td>
               <td>
-                <a href="store.html?subdomain=ahmetoto" class="subdomain-text" title="Mağazayı Aç" style="text-decoration: none; color: inherit;">ahmetoto.sistem.com ↗</a>
+                <a href="../storefront-ui/store.html?subdomain=ahmetoto" class="subdomain-text" target="_blank" title="B2B Mağazasını Aç">ahmetoto.sistem.com ↗</a>
               </td>
               <td>
                 <div class="color-badge-wrapper">
@@ -461,17 +461,21 @@
         </div>
       </section>
 
-      <!-- 'Yapım Aşamasında' Bilgilendirme Kutusu -->
-      <div class="under-construction-banner">
-        <div class="construction-icon-box">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            <!-- Parts-Catalogs Entegrasyon Bilgi Kutusu -->
+      <div class="integration-active-banner">
+        <div class="integration-icon-box">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+            <path d="m9 12 2 2 4-4"></path>
           </svg>
         </div>
-        <div class="construction-text">
-          <div class="construction-badge">Yapım Aşamasında</div>
-          <h4 class="construction-title">Merkezi Parça Havuzu & TecDoc Entegrasyonu Hazırlanıyor</h4>
-          <p class="construction-desc">Bu modül üzerinden veritabanındaki tüm orijinal yedek parçalar küresel çapta listelenecektir. TecDoc API ve katalog senkronizasyonu tamamlandığında parçalar otomatik olarak burada görüntülenecektir.</p>
+        <div class="integration-text">
+          <div class="integration-badge">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #4ade80; display: inline-block;"></span>
+            Entegrasyon Başarılı
+          </div>
+          <h4 class="integration-title">Merkezi Parça Havuzu & Parts-Catalogs Entegrasyonu Aktif</h4>
+          <p class="integration-desc">Bu modül, Parts-Catalogs API altyapısı ile tam entegre çalışmaktadır. Tüm şasi (VIN) ve orijinal yedek parça (OE) sorgulamalarınız küresel veri ağı üzerinden anlık ve otomatik olarak listelenmektedir.</p>
         </div>
       </div>
 
@@ -655,7 +659,7 @@
       <section class="section-action-header">
         <div>
           <h3 class="section-title">Sistem Ayarları & Yapılandırma</h3>
-          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">Platform genel parametreleri, TecDoc API anahtarları ve iskonto kuralları</p>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">Platform genel parametreleri, Parts-Catalogs API anahtarları ve iskonto kuralları</p>
         </div>
       </section>
 
@@ -672,7 +676,7 @@
               </svg>
             </div>
             <div>
-              <h4 class="settings-card-title">TecDoc & Parça Veri Entegrasyonu</h4>
+              <h4 class="settings-card-title">Parts-Catalogs & Parça Veri Entegrasyonu</h4>
               <p class="settings-card-desc">Küresel katalog sağlayıcısı ve OE parça eşleştirme API anahtarları</p>
             </div>
           </div>
@@ -1120,7 +1124,7 @@
                 </div>
               </td>
               <td>
-                <a href="store.html?subdomain=${safeSubdomain}" class="subdomain-text" title="Mağazayı Aç" style="text-decoration: none; color: inherit;">${safeSubdomain}.sistem.com ↗</a>
+                <a href="../storefront-ui/store.html?subdomain=${safeSubdomain}" class="subdomain-text" target="_blank" title="B2B Mağazasını Aç">${safeSubdomain}.sistem.com ↗</a>
               </td>
               <td>
                 <div class="color-badge-wrapper">
@@ -1431,7 +1435,7 @@
             <div style="grid-column: 1 / -1; text-align: center; padding: 48px 20px; color: #64748b; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 12px;">
               <div style="font-size: 32px; margin-bottom: 8px;">📦</div>
               <div style="font-weight: 600; font-size: 15px; color: #1e293b;">Merkezi parça havuzunda henüz kayıtlı ürün bulunmuyor.</div>
-              <div style="font-size: 13px; color: #64748b; margin-top: 4px;">Yeni parçalar eklendiğinde veya TecDoc entegrasyonu sağlandığında burada görüntülenecektir.</div>
+              <div style="font-size: 13px; color: #64748b; margin-top: 4px;">Yeni parçalar eklendiğinde veya Parts-Catalogs entegrasyonu üzerinden çekildiğinde burada görüntülenecektir.</div>
             </div>
           `;
         }

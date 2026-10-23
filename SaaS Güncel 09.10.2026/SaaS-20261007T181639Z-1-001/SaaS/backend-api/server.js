@@ -48,7 +48,8 @@ const ensureInitialData = async () => {
         data: {
           email: 'admin@sistem.com',
           password: hash,
-          role: 'SUPER_ADMIN'
+          role: 'SUPER_ADMIN',
+          status: 'APPROVED'
         }
       });
 
@@ -57,6 +58,11 @@ const ensureInitialData = async () => {
       console.log(`📧 E-posta: admin@sistem.com`);
       console.log('🔑 Parola .env (DEFAULT_ADMIN_PASSWORD) üzerinden güvenle yapılandırıldı.');
       console.log('====================================================');
+    } else {
+      await prisma.user.updateMany({
+        where: { role: 'SUPER_ADMIN' },
+        data: { status: 'APPROVED' }
+      });
     }
 
     const settings = await prisma.systemSettings.findUnique({ where: { id: 1 } });
@@ -83,10 +89,16 @@ const ensureInitialData = async () => {
           name: 'Ahmet Oto',
           subdomain: 'ahmetoto',
           themeColor: '#f97316',
-          isActive: true
+          isActive: true,
+          status: 'APPROVED'
         }
       });
       console.log('🏪 Varsayılan Bayi (Ahmet Oto) veritabanına eklendi.');
+    } else {
+      await prisma.tenant.update({
+        where: { id: tenant.id },
+        data: { status: 'APPROVED' }
+      });
     }
 
     const tenantAdmin = await prisma.user.findUnique({ where: { email: 'ahmet@ahmetoto.com' } });
@@ -98,10 +110,16 @@ const ensureInitialData = async () => {
           email: 'ahmet@ahmetoto.com',
           password: hash,
           role: 'TENANT_ADMIN',
+          status: 'APPROVED',
           tenantId: tenant.id
         }
       });
       console.log('👔 Varsayılan Bayi Yöneticisi (ahmet@ahmetoto.com) veritabanına eklendi.');
+    } else {
+      await prisma.user.update({
+        where: { email: 'ahmet@ahmetoto.com' },
+        data: { status: 'APPROVED' }
+      });
     }
   } catch (err) {
     console.error('[DB_INIT_CHECK]:', err.message);

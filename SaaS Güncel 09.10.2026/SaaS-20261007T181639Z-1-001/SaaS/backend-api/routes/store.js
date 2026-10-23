@@ -8,45 +8,38 @@ const router = express.Router();
 const prisma = require('../lib/prisma');
 const config = require('../config');
 const { verifyToken, checkCustomer } = require('../middleware/auth');
+const { resolveTenant } = require('../middleware/resolveTenant');
+const { orderLimiter } = require('../middleware/rateLimiter');
 
 const jwt = require('jsonwebtoken');
 
-// Helper: Dinamik Tenant / Bayi Çözümleme (Subdomain, X-Tenant-Slug, X-Tenant-API-Key veya Query Parametrelerinden)
+// ============================================================================
+// Multi-Tenant Güvenlik Ara Yazılımı (Tenant Isolation Middleware)
+// Her istekte hedef bayi slug/subdomain/host üzerinden doğrulanır,
+// req.tenant ve req.tenantId değişkenlerine bağlanır.
+// Preflight (OPTIONS) istekleri doğrudan geçer
+router.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+  next();
+});
+router.use(resolveTenant);
+
+// Helper: İstekten çözümlenmiş hedef bayiyi döner (Artık doğrudan req.tenant'tan beslenir)
 const resolveTargetTenant = async (req, fallbackTenantId = null) => {
   if (req.tenant) {
     return req.tenant;
   }
-  let slug = req.headers['x-tenant-slug'] || req.query.tenant || req.query.subdomain;
-  if (slug && typeof slug === 'string') {
-    slug = slug.trim().toLowerCase();
-  }
-
-  let tenant = null;
-  if (slug) {
-    tenant = await prisma.tenant.findUnique({
-      where: { subdomain: slug }
-    });
-  }
-
-  if (!tenant && fallbackTenantId) {
-    tenant = await prisma.tenant.findUnique({
+  if (fallbackTenantId) {
+    const fallbackTenant = await prisma.tenant.findUnique({
       where: { id: fallbackTenantId }
     });
+    if (fallbackTenant && fallbackTenant.isActive && fallbackTenant.status === 'APPROVED') {
+      return fallbackTenant;
+    }
   }
-
-  if (!tenant) {
-    tenant = await prisma.tenant.findUnique({
-      where: { subdomain: 'ahmetoto' }
-    });
-  }
-
-  if (!tenant) {
-    tenant = await prisma.tenant.findFirst({
-      where: { isActive: true }
-    });
-  }
-
-  return tenant;
+  return null;
 };
 
 // ============================================================================
@@ -55,20 +48,7 @@ const resolveTargetTenant = async (req, fallbackTenantId = null) => {
 // ============================================================================
 router.get('/bank-info', async (req, res) => {
   try {
-    let tenantIdFromToken = null;
-    const authHeader = req.headers['authorization'] || req.headers['Authorization'];
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.split(' ')[1];
-        const secret = config.JWT_SECRET || process.env.JWT_SECRET;
-        const decoded = jwt.verify(token, secret);
-        if (decoded && decoded.tenantId) {
-          tenantIdFromToken = decoded.tenantId;
-        }
-      } catch (e) {}
-    }
-
-    const tenant = await resolveTargetTenant(req, tenantIdFromToken);
+    const tenant = req.tenant;
     const tenantName = tenant ? tenant.name : 'Ahmet Oto';
 
     return res.status(200).json({
@@ -100,27 +80,16 @@ router.get('/bank-info', async (req, res) => {
 });
 
 // ============================================================================
-// 0.1 GET /api/store/tenant-info - Bayi Marka ve Tema Bilgisi (Public / SEO Uyumlu)
+// 0.1 GET /api/store/tenant-info & GET /api/store/info - Bayi Marka ve Tema Bilgisi
+// (Public / SEO Uyumlu / Dinamik Storefront Headless Entegrasyonu)
 // ============================================================================
-router.get('/tenant-info', async (req, res) => {
+const handleGetTenantInfo = async (req, res) => {
   try {
-    let tenantIdFromToken = null;
-    const authHeader = req.headers['authorization'] || req.headers['Authorization'];
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.split(' ')[1];
-        const secret = config.JWT_SECRET || process.env.JWT_SECRET;
-        const decoded = jwt.verify(token, secret);
-        if (decoded && decoded.tenantId) {
-          tenantIdFromToken = decoded.tenantId;
-        }
-      } catch (e) {}
-    }
-
-    const tenant = await resolveTargetTenant(req, tenantIdFromToken);
+    const tenant = req.tenant;
     if (!tenant) {
       return res.status(404).json({
         success: false,
+        code: 'TENANT_NOT_FOUND',
         message: 'Bayi mağazası bulunamadı.'
       });
     }
@@ -135,16 +104,21 @@ router.get('/tenant-info', async (req, res) => {
         logoUrl: tenant.logoUrl,
         phone: tenant.phone || null,
         address: tenant.address || null,
+        status: tenant.status,
         isActive: tenant.isActive
       }
     });
   } catch (error) {
+    console.error('[STORE_GET_TENANT_INFO_ERROR]:', error);
     return res.status(500).json({
       success: false,
       message: 'Bayi bilgileri alınırken hata oluştu.'
     });
   }
-});
+};
+
+router.get('/tenant-info', handleGetTenantInfo);
+router.get('/info', handleGetTenantInfo);
 
 // ============================================================================
 // 1. GET /api/store/products
@@ -340,7 +314,12 @@ router.get('/products', async (req, res) => {
             partGroup: true,
             defaultPrice: true,
             imageUrl: true,
-            images: true
+            images: true,
+            crossReferences: true,
+            compatibleVehicles: true,
+            attributes: true,
+            diagramUrl: true,
+            diagrams: true
           }
         }
       },
@@ -364,6 +343,11 @@ router.get('/products', async (req, res) => {
           partGroup: item.product.partGroup,
           imageUrl: item.product.imageUrl,
           images: item.product.images || [],
+          crossReferences: item.product.crossReferences || [],
+          compatibleVehicles: item.product.compatibleVehicles || [],
+          attributes: item.product.attributes || [],
+          diagramUrl: item.product.diagramUrl,
+          diagrams: item.product.diagrams || [],
           // Güvenlik Koruması: Fiyat ve stok gizlenir
           stock: null,
           isDiscounted: false,
@@ -397,6 +381,11 @@ router.get('/products', async (req, res) => {
         partGroup: item.product.partGroup,
         imageUrl: item.product.imageUrl,
         images: item.product.images || [],
+        crossReferences: item.product.crossReferences || [],
+        compatibleVehicles: item.product.compatibleVehicles || [],
+        attributes: item.product.attributes || [],
+        diagramUrl: item.product.diagramUrl,
+        diagrams: item.product.diagrams || [],
         stock: item.stock,
         isDiscounted: item.isDiscounted,
         defaultPrice: listPrice,
@@ -707,6 +696,11 @@ router.get('/products/:id', async (req, res) => {
           partGroup: item.product.partGroup,
           imageUrl: item.product.imageUrl,
           images: item.product.images || [],
+          crossReferences: item.product.crossReferences || [],
+          compatibleVehicles: item.product.compatibleVehicles || [],
+          attributes: item.product.attributes || [],
+          diagramUrl: item.product.diagramUrl,
+          diagrams: item.product.diagrams || [],
           stock: null,
           isDiscounted: false,
           defaultPrice: null,
@@ -740,6 +734,11 @@ router.get('/products/:id', async (req, res) => {
         partGroup: item.product.partGroup,
         imageUrl: item.product.imageUrl,
         images: item.product.images || [],
+        crossReferences: item.product.crossReferences || [],
+        compatibleVehicles: item.product.compatibleVehicles || [],
+        attributes: item.product.attributes || [],
+        diagramUrl: item.product.diagramUrl,
+        diagrams: item.product.diagrams || [],
         stock: item.stock,
         isDiscounted: item.isDiscounted,
         defaultPrice: listPrice,
@@ -768,8 +767,12 @@ router.get('/products/:id', async (req, res) => {
 // ============================================================================
 // B2B İŞLEM VE SİPARİŞ KORUMASI:
 // Sipariş verme, bakiye defteri, iade ve profil gibi tüm işlemler
-// kesinlikle doğrulanmış CUSTOMER token'ı gerektirir.
-// ============================================================================
+router.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+  next();
+});
 router.use(verifyToken, checkCustomer);
 
 // ============================================================================
@@ -783,7 +786,7 @@ router.use(verifyToken, checkCustomer);
  *          totalAmount hesaplanır ve Prisma Transaction ile atomik kaydedilir.
  * @access  Protected (CUSTOMER)
  */
-router.post('/orders', async (req, res) => {
+router.post('/orders', orderLimiter, async (req, res) => {
   try {
     const tenantId = req.user.tenantId;
     const userId = req.user.id;
@@ -936,9 +939,42 @@ router.post('/orders', async (req, res) => {
       }
     }
 
+    // 1. ADIM (prompt.md): 'Snapshot' Mimarisi
+    // Müşterinin o anki adresi sipariş tablosuna kopyalanmalı (snapshot)
+    // ki müşteri ileride adresini değiştirirse eski siparişlerin teslimat geçmişi bozulmasın.
+    let snapshotShippingAddress = '';
+    const bodyShipping = req.body.shippingAddress || req.body.deliveryAddress;
+    const bodyCity = (req.body.city || '').trim();
+    const bodyDistrict = (req.body.district || '').trim();
+    const bodyAddress = (req.body.address || req.body.addressDetail || '').trim();
+
+    if (bodyShipping && typeof bodyShipping === 'string' && bodyShipping.trim().length > 0) {
+      snapshotShippingAddress = bodyShipping.trim();
+    } else if (bodyAddress || bodyCity || bodyDistrict) {
+      const parts = [bodyAddress, bodyDistrict, bodyCity].filter(Boolean);
+      snapshotShippingAddress = parts.join(', ');
+    } else if (bodyShipping && typeof bodyShipping === 'object') {
+      try {
+        snapshotShippingAddress = JSON.stringify(bodyShipping);
+      } catch (e) {
+        snapshotShippingAddress = String(bodyShipping);
+      }
+    } else {
+      const defaultParts = [
+        customerProfile.address,
+        customerProfile.district,
+        customerProfile.city
+      ].filter(Boolean);
+      snapshotShippingAddress = defaultParts.length > 0 ? defaultParts.join(', ') : 'Adres belirtilmedi';
+    }
+
+    if (snapshotShippingAddress.length > 1000) {
+      snapshotShippingAddress = snapshotShippingAddress.substring(0, 1000);
+    }
+
     // 5. Prisma Transaction (Atomik Sipariş Oluşturma, KDV, Güvenli Stok Düşme, Stok Denetimi ve Cari Bakiye Defteri)
     const createdOrder = await prisma.$transaction(async (tx) => {
-      // A. Sipariş ana kaydını oluştur (KDV oran ve tutarlarıyla birlikte)
+      // A. Sipariş ana kaydını oluştur (KDV oran ve tutarlarıyla, shippingAddress snapshot'ı ile birlikte)
       const order = await tx.order.create({
         data: {
           orderNumber: orderNumber,
@@ -950,6 +986,7 @@ router.post('/orders', async (req, res) => {
           totalAmount: finalTotalWithVat,
           status: orderStatus,
           paymentMethod: paymentMethod || null,
+          shippingAddress: snapshotShippingAddress,
           items: {
             create: orderItemsToCreate
           }
@@ -1234,7 +1271,7 @@ router.get('/profile', async (req, res) => {
 const handleUpdateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { name, companyName, phone, email, address, taxNumber, password } = req.body;
+    const { name, companyName, phone, email, address, city, district, taxNumber, password } = req.body;
 
     // 1. Veritabanında Kullanıcıyı Bul (ID veya E-posta ile)
     let user = await prisma.user.findUnique({
@@ -1305,6 +1342,8 @@ const handleUpdateProfile = async (req, res) => {
       }
       if (phone !== undefined) profileUpdateData.phone = phone.trim();
       if (address !== undefined) profileUpdateData.address = address.trim();
+      if (city !== undefined) profileUpdateData.city = city.trim();
+      if (district !== undefined) profileUpdateData.district = district.trim();
       if (taxNumber !== undefined) profileUpdateData.taxNumber = taxNumber.trim();
 
       customerProfile = await prisma.customerProfile.update({
@@ -1333,6 +1372,8 @@ const handleUpdateProfile = async (req, res) => {
         email: finalEmail,
         phone: customerProfile ? customerProfile.phone : (phone || ''),
         address: customerProfile ? customerProfile.address : (address || ''),
+        city: customerProfile ? customerProfile.city : (city || ''),
+        district: customerProfile ? customerProfile.district : (district || ''),
         taxNumber: customerProfile ? customerProfile.taxNumber : (taxNumber || ''),
         balance: customerProfile ? customerProfile.balance : 14850.00,
         discountRate: customerProfile ? customerProfile.discountRate : 0

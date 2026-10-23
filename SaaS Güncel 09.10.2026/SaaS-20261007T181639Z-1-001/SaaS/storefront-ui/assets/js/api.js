@@ -16,21 +16,9 @@
 (function (window) {
   'use strict';
 
-  // Sunucu Adresi Yapılandırması:
-  // storefront-ui bağımsız bir frontend olarak varsayılan backend: http://localhost:5000/api
-  // Aynı zamanda http://localhost:3000/api ve dinamik portlar otomatik desteklenir.
-  function resolveApiBase() {
-    if (typeof window !== 'undefined') {
-      if (window.API_BASE) return window.API_BASE;
-      if (window.STORE_API_URL) return window.STORE_API_URL;
-      if (window.location && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
-        if (window.location.port === '5000') return 'http://localhost:5000/api';
-        if (window.location.port === '3000') return 'http://localhost:3000/api';
-      }
-    }
-    return 'http://localhost:5000/api';
-  }
-  const API_BASE = resolveApiBase();
+  // Sunucu Adresi Yapılandırması (Headless Mimari prompt.md gereği doğrudan absolute URL):
+  const API_BASE = (typeof window !== 'undefined' && window.API_BASE) ? window.API_BASE : 'http://localhost:5000/api';
+  const isDirectExpress = false;
 
   // ----------------------------------------------------------------------------
   // YEREL TOHUM (MOCK SEED) VERİ HAVUZU
@@ -59,6 +47,7 @@
             password: '123456',
             role: 'SUPER_ADMIN',
             name: 'Süper Admin',
+            status: 'APPROVED',
             tenantId: null,
             tenant: null
           },
@@ -68,12 +57,14 @@
             password: '123456',
             role: 'TENANT_ADMIN',
             name: 'Ahmet Yılmaz',
+            status: 'APPROVED',
             tenantId: 'tenant-ahmet-oto',
             tenant: {
               id: 'tenant-ahmet-oto',
               name: 'Ahmet Oto Yedek Parça',
               subdomain: 'ahmetoto',
               themeColor: '#f97316',
+              status: 'APPROVED',
               isActive: true
             }
           }
@@ -84,6 +75,7 @@
             name: 'Ahmet Oto Yedek Parça',
             subdomain: 'ahmetoto',
             themeColor: '#f97316',
+            status: 'APPROVED',
             isActive: true,
             createdAt: '2026-03-01T10:00:00.000Z',
             _count: { tenantProducts: 0, customerProfiles: 0, orders: 0 }
@@ -300,6 +292,7 @@
         name: firmName,
         subdomain: subdomainPrefix,
         themeColor: '#2563eb',
+        status: 'PENDING',
         isActive: true,
         createdAt: new Date().toISOString(),
         _count: { tenantProducts: 0, customerProfiles: 0, orders: 0 }
@@ -311,6 +304,7 @@
         password,
         name: `${ad.toLocaleUpperCase('tr-TR')} ${soyad.toLocaleUpperCase('tr-TR')}`,
         role: 'TENANT_ADMIN',
+        status: 'PENDING',
         tenantId: newTenant.id,
         createdAt: new Date().toISOString()
       };
@@ -472,6 +466,80 @@
         count: store.tenants.length,
         data: store.tenants
       };
+    }
+
+    // 2.1 GET /admin/pending-tenants (Onay bekleyen bayiler)
+    if (cleanEndpoint === '/admin/pending-tenants' && method === 'GET') {
+      const pending = (store.tenants || []).filter(t => t.status === 'PENDING').map(t => ({
+        ...t,
+        users: (store.users || []).filter(u => u.tenantId === t.id)
+      }));
+      return {
+        success: true,
+        count: pending.length,
+        data: pending
+      };
+    }
+
+    // 2.2 PUT /admin/tenants/:id/approve (Bayi Onayla)
+    if (cleanEndpoint.startsWith('/admin/tenants/') && cleanEndpoint.endsWith('/approve') && method === 'PUT') {
+      const parts = cleanEndpoint.split('/');
+      const tenantId = parts[3];
+      const tenant = (store.tenants || []).find(t => t.id === tenantId);
+      if (tenant) {
+        tenant.status = 'APPROVED';
+        tenant.isActive = true;
+        (store.users || []).forEach(u => {
+          if (u.tenantId === tenantId) u.status = 'APPROVED';
+        });
+        saveMockStore(store);
+        return {
+          success: true,
+          message: `"${tenant.name}" bayisi başarıyla onaylandı.`,
+          data: tenant
+        };
+      }
+      return { success: false, message: 'Bayi bulunamadı.' };
+    }
+
+    // 2.3 PUT /admin/tenants/:id/reject (Bayi Reddet)
+    if (cleanEndpoint.startsWith('/admin/tenants/') && cleanEndpoint.endsWith('/reject') && method === 'PUT') {
+      const parts = cleanEndpoint.split('/');
+      const tenantId = parts[3];
+      const tenant = (store.tenants || []).find(t => t.id === tenantId);
+      if (tenant) {
+        tenant.status = 'REJECTED';
+        tenant.isActive = false;
+        (store.users || []).forEach(u => {
+          if (u.tenantId === tenantId) u.status = 'REJECTED';
+        });
+        saveMockStore(store);
+        return {
+          success: true,
+          message: `"${tenant.name}" bayisi başvurusu reddedildi.`,
+          data: tenant
+        };
+      }
+      return { success: false, message: 'Bayi bulunamadı.' };
+    }
+
+    // 2.4 GET /auth/me
+    if (cleanEndpoint === '/auth/me' && method === 'GET') {
+      let currentUser = null;
+      try {
+        currentUser = JSON.parse(localStorage.getItem('user'));
+      } catch (e) {}
+      if (currentUser && currentUser.email) {
+        const dbUser = (store.users || []).find(u => u.email.toLowerCase() === currentUser.email.toLowerCase()) || currentUser;
+        const tenant = dbUser.tenantId ? (store.tenants || []).find(t => t.id === dbUser.tenantId) : null;
+        return {
+          success: true,
+          data: {
+            user: { ...dbUser, tenant }
+          }
+        };
+      }
+      return { success: true, data: { user: currentUser } };
     }
 
     // 2b. GET /admin/stats
@@ -928,6 +996,20 @@
 
     // 7b. POST /tenant/products & POST /tenant/catalog
     if ((cleanEndpoint === '/tenant/products' || cleanEndpoint === '/tenant/catalog') && method === 'POST') {
+      // Onay Kontrolü (requireApprovedDealer)
+      let storedUser = null;
+      try { storedUser = JSON.parse(localStorage.getItem('user')); } catch (e) {}
+      if (storedUser && storedUser.role !== 'SUPER_ADMIN') {
+        const uStatus = storedUser.status || (storedUser.tenant ? storedUser.tenant.status : 'APPROVED');
+        if (uStatus === 'PENDING') {
+          return {
+            success: false,
+            status: 403,
+            message: 'Bayi hesabınız henüz onaylanmamıştır. Destek ekibimiz onaylayana kadar ürün ekleyemezsiniz.'
+          };
+        }
+      }
+
       const prodName = String(body.name || body.productName || '').trim() || 'Yeni Parça';
       const oe = String(body.oeNumber || '').trim();
       const cat = String(body.category || body.partGroup || 'Genel').trim();
@@ -1514,12 +1596,21 @@
       const paymentMethod = body.paymentMethod || null;
       const orderStatus = 'PENDING_APPROVAL';
 
+      let snapshotShippingAddress = body.shippingAddress || body.deliveryAddress;
+      if (!snapshotShippingAddress && (body.address || body.city || body.district)) {
+        snapshotShippingAddress = [body.address, body.district, body.city].filter(Boolean).join(', ');
+      }
+      if (!snapshotShippingAddress && firstCust) {
+        snapshotShippingAddress = [firstCust.address, firstCust.district, firstCust.city].filter(Boolean).join(', ');
+      }
+
       const newOrder = {
         id: `ord-${Date.now().toString(36)}`,
         orderNumber: orderNumber,
         tenantId: 'tenant-ahmet-oto',
         customerId: firstCust ? firstCust.id : 'cust-kemal-usta',
         paymentMethod: paymentMethod,
+        shippingAddress: snapshotShippingAddress || 'Adres belirtilmedi',
         subtotal: subtotal,
         vatRate: 20.00,
         vatAmount: vatAmount,
@@ -1568,12 +1659,12 @@
    * modundaysa kullanıcıyı engellemeden kusursuz bir deneyim sunar.
    */
   async function apiFetch(endpoint, options = {}) {
-    // 1. URL Yapılandırması (Headless Mimari prompt.md: Mutlak URL http://localhost:5000/api garantisi)
+    // 1. URL Yapılandırması
     let url = endpoint;
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       if (!url.startsWith('/api')) {
         url = `${API_BASE}${url.startsWith('/') ? url : '/' + url}`;
-      } else {
+      } else if (!isDirectExpress) {
         url = `http://localhost:5000${url}`;
       }
     }
@@ -1610,12 +1701,6 @@
       }
       if (slug) {
         headers.set('X-Tenant-Slug', slug);
-      }
-
-      const apiKey = (typeof window !== 'undefined' && (window.TENANT_API_KEY || window.PUBLISHABLE_API_KEY)) ||
-                     (typeof localStorage !== 'undefined' && (localStorage.getItem('tenant_api_key') || localStorage.getItem('publishable_api_key')));
-      if (apiKey && !headers.has('X-Tenant-API-Key')) {
-        headers.set('X-Tenant-API-Key', apiKey);
       }
     }
 
@@ -1689,30 +1774,6 @@
       return data;
 
     } catch (networkError) {
-      // Çift Port Desteği (Dual-Port Fallback): Eğer port 3000 denenmiş ve bağlantı kurulamamışsa port 5000'i dene
-      if (url.includes(':3000')) {
-        const altUrl = url.replace(':3000', ':5000');
-        try {
-          const altResponse = await fetch(altUrl, {
-            ...options,
-            headers,
-            body
-          });
-          const altContentType = altResponse.headers.get('content-type');
-          let altData;
-          if (altContentType && altContentType.includes('application/json')) {
-            altData = await altResponse.json();
-          } else {
-            const txt = await altResponse.text();
-            try { altData = JSON.parse(txt); } catch { altData = { message: txt }; }
-          }
-          if (altData && typeof altData === 'object') {
-            altData._status = altResponse.status;
-            altData._ok = altResponse.ok;
-          }
-          return altData;
-        } catch (e2) {}
-      }
       console.info('[API] Canlı backend sunucusuna bağlanılamadı. Dayanıklı çevrimdışı motor devreye giriyor...');
     }
 
@@ -1764,7 +1825,10 @@
         } else if (user.role === 'TENANT_ADMIN') {
           window.location.href = 'bayi.html';
         } else if (user.role === 'CUSTOMER') {
-          window.location.href = 'store.html';
+          const storeUrl = (typeof window !== 'undefined' && window.location && window.location.pathname.includes('/saas-panel-ui'))
+            ? '../storefront-ui/store.html'
+            : 'store.html';
+          window.location.href = storeUrl;
         } else {
           window.location.href = 'login.html';
         }
@@ -1829,11 +1893,63 @@
       .replace(/'/g, '&#039;');
   }
 
+  /**
+   * parseJwtPayload:
+   * Topluluk standardı jwt-decode kütüphanesi (v4/v3) ve RFC 7519 Base64URL fallback mekanizmasıyla
+   * JWT token payload nesnesini çözümler.
+   */
+  function parseJwtPayload(token) {
+    if (!token || typeof token !== 'string') return null;
+
+    // 1. jwt-decode kütüphanesi yüklüyse öncelikli kullan
+    try {
+      if (typeof window.jwtDecode === 'function') {
+        return window.jwtDecode(token);
+      }
+      if (typeof window.jwt_decode === 'function') {
+        return window.jwt_decode(token);
+      }
+    } catch (e) {
+      console.warn('[JWT] jwt-decode kütüphane ayrıştırma uyarısı:', e);
+    }
+
+    // 2. RFC 7519 Standart Base64URL Çözümleme (Yerel Fallback)
+    try {
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        const base64Url = parts[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, '=');
+        const jsonStr = decodeURIComponent(
+          atob(padded)
+            .split('')
+            .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        );
+        return JSON.parse(jsonStr);
+      }
+    } catch (e) {
+      console.warn('[JWT] Base64 fallback çözümleme uyarısı:', e);
+    }
+
+    // 3. Standalone / Demo Mock token desteği
+    if (token.startsWith('standalone_jwt_')) {
+      if (token.includes('super_admin')) return { role: 'SUPER_ADMIN' };
+      if (token.includes('tenant_admin')) return { role: 'TENANT_ADMIN' };
+      if (token.includes('customer')) return { role: 'CUSTOMER' };
+    }
+
+    return null;
+  }
+
   // Global window nesnesine ata
   window.API_BASE = API_BASE;
   window.apiFetch = apiFetch;
   window.requireAuth = requireAuth;
   window.logout = logout;
   window.escapeHtml = escapeHtml;
+  window.parseJwtPayload = parseJwtPayload;
+  window.jwtDecode = window.jwtDecode || parseJwtPayload;
+  window.getResolvedTenantSlug = getResolvedTenantSlug;
 
 })(window);

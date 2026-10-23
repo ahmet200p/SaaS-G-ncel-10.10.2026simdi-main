@@ -1,0 +1,2828 @@
+/* ==========================================================================
+   PARTSOUQ B2B CUSTOMER STOREFRONT - STORE.CSS
+   Ergonomic, High-Contrast, Industrial-Grade Automotive B2B Stylesheet
+   Designed for workshop technicians (sanayi ustaları) & multi-tenant dealers
+   ========================================================================== */
+
+/* 1. DESIGN TOKENS & VARIABLES */
+:root {
+  /* Brand / Tenant Dynamic Accents */
+  --tenant-primary: #f97316;       /* Energetic automotive orange */
+  --tenant-primary-hover: #ea580c;
+  --tenant-primary-light: #fff7ed;
+  --tenant-primary-glow: rgba(249, 115, 22, 0.22);
+
+  /* Functional Status Colors */
+  --color-success: #16a34a;        /* Partsouq Stock Green */
+  --color-success-bg: #f0fdf4;
+  --color-success-border: #bbf7d0;
+  --color-danger: #dc2626;         /* Out of Stock Red */
+  --color-danger-bg: #fef2f2;
+  --color-danger-border: #fecaca;
+  --color-warning: #d97706;
+  --color-info: #0284c7;
+
+  /* Surfaces & Backgrounds */
+  --bg-page: #f8fafc;              /* Soft industrial slate gray */
+  --bg-card: #ffffff;
+  --bg-subtle: #f1f5f9;
+  --bg-input: #ffffff;
+
+  /* Typography & Text */
+  --text-headline: #0f172a;        /* Deep slate black for high contrast */
+  --text-body: #334155;            /* Ultra-legible body text */
+  --text-muted: #64748b;           /* Secondary metadata */
+  --text-inverse: #ffffff;
+
+  /* Borders & Dividers */
+  --border-light: #e2e8f0;
+  --border-focus: #0f172a;
+  --border-active: #f97316;
+
+  /* Elevation Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.09), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+  --shadow-drawer: -6px 0 24px rgba(15, 23, 42, 0.15);
+
+  /* Geometry & Radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 2. BASE RESET & ACCESSIBILITY */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-page);
+  color: var(--text-body);
+  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: none;
+  touch-action: manipulation;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* 3. MULTI-TENANT HEADER (STEP 1: REFINED CONTAINER & SPACING) */
+.partsouq-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: #ffffff; /* 4. ADIM: Tam Beyaz Kurumsal Arka Plan */
+  border-bottom: 1px solid #f1f5f9; /* 4. ADIM: Yumuşak Açık Gri Ayrım Çizgisi */
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03), 0 2px 6px -1px rgba(15, 23, 42, 0.02); /* 1. ADIM: Hafif, Yumuşak Gölge */
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.header-container {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 16px 32px; /* 1. ADIM: Geniş İç Boşluklar (Ferahlık Hissi) */
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* 1. ADIM: 3 Bloğu Birbirinden Net Ayırma */
+  gap: clamp(24px, 3.5vw, 48px); /* 1. ADIM: Geniş Esneme Payı (gap-8 / gap-12) */
+  min-height: 80px; /* 1. ADIM: Dikeyde Sıkışmayı Önleyen Yükseklik */
+  box-sizing: border-box;
+}
+
+/* Header Left (1. Blok): Dealer Emblem & Name */
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: opacity 0.2s ease;
+}
+
+.header-brand:hover {
+  opacity: 0.92;
+}
+
+.dealer-logo-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--tenant-primary), var(--tenant-primary-hover));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-inverse);
+  box-shadow: 0 4px 12px var(--tenant-primary-glow);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.dealer-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+.dealer-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.dealer-name {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-headline);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.dealer-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--tenant-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dealer-tag::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--tenant-primary);
+}
+
+/* Header Center (2. Blok): 2. ADIM - Sadeleştirilmiş Arama Çubuğu */
+.header-search {
+  flex: 1;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.search-bar-wrap {
+  display: flex;
+  align-items: stretch;
+  background: #ffffff;
+  border: 1px solid #e2e8f0; /* 2. ADIM: İnce ve Açık Gri Kenarlık */
+  border-radius: 10px; /* 2. ADIM: rounded-lg Yuvarlak Köşeler */
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  height: 46px;
+}
+
+.search-bar-wrap:hover {
+  border-color: #cbd5e1;
+}
+
+.search-bar-wrap:focus-within {
+  border-color: #f97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12);
+}
+
+.search-type-select {
+  padding: 0 16px;
+  background-color: #f8fafc;
+  border: none;
+  border-right: 1px solid #e2e8f0; /* 2. ADIM: Hafif Dikey Ayırıcı Çizgi */
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #334155;
+  cursor: pointer;
+  outline: none;
+  min-width: 145px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.search-type-select:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.search-input-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 42px 12px 18px; /* 2. ADIM: Ferah İç Boşluk (Padding) */
+  border: none;
+  outline: none;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: #1e293b;
+  background: transparent;
+}
+
+.search-input::placeholder {
+  color: #94a3b8;
+  font-size: 0.88rem;
+  font-weight: 400;
+}
+
+.btn-clear-search {
+  position: absolute;
+  right: 12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #64748b;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-clear-search:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* 2. ADIM: Kurumsal Pastel Turuncu Arama Butonu */
+.btn-search-submit {
+  padding: 0 24px;
+  background: #ea580c; /* Kurumsal Sıcak Pastel Turuncu Ton */
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.92rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border: none;
+  cursor: pointer;
+  min-height: 46px;
+  white-space: nowrap;
+}
+
+.btn-search-submit:hover {
+  background: #c2410c;
+  box-shadow: inset 0 0 0 100px rgba(0, 0, 0, 0.05);
+}
+
+.btn-search-submit:active {
+  transform: translateY(1px);
+}
+
+/* Header Right (3. Blok): 3. ADIM - Sağ Aksiyon Menüsünün İzolasyonu */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px; /* 3. ADIM: Standart Boşluk (gap-4 / gap-5) */
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+   KULLANICI PROFİL DROPDOWN (B2B2C Profil Menüsü)
+   ============================================================================ */
+.user-profile-dropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.user-profile-dropdown::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -10px;
+  height: 10px;
+}
+
+.user-info-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px; /* 3. ADIM: Yükseklik Eşitleme */
+  min-height: 44px;
+  padding: 0 14px; /* 3. ADIM: Artırılmış İç Boşluk */
+  background: #ffffff;
+  border: 1px solid #e2e8f0; /* 4. ADIM: Yumuşak Açık Gri Kenarlık */
+  border-radius: 10px;
+  font-family: inherit;
+  text-align: left;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.user-info-badge.user-profile-toggle {
+  cursor: pointer;
+  background: #ffffff;
+}
+
+.user-info-badge.user-profile-toggle:hover,
+.user-profile-dropdown.open .user-info-badge.user-profile-toggle {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+.dropdown-chevron-icon {
+  margin-left: 2px;
+  color: var(--text-muted);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+.user-profile-dropdown:hover .dropdown-chevron-icon,
+.user-profile-dropdown.open .dropdown-chevron-icon {
+  transform: rotate(180deg);
+  color: var(--text-headline);
+}
+
+.user-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 280px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 20px 40px -8px rgba(15, 23, 42, 0.18), 0 4px 16px rgba(0, 0, 0, 0.06);
+  padding: 8px;
+  z-index: 10000;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px) scale(0.97);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.user-profile-dropdown:hover .user-dropdown-menu,
+.user-profile-dropdown.open .user-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.user-dropdown-header {
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  border: 1px solid #edf2f7;
+}
+
+.user-dropdown-header-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #0f172a;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.user-dropdown-summary {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.user-dropdown-summary strong {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-headline);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-dropdown-role-tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #0284c7;
+}
+
+.user-dropdown-email {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-dropdown-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 6px 0;
+}
+
+.user-dropdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.user-dropdown-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: all 0.16s ease;
+}
+
+.user-dropdown-item:hover {
+  background: #f1f5f9;
+}
+
+.user-dropdown-item .item-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+  border: 1px solid #e2e8f0;
+  transition: transform 0.15s ease;
+}
+
+.user-dropdown-item:hover .item-icon-box {
+  transform: scale(1.08);
+}
+
+.user-dropdown-item .item-text-box {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.user-dropdown-item .item-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-headline);
+  line-height: 1.2;
+}
+
+.user-dropdown-item .item-desc {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+.user-dropdown-item .item-arrow {
+  color: #cbd5e1;
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.user-dropdown-item:hover .item-arrow {
+  color: #64748b;
+  transform: translateX(2px);
+}
+
+/* Çıkış Yap (Red Logout) */
+.user-dropdown-item.item-logout {
+  color: #dc2626;
+  margin-top: 2px;
+}
+
+.user-dropdown-item.item-logout .item-icon-box {
+  background: #fef2f2;
+  border-color: #fee2e2;
+}
+
+.user-dropdown-item.item-logout .item-title {
+  color: #dc2626;
+}
+
+.user-dropdown-item.item-logout .item-desc {
+  color: #ef4444;
+  opacity: 0.85;
+}
+
+.user-dropdown-item.item-logout:hover {
+  background: #fef2f2;
+}
+
+.user-avatar-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #0f172a;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.user-text-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-display-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-headline);
+  line-height: 1.2;
+}
+
+.user-role-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* 3. ADIM: Bakiye Ekranı (Şeffaf / Zarif Minimalist Tasarım) */
+.balance-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px; /* 3. ADIM: Yükseklik Eşitleme */
+  min-height: 44px;
+  padding: 0 14px; /* 3. ADIM: Artırılmış İç Boşluk */
+  background: transparent; /* 3. ADIM: Kaba kutu yerine şeffaf arka plan */
+  border: 1px solid rgba(22, 163, 74, 0.25); /* Zarif açık yeşil kenarlık */
+  border-radius: 10px;
+  color: #16a34a; /* 3. ADIM: Sadece yeşil metin */
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.balance-badge:hover {
+  background: rgba(22, 163, 74, 0.04);
+  border-color: rgba(22, 163, 74, 0.45);
+  transform: translateY(-1px);
+}
+
+.balance-icon {
+  width: 18px;
+  height: 18px;
+  color: #16a34a;
+  flex-shrink: 0;
+}
+
+.balance-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.15;
+}
+
+.balance-title {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #15803d;
+  opacity: 0.9;
+}
+
+.balance-amount {
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #16a34a;
+}
+
+/* 3. ADIM: Sepet Butonu (Yükseklik Eşitlenmiş & Yumuşak Hover Geçişli) */
+.btn-header-cart {
+  height: 44px; /* 3. ADIM: Yükseklik Eşitleme */
+  min-height: 44px;
+  padding: 0 18px; /* 3. ADIM: Artırılmış İç Boşluk */
+  background: #0f172a;
+  color: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #0f172a;
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.btn-header-cart:hover {
+  background: #1e293b;
+  border-color: #1e293b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.16);
+}
+
+.btn-header-cart:active {
+  transform: translateY(0);
+}
+
+.cart-counter-badge {
+  background: var(--tenant-primary);
+  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 800;
+  min-width: 22px;
+  text-align: center;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.cart-counter-badge.pop {
+  animation: badgePop 0.3s ease-out;
+}
+
+@keyframes badgePop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+/* Logout Button */
+.btn-header-logout {
+  min-height: 48px;
+  width: 48px;
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.btn-header-logout:hover {
+  border-color: #cbd5e1;
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+}
+
+/* 4. BRAND GRID SECTION (STEP 2 - PARTSOUQ STYLE) */
+.brand-grid-section {
+  background: #ffffff;
+  border-bottom: 1px solid var(--border-light);
+  padding: 20px 0;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.02);
+}
+
+.section-container {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.brand-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.brand-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-headline);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.brand-section-hint {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Responsive Brand Grid (Prompt.md: 7 veya 8 kutu masaüstü, 3 veya 4 kutu mobil) */
+.brands-grid-wrap {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+@media (max-width: 1400px) {
+  .brands-grid-wrap {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1100px) {
+  .brands-grid-wrap {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .brands-grid-wrap {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .brands-grid-wrap {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+}
+
+.brand-card-box {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: var(--radius-md, 10px);
+  padding: 12px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease;
+  user-select: none;
+  min-height: 84px;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.brand-card-box:hover {
+  border-color: #f97316;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(249, 115, 22, 0.16);
+}
+
+.brand-card-box.active {
+  border-color: #f97316;
+  background: #fff7ed;
+  box-shadow: 0 0 0 2px #f97316, 0 4px 10px rgba(249, 115, 22, 0.18);
+}
+
+.brand-card-box.active .brand-name-label {
+  color: #ea580c;
+  font-weight: 800;
+}
+
+.brand-logo-icon {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.brand-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.brand-card-box:hover .brand-logo-icon {
+  transform: scale(1.1);
+}
+
+.brand-name-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text-headline, #1e293b);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* 5. MAIN CONTENT AREA & FILTER TOOLBAR */
+.main-store-content {
+  flex: 1;
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.catalog-toolbar {
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.catalog-results-badge {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-headline);
+}
+
+.catalog-results-badge strong {
+  color: var(--tenant-primary);
+  font-weight: 800;
+}
+
+.active-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-body);
+}
+
+.btn-remove-filter {
+  cursor: pointer;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1;
+  transition: color var(--transition-fast);
+}
+
+.btn-remove-filter:hover {
+  color: var(--color-danger);
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.stock-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-body);
+  cursor: pointer;
+  user-select: none;
+}
+
+.stock-toggle-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-success);
+  cursor: pointer;
+}
+
+.sort-select-wrap {
+  position: relative;
+}
+
+.sort-dropdown {
+  padding: 8px 30px 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-headline);
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+}
+
+.sort-select-wrap::after {
+  content: "▾";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* 6. PRODUCT LISTING - PARTSOUQ DATA TABLE (STEP 3) */
+.partsouq-table-card {
+  background: #ffffff;
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.table-responsive-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.partsouq-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.partsouq-table thead {
+  background: #f1f5f9;
+  border-bottom: 2px solid #cbd5e1;
+}
+
+.partsouq-table th {
+  padding: 14px 16px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.partsouq-table tbody tr {
+  border-bottom: 1px solid var(--border-light);
+  transition: background-color var(--transition-fast);
+}
+
+.partsouq-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.partsouq-table td {
+  padding: 16px;
+  vertical-align: middle;
+}
+
+/* Col 1: Image */
+.td-image {
+  width: 80px;
+}
+
+.part-thumb-box {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-sm);
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+  position: relative;
+}
+
+.part-thumb-box:hover {
+  border-color: var(--tenant-primary);
+}
+
+.part-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.part-thumb-fallback {
+  color: #94a3b8;
+}
+
+/* Col 2: OE Number + Copy Icon */
+.td-oe {
+  width: 190px;
+  white-space: nowrap;
+}
+
+.oe-badge-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.oe-code-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 800;
+  font-size: 0.92rem;
+  color: #0f172a;
+  letter-spacing: 0.03em;
+}
+
+.btn-oe-copy {
+  padding: 3px 5px;
+  border-radius: 4px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.btn-oe-copy:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.btn-oe-copy.copied {
+  color: var(--color-success);
+}
+
+/* Col 3: Part Name & Description */
+.td-title {
+  min-width: 260px;
+}
+
+.part-title-text {
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--text-headline);
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+
+.part-desc-text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+/* Col 4: Brand & Group */
+.td-group {
+  width: 180px;
+}
+
+.brand-pill-tag {
+  display: inline-block;
+  padding: 3px 8px;
+  background: #e0f2fe;
+  color: #0369a1;
+  border-radius: 4px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.group-name-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+/* Col 5: Stock Status (Tactile Pills) */
+.td-stock {
+  width: 160px;
+  white-space: nowrap;
+}
+
+.stock-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.stock-pill.in-stock {
+  background: var(--color-success-bg);
+  border: 1px solid var(--color-success-border);
+  color: var(--color-success);
+}
+
+.stock-pill.out-of-stock {
+  background: var(--color-danger-bg);
+  border: 1px solid var(--color-danger-border);
+  color: var(--color-danger);
+}
+
+.stock-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Col 6: Pricing */
+.td-price {
+  width: 180px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.price-col-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.price-list-strikethrough {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #94a3b8;
+  text-decoration: line-through;
+  line-height: 1.2;
+}
+
+.price-net-bold {
+  font-size: 1.22rem;
+  font-weight: 900;
+  color: var(--text-headline);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.discount-percent-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  background: #fef3c7;
+  color: #b45309;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+/* Col 7: Action (Sepete Ekle) */
+.td-action {
+  width: 170px;
+  text-align: right;
+}
+
+.btn-add-to-cart {
+  min-height: 48px;
+  padding: 0 18px;
+  background: var(--tenant-primary);
+  color: #ffffff;
+  border-radius: var(--radius-md);
+  font-weight: 800;
+  font-size: 0.92rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px var(--tenant-primary-glow);
+  transition: all var(--transition-fast);
+  width: 100%;
+}
+
+.btn-add-to-cart:hover:not(:disabled) {
+  background: var(--tenant-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px var(--tenant-primary-glow);
+}
+
+.btn-add-to-cart:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn-add-to-cart:disabled {
+  background: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Empty State */
+.empty-catalog-state {
+  padding: 60px 24px;
+  text-align: center;
+  color: #64748b;
+}
+
+.empty-catalog-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  color: #cbd5e1;
+}
+
+.empty-catalog-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text-headline);
+  margin-bottom: 6px;
+}
+
+.empty-catalog-text {
+  font-size: 0.92rem;
+  max-width: 440px;
+  margin: 0 auto;
+}
+
+/* 7. CART DRAWER & CHECKOUT (STEP 4) */
+.cart-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.cart-drawer-backdrop.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.cart-offcanvas-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 480px;
+  max-width: 100vw;
+  background: #ffffff;
+  z-index: 201;
+  box-shadow: var(--shadow-drawer);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cart-offcanvas-drawer.open {
+  transform: translateX(0);
+}
+
+/* Drawer Header */
+.drawer-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+}
+
+.drawer-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text-headline);
+}
+
+.btn-drawer-close {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: #f1f5f9;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: all var(--transition-fast);
+}
+
+.btn-drawer-close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Drawer Scrollable Body */
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.drawer-empty-view {
+  margin: auto;
+  text-align: center;
+  padding: 40px 20px;
+  color: #64748b;
+}
+
+.drawer-empty-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 12px;
+  color: #cbd5e1;
+}
+
+/* Cart Item Card */
+.cart-drawer-item {
+  background: #ffffff;
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  transition: border-color var(--transition-fast);
+}
+
+.cart-drawer-item:hover {
+  border-color: #cbd5e1;
+}
+
+.cart-item-thumb {
+  width: 54px;
+  height: 54px;
+  border-radius: var(--radius-sm);
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.cart-item-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cart-item-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cart-item-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-headline);
+  line-height: 1.3;
+}
+
+.cart-item-oe {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.cart-item-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+/* Tactile Quantity Buttons (+ -) */
+.cart-qty-stepper {
+  display: inline-flex;
+  align-items: center;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.btn-qty-step {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+  color: #0f172a;
+  background: #ffffff;
+  transition: background var(--transition-fast);
+}
+
+.btn-qty-step:hover {
+  background: #e2e8f0;
+}
+
+.qty-display-number {
+  min-width: 36px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #0f172a;
+  padding: 0 4px;
+}
+
+.cart-item-line-price {
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: var(--text-headline);
+}
+
+.btn-remove-cart-item {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  margin-left: 4px;
+}
+
+.btn-remove-cart-item:hover {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+/* Drawer Footer */
+.drawer-footer {
+  padding: 20px 24px;
+  background: #f8fafc;
+  border-top: 2px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.summary-row.discount-row {
+  color: var(--color-success);
+}
+
+.summary-row.subtotal-row {
+  color: #334155;
+  font-weight: 700;
+}
+
+.summary-row.vat-row {
+  color: #64748b;
+  font-size: 0.88rem;
+}
+
+.summary-row.total-row {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--text-headline);
+  border-top: 1px dashed #cbd5e1;
+  padding-top: 10px;
+}
+
+.total-amount-val {
+  color: var(--tenant-primary);
+  letter-spacing: -0.02em;
+}
+
+.btn-submit-order {
+  min-height: 52px;
+  width: 100%;
+  background: var(--color-success);
+  color: #ffffff;
+  border-radius: var(--radius-md);
+  font-weight: 800;
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 3px 6px rgba(22, 163, 74, 0.25);
+  transition: all var(--transition-fast);
+}
+
+.btn-submit-order:hover:not(:disabled) {
+  background: #15803d;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 12px rgba(22, 163, 74, 0.35);
+}
+
+.btn-submit-order:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn-submit-order:disabled {
+  background: #cbd5e1;
+  color: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* 8. IMAGE LIGHTBOX MODAL */
+.image-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(6px);
+  z-index: 300;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.image-modal-backdrop.open {
+  display: flex;
+}
+
+.image-modal-content {
+  max-width: 700px;
+  width: 100%;
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  position: relative;
+}
+
+.image-modal-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.image-modal-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-headline);
+}
+
+.btn-modal-close {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.image-modal-body {
+  padding: 24px;
+  text-align: center;
+}
+
+.image-modal-img {
+  max-width: 100%;
+  max-height: 480px;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+}
+
+/* 9. TOAST NOTIFICATION CONTAINER */
+.partsouq-toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 400;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.partsouq-toast {
+  pointer-events: auto;
+  min-width: 280px;
+  max-width: 420px;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transform: translateY(20px);
+  opacity: 0;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.partsouq-toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.partsouq-toast.success {
+  border-left: 4px solid var(--color-success);
+}
+
+.partsouq-toast.warning {
+  border-left: 4px solid var(--color-warning);
+}
+
+.partsouq-toast.danger {
+  border-left: 4px solid var(--color-danger);
+}
+
+/* 10. RESPONSIVE BREAKPOINTS (ERGONOMICS FOR MECHANICS ON MOBILE/TABLET) */
+@media (max-width: 1200px) {
+  .header-container {
+    flex-wrap: wrap;
+    padding: 12px 18px;
+  }
+  .header-search {
+    order: 3;
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 900px) {
+  .header-actions {
+    gap: 8px;
+  }
+  .user-text-col {
+    display: none;
+  }
+  .balance-title {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .header-brand .dealer-name {
+    font-size: 1rem;
+  }
+  .header-brand .dealer-tag {
+    display: none;
+  }
+  .brands-grid-wrap {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .brand-card-box {
+    padding: 8px 4px;
+    min-height: 72px;
+  }
+  .brand-logo-icon {
+    width: 26px;
+    height: 26px;
+  }
+  .catalog-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .toolbar-right {
+    justify-content: space-between;
+  }
+  
+  /* Responsive Table to Cards Transformation */
+  .partsouq-table thead {
+    display: none;
+  }
+  .partsouq-table, .partsouq-table tbody, .partsouq-table tr, .partsouq-table td {
+    display: block;
+    width: 100%;
+  }
+  .partsouq-table tbody tr {
+    padding: 16px;
+    border-bottom: 2px solid var(--border-light);
+    margin-bottom: 12px;
+    background: #ffffff;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+  .partsouq-table td {
+    padding: 6px 0;
+  }
+  .td-image {
+    display: inline-block;
+    width: auto;
+    float: left;
+    margin-right: 14px;
+  }
+  .td-oe {
+    width: auto;
+  }
+  .td-price {
+    text-align: left;
+    margin-top: 8px;
+  }
+  .price-col-wrap {
+    align-items: flex-start;
+  }
+  .td-action {
+    width: 100%;
+    margin-top: 12px;
+  }
+  .btn-add-to-cart {
+    min-height: 50px;
+    font-size: 1rem;
+  }
+}
+
+/* ==========================================================================
+   11. AUTH AREA (GUEST VS LOGGED-IN) & LOGIN / REGISTER MODALS (STEPS 1, 2, 4)
+   ========================================================================== */
+
+/* Guest State Buttons */
+.guest-auth-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.btn-nav-login {
+  height: 44px;
+  min-height: 44px;
+  padding: 0 18px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0; /* 4. ADIM: Yumuşak Açık Gri Kenarlık */
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-headline);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-nav-login:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+.btn-nav-register {
+  height: 44px;
+  min-height: 44px;
+  padding: 0 20px;
+  background: var(--tenant-primary);
+  border: 1px solid var(--tenant-primary);
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px var(--tenant-primary-glow);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-nav-register:hover {
+  background: var(--tenant-primary-hover);
+  border-color: var(--tenant-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--tenant-primary-glow);
+}
+
+/* 3. ADIM: Sağ Aksiyon Menüsü İzolasyonu (gap-4 / gap-5) */
+.logged-in-user-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px; /* 3. ADIM: Standart Boşluk */
+}
+
+/* Auth Modals Generic */
+.auth-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(5px);
+  z-index: 99999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.auth-modal-backdrop.open,
+.auth-modal-backdrop.active {
+  display: flex !important;
+  opacity: 1 !important;
+}
+
+.auth-modal-card {
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  border: 1px solid #e2e8f0;
+  transform: scale(0.95);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 100000;
+}
+
+.auth-modal-backdrop.open .auth-modal-card,
+.auth-modal-backdrop.active .auth-modal-card {
+  transform: scale(1);
+}
+
+.auth-modal-card.register-card-wide {
+  max-width: 580px;
+}
+
+.auth-modal-header {
+  padding: 22px 26px 16px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  background: #ffffff;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.auth-modal-title-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.auth-modal-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-headline);
+  letter-spacing: -0.02em;
+}
+
+.auth-modal-subtitle {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.btn-auth-modal-close {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: #f1f5f9;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.btn-auth-modal-close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.auth-modal-body {
+  padding: 24px 26px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-headline);
+}
+
+.form-label span.req {
+  color: var(--color-danger);
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-headline);
+  outline: none;
+  background: #ffffff;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.form-input:focus {
+  border-color: var(--tenant-primary);
+  box-shadow: 0 0 0 3px var(--tenant-primary-glow);
+}
+
+.form-input::placeholder {
+  color: #94a3b8;
+  font-size: 0.88rem;
+}
+
+.form-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* Account Type Radio Cards (B2B vs B2C Selection) */
+.account-type-section-title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--text-headline);
+  margin-top: 4px;
+  margin-bottom: 2px;
+}
+
+.account-type-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.account-type-card {
+  position: relative;
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.account-type-card:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.account-type-card.selected {
+  border-color: var(--tenant-primary);
+  background: var(--tenant-primary-light);
+  box-shadow: 0 0 0 1px var(--tenant-primary);
+}
+
+.account-type-card input[type="radio"] {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--tenant-primary);
+  cursor: pointer;
+}
+
+.account-type-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.account-type-card.selected .account-type-icon {
+  background: var(--tenant-primary);
+  color: #ffffff;
+}
+
+.account-type-header-line {
+  display: flex;
+  flex-direction: column;
+}
+
+.account-type-name {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-headline);
+  line-height: 1.2;
+}
+
+.account-type-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--tenant-primary);
+  margin-top: 2px;
+}
+
+.account-type-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+/* Accordion / Collapse for Mechanic Extra Fields */
+.mechanic-extra-collapse {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0, 1, 0, 1), opacity 0.25s ease, margin 0.25s ease;
+  margin-top: 0;
+}
+
+.mechanic-extra-collapse.show {
+  max-height: 320px;
+  opacity: 1;
+  overflow: visible;
+  margin-top: 6px;
+}
+
+.extra-fields-inner {
+  background: #f8fafc;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.extra-fields-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0284c7;
+}
+
+.btn-auth-submit {
+  min-height: 48px;
+  width: 100%;
+  background: var(--tenant-primary);
+  color: #ffffff;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  box-shadow: 0 3px 6px var(--tenant-primary-glow);
+  transition: all var(--transition-fast);
+}
+
+.btn-auth-submit:hover:not(:disabled) {
+  background: var(--tenant-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 12px var(--tenant-primary-glow);
+}
+
+.btn-auth-submit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn-auth-submit:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.auth-modal-footer-switch {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 14px;
+}
+
+.auth-modal-footer-switch a {
+  color: var(--tenant-primary);
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.auth-modal-footer-switch a:hover {
+  color: var(--tenant-primary-hover);
+}
+
+@media (max-width: 640px) {
+  .account-type-grid {
+    grid-template-columns: 1fr;
+  }
+  .form-row-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================================
+   SİPARİŞLERİM (MY ORDERS) VE HESAP AYARLARI MODAL STILLERI
+   ============================================================================ */
+.orders-modal-card {
+  max-width: 900px !important;
+  width: 95% !important;
+}
+
+.settings-modal-card {
+  max-width: 620px !important;
+  width: 95% !important;
+}
+
+.orders-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  margin-top: 8px;
+}
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  text-align: left;
+}
+
+.orders-table th {
+  background: #f8fafc;
+  padding: 12px 14px;
+  font-weight: 700;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-light);
+  white-space: nowrap;
+}
+
+.orders-table td {
+  padding: 13px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  color: var(--text-headline);
+  vertical-align: middle;
+}
+
+.orders-table tr:last-child td {
+  border-bottom: none;
+}
+
+.orders-table tr:hover td {
+  background: #f8fafc;
+}
+
+.order-number-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #0f172a;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  display: inline-block;
+}
+
+.order-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.order-status-badge.pending,
+.order-status-badge.beklemede {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.order-status-badge.preparing,
+.order-status-badge.hazirlaniyor {
+  background: #fef9c3;
+  color: #854d0e;
+  border: 1px solid #fef08a;
+}
+
+.order-status-badge.shipped,
+.order-status-badge.kargolandi {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.order-status-badge.delivered,
+.order-status-badge.teslim_edildi {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.order-status-badge.cancelled,
+.order-status-badge.iptal {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.orders-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.orders-empty-state .empty-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+}
+
+.orders-empty-state h4 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-headline);
+  margin-bottom: 6px;
+}
+
+.orders-empty-state p {
+  font-size: 0.88rem;
+  max-width: 420px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.orders-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.btn-order-detail {
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-order-detail:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.order-detail-view {
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+  padding: 16px;
+  margin-top: 10px;
+}
+
+.detail-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.btn-back-to-orders {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-back-to-orders:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.detail-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  font-size: 0.85rem;
+}
+
+.detail-items-table th {
+  background: #f1f5f9;
+  padding: 10px 12px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #64748b;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.detail-items-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 75px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  padding: 10px 12px;
+}
+
+.btn-auth-cancel {
+  min-height: 48px;
+  padding: 0 20px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  font-size: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-auth-cancel:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.settings-alert {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.86rem;
+  margin-bottom: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-alert.success {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.settings-alert.error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* ==========================================================================
+   BİLDİRİM ÇANI VE AÇILIR MENÜSÜ (STEP 4)
+   ========================================================================== */
+.notification-dropdown-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-notification-bell {
+  background: #ffffff;
+  border: 1px solid #e2e8f0; /* 4. ADIM: Yumuşak Açık Gri Kenarlık */
+  width: 44px; /* 3. ADIM: Yükseklik ve Genişlik Eşitleme */
+  height: 44px;
+  min-height: 44px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #334155;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-notification-bell:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+.notification-badge-dot {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 9px;
+  height: 9px;
+  background-color: #ef4444;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+}
+
+.notification-counter-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4);
+}
+
+.notification-dropdown-card {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 320px;
+  max-width: 90vw;
+  background: #ffffff;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  z-index: 1050;
+  overflow: hidden;
+}
+
+.notification-dropdown-header {
+  padding: 12px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.btn-mark-all-read {
+  background: none;
+  border: none;
+  color: var(--tenant-primary, #2563eb);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.btn-mark-all-read:hover {
+  text-decoration: underline;
+}
+
+.notification-dropdown-body {
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+.notification-item {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.notification-item:hover {
+  background: #f8fafc;
+}
+
+.notification-item.unread {
+  background: #f0fdf4;
+}
+
+.notification-item.unread.rejected {
+  background: #fef2f2;
+}
+
+.notification-item-icon {
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.notification-item-content {
+  flex: 1;
+}
+
+.notification-item-title {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.notification-item-desc {
+  font-size: 0.78rem;
+  color: #475569;
+  margin-top: 3px;
+  line-height: 1.35;
+}
+
+.notification-item-time {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.notification-empty-text {
+  padding: 30px 16px;
+  text-align: center;
+  font-size: 0.84rem;
+  color: #64748b;
+}
+
+/* ==========================================================================
+   FOOTER & ORGANIC SAAS DEALER ACQUISITION PROMOTIONAL BADGE
+   ========================================================================== */
+.store-footer {
+  margin-top: auto;
+  background: #ffffff;
+  border-top: 1px solid var(--border-light, #e2e8f0);
+  padding: 18px 0;
+  width: 100%;
+  position: relative;
+  z-index: 20;
+}
+
+.store-footer-container {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.store-footer-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.store-footer-left {
+  display: flex;
+  align-items: center;
+}
+
+.footer-copyright {
+  font-size: 0.82rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.footer-copyright .copyright-icon {
+  font-size: 0.95rem;
+  color: #94a3b8;
+}
+
+.footer-copyright strong {
+  color: var(--text-headline, #0f172a);
+  font-weight: 700;
+}
+
+.footer-subtext {
+  color: #94a3b8;
+  font-size: 0.78rem;
+}
+
+/* Sağ / Orta: Organik Bayi Kazanım Rozeti */
+.store-footer-right {
+  display: flex;
+  align-items: center;
+}
+
+.saas-infra-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 18px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.94) 0%, rgba(30, 41, 59, 0.96) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-full, 9999px);
+  box-shadow: 0 4px 14px -2px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(15, 23, 42, 0.05);
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.saas-infra-badge:hover {
+  box-shadow: 0 6px 20px -2px rgba(15, 23, 42, 0.25), 0 0 16px rgba(249, 115, 22, 0.22);
+  border-color: rgba(249, 115, 22, 0.45);
+  transform: translateY(-1px);
+}
+
+.saas-badge-prefix {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.saas-badge-icon {
+  color: #f97316;
+  flex-shrink: 0;
+}
+
+.saas-system-name {
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.saas-badge-divider {
+  color: rgba(255, 255, 255, 0.22);
+  font-weight: 300;
+  font-size: 0.85rem;
+}
+
+.saas-badge-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #38bdf8;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  outline: none;
+}
+
+.saas-badge-link:hover,
+.saas-badge-link:focus-visible {
+  color: #fed7aa;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.saas-rocket-emoji {
+  display: inline-block;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: center;
+}
+
+.saas-badge-link:hover .saas-rocket-emoji {
+  transform: translateY(-2px) translateX(2px) scale(1.22) rotate(-8deg);
+}
+
+/* Mobil Uyumluluk */
+@media (max-width: 768px) {
+  .store-footer {
+    padding: 14px 0 84px 0; /* Mobil cihazlarda alttaki sticky sepet çubuğunu veya barı kapatmaması için */
+  }
+
+  .store-footer-content {
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .store-footer-left,
+  .footer-copyright {
+    justify-content: center;
+  }
+
+  .saas-infra-badge {
+    padding: 8px 14px;
+    font-size: 0.78rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+
+

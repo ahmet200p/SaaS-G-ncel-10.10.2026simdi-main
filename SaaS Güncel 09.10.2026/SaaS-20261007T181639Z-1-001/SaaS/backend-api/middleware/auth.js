@@ -7,6 +7,11 @@ const config = require('../config');
  * Token geçerliyse çözülen kullanıcı bilgilerini (id, email, role, tenantId) req.user nesnesine atar.
  */
 const verifyToken = (req, res, next) => {
+  // CORS Preflight (OPTIONS) isteklerini atla
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+
   // 0. API Anahtarı ile Doğrulanmış İstekler (X-Tenant-API-Key)
   // KURAL 1: Yetki Kısıtlaması (Read-Only) - Sadece Vitrin (/api/store) için geçerlidir
   if (req.isApiKeyAuthenticated && req.user) {
@@ -93,6 +98,11 @@ const verifyToken = (req, res, next) => {
  */
 const authorizeRoles = (...allowedRoles) => {
   return (req, res, next) => {
+    // CORS Preflight (OPTIONS) isteklerini atla
+    if (req.method === 'OPTIONS') {
+      return next();
+    }
+
     if (!req.user || !allowedRoles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
@@ -107,6 +117,11 @@ const authorizeRoles = (...allowedRoles) => {
  * Sadece SUPER_ADMIN rolünün erişebilmesini sağlayan middleware
  */
 const checkSuperAdmin = (req, res, next) => {
+  // CORS Preflight (OPTIONS) isteklerini atla
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+
   if (req.user?.isApiKey || req.user?.role === 'PUBLISHABLE_STORE_KEY') {
     return res.status(403).json({
       success: false,
@@ -128,6 +143,11 @@ const checkSuperAdmin = (req, res, next) => {
  * Bayi yöneticisi (TENANT_ADMIN) ve geçerli tenantId kontrolü sağlayan middleware (Data Isolation)
  */
 const checkTenantAdmin = (req, res, next) => {
+  // CORS Preflight (OPTIONS) isteklerini atla
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+
   if (!req.user) {
     return res.status(401).json({
       success: false,
@@ -176,6 +196,11 @@ const checkTenantAdmin = (req, res, next) => {
  * CUSTOMER rolünün yanı sıra mağazasını önizleyen TENANT_ADMIN ve SUPER_ADMIN yetkililerine de izin verir.
  */
 const checkCustomer = (req, res, next) => {
+  // CORS Preflight (OPTIONS) isteklerini atla
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+
   if (!req.user) {
     return res.status(401).json({
       success: false,
@@ -193,8 +218,76 @@ const checkCustomer = (req, res, next) => {
   next();
 };
 
+/**
+ * requireApprovedDealer / requireApprovedTenant Middleware:
+ * İstek atan kullanıcının veya bağlı olduğu bayinin (Tenant) statüsünün 'APPROVED' olduğunu doğrular.
+ * Kullanıcının statüsü 'APPROVED' değilse (yani 'PENDING' veya 'REJECTED' ise):
+ * 403 Forbidden döndürerek arka kapıdan ürün ekleme ve düzenleme işlemlerini kesin olarak engeller.
+ * SUPER_ADMIN rolü bu kısıtlamadan muaftır.
+ */
+const requireApprovedDealer = async (req, res, next) => {
+  // CORS Preflight (OPTIONS) isteklerini atla
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Yetkilendirme tokenı bulunamadı.'
+    });
+  }
+
+  // SUPER_ADMIN rolü her zaman tam yetkiye sahiptir
+  if (req.user.role === 'SUPER_ADMIN') {
+    return next();
+  }
+
+  try {
+    const prisma = require('../lib/prisma');
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: { tenant: true }
+    });
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Kullanıcı hesabı bulunamadı.'
+      });
+    }
+
+    const userStatus = user.status || 'PENDING';
+    const tenantStatus = user.tenant?.status || 'PENDING';
+
+    if (userStatus !== 'APPROVED' || (user.tenant && tenantStatus !== 'APPROVED')) {
+      console.warn(`[SECURITY_BLOCKED] Onaysız bayi (${user.email}, Durum: ${userStatus}/${tenantStatus}) ürün ekleme/düzenleme denemesi 403 ile engellendi.`);
+      return res.status(403).json({
+        success: false,
+        error: 'DEALER_PENDING_APPROVAL',
+        status: userStatus,
+        message: 'Erişim engellendi: Bayi hesabınız henüz Admin tarafından onaylanmamıştır (Onay Bekliyor). Ürün ekleme veya katalog düzenleme yapamazsınız.'
+      });
+    }
+
+    req.user.status = userStatus;
+    if (user.tenant) {
+      req.user.tenantStatus = tenantStatus;
+    }
+
+    next();
+  } catch (err) {
+    console.error('[REQUIRE_APPROVED_DEALER_ERROR]:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Bayi onay durumu denetlenirken sunucu hatası oluştu.'
+    });
+  }
+};
+
 const isSuperAdmin = checkSuperAdmin;
 const isTenantAdmin = checkTenantAdmin;
+const requireApprovedTenant = requireApprovedDealer;
 
 module.exports = {
   verifyToken,
@@ -203,5 +296,7 @@ module.exports = {
   checkTenantAdmin,
   isTenantAdmin,
   checkCustomer,
-  authorizeRoles
+  authorizeRoles,
+  requireApprovedDealer,
+  requireApprovedTenant
 };

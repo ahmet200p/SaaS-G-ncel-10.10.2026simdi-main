@@ -590,9 +590,42 @@ router.post('/orders', async (req, res) => {
       }
     }
 
+    // 1. ADIM (prompt.md): 'Snapshot' Mimarisi
+    // Müşterinin o anki adresi sipariş tablosuna kopyalanmalı (snapshot)
+    // ki müşteri ileride adresini değiştirirse eski siparişlerin teslimat geçmişi bozulmasın.
+    let snapshotShippingAddress = '';
+    const bodyShipping = req.body.shippingAddress || req.body.deliveryAddress;
+    const bodyCity = (req.body.city || '').trim();
+    const bodyDistrict = (req.body.district || '').trim();
+    const bodyAddress = (req.body.address || req.body.addressDetail || '').trim();
+
+    if (bodyShipping && typeof bodyShipping === 'string' && bodyShipping.trim().length > 0) {
+      snapshotShippingAddress = bodyShipping.trim();
+    } else if (bodyAddress || bodyCity || bodyDistrict) {
+      const parts = [bodyAddress, bodyDistrict, bodyCity].filter(Boolean);
+      snapshotShippingAddress = parts.join(', ');
+    } else if (bodyShipping && typeof bodyShipping === 'object') {
+      try {
+        snapshotShippingAddress = JSON.stringify(bodyShipping);
+      } catch (e) {
+        snapshotShippingAddress = String(bodyShipping);
+      }
+    } else {
+      const defaultParts = [
+        customerProfile.address,
+        customerProfile.district,
+        customerProfile.city
+      ].filter(Boolean);
+      snapshotShippingAddress = defaultParts.length > 0 ? defaultParts.join(', ') : 'Adres belirtilmedi';
+    }
+
+    if (snapshotShippingAddress.length > 1000) {
+      snapshotShippingAddress = snapshotShippingAddress.substring(0, 1000);
+    }
+
     // 5. Prisma Transaction (Atomik Sipariş Oluşturma, KDV, Güvenli Stok Düşme, Stok Denetimi ve Cari Bakiye Defteri)
     const createdOrder = await prisma.$transaction(async (tx) => {
-      // A. Sipariş ana kaydını oluştur (KDV oran ve tutarlarıyla birlikte)
+      // A. Sipariş ana kaydını oluştur (KDV oran ve tutarlarıyla, shippingAddress snapshot'ı ile birlikte)
       const order = await tx.order.create({
         data: {
           orderNumber: orderNumber,
@@ -604,6 +637,7 @@ router.post('/orders', async (req, res) => {
           totalAmount: finalTotalWithVat,
           status: orderStatus,
           paymentMethod: paymentMethod || null,
+          shippingAddress: snapshotShippingAddress,
           items: {
             create: orderItemsToCreate
           }
@@ -888,7 +922,7 @@ router.get('/profile', async (req, res) => {
 const handleUpdateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { name, companyName, phone, email, address, taxNumber, password } = req.body;
+    const { name, companyName, phone, email, address, city, district, taxNumber, password } = req.body;
 
     // 1. Veritabanında Kullanıcıyı Bul (ID veya E-posta ile)
     let user = await prisma.user.findUnique({
@@ -959,6 +993,8 @@ const handleUpdateProfile = async (req, res) => {
       }
       if (phone !== undefined) profileUpdateData.phone = phone.trim();
       if (address !== undefined) profileUpdateData.address = address.trim();
+      if (city !== undefined) profileUpdateData.city = city.trim();
+      if (district !== undefined) profileUpdateData.district = district.trim();
       if (taxNumber !== undefined) profileUpdateData.taxNumber = taxNumber.trim();
 
       customerProfile = await prisma.customerProfile.update({
@@ -987,6 +1023,8 @@ const handleUpdateProfile = async (req, res) => {
         email: finalEmail,
         phone: customerProfile ? customerProfile.phone : (phone || ''),
         address: customerProfile ? customerProfile.address : (address || ''),
+        city: customerProfile ? customerProfile.city : (city || ''),
+        district: customerProfile ? customerProfile.district : (district || ''),
         taxNumber: customerProfile ? customerProfile.taxNumber : (taxNumber || ''),
         balance: customerProfile ? customerProfile.balance : 14850.00,
         discountRate: customerProfile ? customerProfile.discountRate : 0

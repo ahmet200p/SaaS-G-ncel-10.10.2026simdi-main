@@ -11,13 +11,14 @@ try {
       directives: {
         defaultSrc: ["'self'", "'unsafe-inline'", 'https:'],
         connectSrc: ["'self'", 'http://localhost:5000', 'http://127.0.0.1:5000', 'http://localhost:3000', 'http://127.0.0.1:3000', 'http://127.0.0.1:5500', 'http://localhost:5500', 'http://localhost:5173', 'http://127.0.0.1:5173', 'https:', 'ws:', 'wss:'],
-        imgSrc: ["'self'", 'data:', 'https:'],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https:', 'http:'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com', 'https:'],
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https:'],
         scriptSrc: ["'self'", "'unsafe-inline'", 'https:']
       }
     },
-    crossOriginEmbedderPolicy: false
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: false
   });
 } catch (e) {
   // Helmet henüz npm install edilmemişse yerel güvenlik ara yazılımı devreye girer
@@ -29,6 +30,11 @@ try {
  * Clickjacking, MIME-sniffing, XSS ve bilgi sızıntılarına karşı tam koruma sağlar.
  */
 function securityHeaders(req, res, next) {
+  // CORS Preflight (OPTIONS) isteklerini atla
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+
   if (helmetMiddleware) {
     return helmetMiddleware(req, res, next);
   }

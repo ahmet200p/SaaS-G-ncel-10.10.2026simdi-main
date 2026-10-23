@@ -46,6 +46,13 @@ async function startServer() {
     await activeDb.exec(`
       ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "customDomain" TEXT;
       ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "apiKeyHash" TEXT;
+      ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'PENDING';
+      ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'PENDING';
+      ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "crossReferences" JSONB;
+      ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "compatibleVehicles" JSONB;
+      ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "attributes" JSONB;
+      ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "diagramUrl" TEXT;
+      ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "diagrams" JSONB;
     `);
   } catch (e) {}
 

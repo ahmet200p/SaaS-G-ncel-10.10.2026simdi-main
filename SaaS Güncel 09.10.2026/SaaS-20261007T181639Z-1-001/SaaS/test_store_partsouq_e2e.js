@@ -7,10 +7,10 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 const http = require('http');
-const app = require('./app');
-const prisma = require('./lib/prisma');
+const app = fs.existsSync(path.join(__dirname, 'backend-api', 'app.js')) ? require('./backend-api/app') : require('./app');
+const prisma = fs.existsSync(path.join(__dirname, 'backend-api', 'lib', 'prisma.js')) ? require('./backend-api/lib/prisma') : require('./lib/prisma');
 const jwt = require('jsonwebtoken');
-const config = require('./config');
+const config = fs.existsSync(path.join(__dirname, 'backend-api', 'config.js')) ? require('./backend-api/config') : require('./config');
 
 let server;
 let port;

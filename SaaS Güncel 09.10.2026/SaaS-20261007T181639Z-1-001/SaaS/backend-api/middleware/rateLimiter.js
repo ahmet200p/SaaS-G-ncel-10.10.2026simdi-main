@@ -22,6 +22,11 @@ function createRateLimiter({ windowMs = 15 * 60 * 1000, max = 15, message = 'Ço
   }, 5 * 60 * 1000).unref();
 
   return (req, res, next) => {
+    // CORS Preflight (OPTIONS) isteklerini atla
+    if (req.method === 'OPTIONS') {
+      return next();
+    }
+
     const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
     const isLocalhost = ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1' || (typeof ip === 'string' && ip.includes('127.0.0.1'));
     if (process.env.NODE_ENV === 'test' || isLocalhost) {
@@ -67,5 +72,15 @@ module.exports = {
     windowMs: 15 * 60 * 1000, // 15 dakika
     max: 5,                   // 5 sıfırlama talebi
     message: 'Güvenlik Uyarısı: Çok fazla şifre sıfırlama isteği gönderildi. Lütfen 15 dakika sonra tekrar deneyiniz.'
+  }),
+  orderLimiter: createRateLimiter({
+    windowMs: 15 * 60 * 1000, // 15 dakika
+    max: 30,                  // 30 sipariş
+    message: 'Güvenlik Uyarısı: Çok kısa süre içinde fazla sayıda sipariş oluşturma isteği algılandı (Anti-Spam Koruması). Lütfen bir süre bekleyiniz.'
+  }),
+  apiLimiter: createRateLimiter({
+    windowMs: 15 * 60 * 1000, // 15 dakika
+    max: 1000,                // 1000 istek
+    message: 'Güvenlik Uyarısı: IP adresinizden olağandışı sıklıkta istek algılandı (DDoS / Bot Engelleme). Lütfen 15 dakika sonra tekrar deneyiniz.'
   })
 };

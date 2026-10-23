@@ -20,6 +20,7 @@ const storeRoutes = require('./routes/store');
 const catalogRoutes = require('./routes/catalog.routes');
 const securityHeaders = require('./middleware/security');
 const { tenantApiKeyInterceptor } = require('./middleware/tenantApiKey');
+const { apiLimiter } = require('./middleware/rateLimiter');
 
 let compressionMiddleware = null;
 try {
@@ -33,18 +34,9 @@ const app = express();
 app.disable('x-powered-by');
 
 // ----------------------------------------------------------------------------
-// 1. TEMEL ARA YAZILIMLAR (MIDDLEWARES)
+// 1. CORS ARA YAZILIMI (EN ÜSTTE ÇAĞRILIR - prompt.md Düzeltme 1 & 2)
+// Tüm router'lardan ve özel yetki/onay middleware'lerinden KESİNLİKLE ÖNCE çalışır.
 // ----------------------------------------------------------------------------
-// Güvenlik Başlıkları (OWASP Security Headers)
-app.use(securityHeaders);
-
-if (compressionMiddleware) {
-  app.use(compressionMiddleware);
-}
-
-// Güvenli CORS Yapılandırması:
-// Sadece storefront-ui'ın çalıştığı adrese/porta (http://localhost:5500, http://127.0.0.1:5500 vb.) izin verilir.
-// Yetkisiz veya bilinmeyen tarayıcı kökenleri (origins) engellenir (HTTP 403 Forbidden).
 const allowedOrigins = new Set([
   'http://localhost:5500',
   'http://127.0.0.1:5500',
@@ -79,43 +71,117 @@ if (process.env.STOREFRONT_ORIGIN) {
   allowedOrigins.add(process.env.STOREFRONT_ORIGIN.trim());
 }
 
-const corsOptions = {
-  origin: function (origin, callback) {
-    // 1. Tarayıcı dışı istemciler (Postman, Curl, Sunucudan Sunucuya API entegrasyonları, Testler):
-    // Tarayıcı dışı doğrudan HTTP isteklerinde 'Origin' başlığı bulunmaz (!origin). Bunlara izin verilir.
-    if (!origin) {
-      return callback(null, true);
+function isAllowedOrigin(origin) {
+  // 1. Tarayıcı dışı istemciler (Postman, curl, sunucudan sunucuya doğrudan istekler) veya Origin başlığı olmayanlar:
+  if (!origin) return true;
+
+  // 2. Yerel dosya açılımları (file:// - Tarayıcı Origin: null veya 'null' gönderir):
+  if (origin === 'null' || origin === 'file://') return true;
+
+  const normalized = origin.toLowerCase().replace(/\/$/, '');
+
+  // 3. İzin verilen önceden tanımlı veya env kökenleri:
+  if (allowedOrigins.has(normalized)) return true;
+
+  // 4. Localhost, 127.0.0.1, IPv6 loopback [::1], 0.0.0.0 ve alt alan adları (*.localhost):
+  try {
+    const url = new URL(normalized);
+    const host = url.hostname;
+    if (
+      host === 'localhost' ||
+      host.endsWith('.localhost') ||
+      host === '127.0.0.1' ||
+      host === '0.0.0.0' ||
+      host === '[::1]' ||
+      host === '::1'
+    ) {
+      return true;
     }
 
-    // 2. Beyaz listedeki kökenler (storefront-ui):
-    const normalizedOrigin = origin.toLowerCase().replace(/\/$/, '');
-    if (allowedOrigins.has(normalizedOrigin)) {
-      return callback(null, true);
+    // 5. Yerel ağ / LAN IP'leri (192.168.x.x, 10.x.x.x, 172.16-31.x.x, *.local):
+    // Geliştirici ve test cihazlarının (mobil, yerel ağ, farklı portlar) erişimi için:
+    if (
+      host.startsWith('192.168.') ||
+      host.startsWith('10.') ||
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host) ||
+      host.endsWith('.local')
+    ) {
+      return true;
     }
 
-    // 3. Yetkisiz kökenler katı bir şekilde engellenir
-    const corsError = new Error(`CORS politika engeli: '${origin}' kökeninden gelen isteklere izin verilmemektedir.`);
-    corsError.status = 403;
-    corsError.isCorsError = true;
-    return callback(corsError, false);
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: [
-    'Content-Type',
-    'Authorization',
-    'X-Tenant-Slug',
-    'x-tenant-slug',
-    'X-Tenant-API-Key',
-    'x-tenant-api-key',
-    'X-API-Key',
-    'x-api-key'
-  ],
-  exposedHeaders: ['X-Tenant-Slug', 'X-Tenant-API-Key'],
-  maxAge: 86400
+    // 6. Platform SaaS alt alan adları (örn: *.saas.com, panel.saas.com, ahmetoto.com):
+    if (host.endsWith('.saas.com') || host === 'saas.com') {
+      return true;
+    }
+  } catch (e) {}
+
+  return false;
+}
+
+const corsOptionsDelegate = function (req, callback) {
+  const origin = req.header('Origin');
+  if (isAllowedOrigin(origin)) {
+    const isLocalFile = (origin === 'null' || origin === 'file://');
+    return callback(null, {
+      origin: isLocalFile ? '*' : (origin || true),
+      credentials: !isLocalFile,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
+      allowedHeaders: [
+        'Content-Type',
+        'content-type',
+        'Authorization',
+        'authorization',
+        'X-Tenant-Slug',
+        'x-tenant-slug',
+        'X-Tenant-API-Key',
+        'x-tenant-api-key',
+        'X-API-Key',
+        'x-api-key',
+        'Accept',
+        'accept',
+        'Origin',
+        'origin',
+        'X-Requested-With',
+        'x-requested-with',
+        'Cache-Control',
+        'cache-control',
+        'Pragma',
+        'pragma'
+      ],
+      exposedHeaders: [
+        'Content-Range',
+        'X-Content-Range',
+        'X-Tenant-Slug',
+        'x-tenant-slug',
+        'X-Tenant-API-Key',
+        'x-tenant-api-key'
+      ],
+      optionsSuccessStatus: 200,
+      maxAge: 86400
+    });
+  }
+
+  // Yetkisiz harici kökenler (örn: evil-competitor.com, malicious-hacker-site.ru) katı bir şekilde engellenir
+  const corsError = new Error(`CORS politika engeli: '${origin}' kökeninden gelen isteklere izin verilmemektedir.`);
+  corsError.status = 403;
+  corsError.isCorsError = true;
+  return callback(corsError, { origin: false });
 };
 
-app.use(cors(corsOptions));
+// 1. DÜZELTME: CORS ARA YAZILIMI VE PREFLIGHT HANDLER EN TEPEDE ÇAĞRILIR
+app.use(cors(corsOptionsDelegate));
+app.options('*', cors(corsOptionsDelegate));
+app.options(/(.*)/, cors(corsOptionsDelegate));
+
+// ----------------------------------------------------------------------------
+// 2. DİĞER TEMEL ARA YAZILIMLAR (MIDDLEWARES)
+// ----------------------------------------------------------------------------
+// Güvenlik Başlıkları (OWASP Security Headers)
+app.use(securityHeaders);
+
+if (compressionMiddleware) {
+  app.use(compressionMiddleware);
+}
 
 // Payload Boyut Sınırı (DoS Koruması)
 app.use(express.json({ limit: '10mb' }));
@@ -126,6 +192,7 @@ app.use(tenantApiKeyInterceptor);
 
 // Medya Yüklemeleri Statik Sunumu (Yalnızca ürün ve logo görselleri, HTML sunulmaz)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Headless REST API Güvencesi: Backend hiçbir şekilde HTML dosyası sunmaz (res.sendFile veya res.render kullanılmaz)
 app.use((req, res, next) => {
@@ -180,6 +247,8 @@ app.get('/api/health', (req, res) => {
 // ----------------------------------------------------------------------------
 // 3. TÜM MODÜLER API ROTALARININ BİRLEŞTİRİLMESİ (app.use...)
 // ----------------------------------------------------------------------------
+// Global API Hız Sınırlayıcı (DDoS, Bot ve Scraper Koruması)
+app.use('/api', apiLimiter);
 
 // A. Kimlik Doğrulama: Giriş yapma, şifre kontrolü ve JWT üretimi
 // POST /api/auth/login, POST /auth/login, GET /api/auth/me
@@ -193,6 +262,38 @@ app.use('/api/admin', superAdminRoutes);
 // C. Bayi (Tenant) Operasyonları: Kendi kataloğunu yönetme, gelen siparişler, sipariş onaylama
 // POST & GET /api/tenant/catalog, GET & PATCH /api/tenant/orders
 app.use('/api/tenant', tenantRoutes);
+
+// C.1 /api/products ve /products Doğrudan Rota Köprüsü (Prompt Adım 2 İzolasyon ve Güvenlik Standardı)
+app.use(['/api/products', '/products'], (req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+
+  const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+  let isTenantAdmin = false;
+  if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+    try {
+      const token = authHeader.split(' ')[1];
+      const jwt = require('jsonwebtoken');
+      const decoded = jwt.verify(token, config.JWT_SECRET);
+      if (decoded && (decoded.role === 'TENANT_ADMIN' || decoded.role === 'SUPER_ADMIN')) {
+        isTenantAdmin = true;
+      }
+    } catch (e) {
+      isTenantAdmin = false;
+    }
+  }
+
+  req.url = '/products' + (req.url === '/' ? '' : req.url);
+
+  if (isTenantAdmin) {
+    return tenantRoutes(req, res, next);
+  }
+
+  // Vitrin, Müşteri veya Ziyaretçi:
+  // resolveTenant ara yazılımı üzerinden X-Tenant-Slug veya subdomain ile izole ürün kataloğunu sunar
+  return storeRoutes(req, res, next);
+});
 
 // D. B2B Vitrin (Otoservis/Tamirci): İskonto hesaplanmış ürün listesi (finalPrice) ve sipariş verme (Transaction)
 // GET /api/store/products, POST /api/store/orders

@@ -242,6 +242,31 @@
       <div id="view-dashboard" class="page-view tenant-section active" data-view="view-dashboard" data-section="section-dashboard">
         <div id="section-dashboard" class="tenant-section active" style="display:none;" aria-hidden="true"></div>
 
+        <!-- ONAY BEKLEME UYARI KARTI (Prompt.md: Admin Onay Mekanizması) -->
+        <div id="dealer-pending-approval-card" style="display: none; width: 100%; margin-bottom: 24px; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1.5px solid #f59e0b; border-radius: 14px; padding: 22px 26px; box-shadow: 0 4px 16px rgba(245, 158, 11, 0.12);">
+          <div style="display: flex; align-items: flex-start; gap: 18px;">
+            <div style="width: 48px; height: 48px; border-radius: 12px; background: #fef08a; border: 1.5px solid #fde047; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #b45309; box-shadow: 0 2px 6px rgba(180, 83, 9, 0.15);">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </div>
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #92400e;">Hesabınız Onay Aşamasındadır</h3>
+                <span style="background: #f59e0b; color: #ffffff; font-size: 0.725rem; font-weight: 800; padding: 3px 10px; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.5px;">Onay Bekleniyor</span>
+              </div>
+              <p style="margin: 0 0 10px 0; font-size: 0.95rem; font-weight: 600; color: #b45309; line-height: 1.5;">
+                Hesabınız onay aşamasındadır. Destek ekibimiz vitrin sayfanızı hazırlayabilmesi için en kısa sürede sizinle iletişime geçecektir.
+              </p>
+              <div style="display: flex; align-items: center; gap: 16px; font-size: 0.825rem; color: #78350f;">
+                <span>🔒 Vitrin ve ürün kataloğu yönetimi sistem yöneticisi onayının ardından otomatik olarak aktifleşecektir.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- En üste .kpi-grid class'lı 3 adet özet kutusu -->
         <div class="kpi-grid">
 
@@ -849,6 +874,47 @@
             <small style="color: #64748b; font-size: 0.76rem; margin-top: 5px; display: block;">* Seçili şema ve fotoğraflar ürün kaydedildiğinde otomatik olarak veritabanına aktarılır.</small>
           </div>
 
+          <!-- ZENGİN VERİLER ÖNİZLEME ALANI (prompt.md: Muadiller, Uyumlu Araçlar, Teknik Özellikler) -->
+          <div class="form-group" id="enriched-data-container" style="display: none; margin-top: 14px; margin-bottom: 16px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+              <div style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: #0f172a; font-size: 0.88rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                Zenginleştirilmiş Otomotiv Verisi (Veritabanına Kaydedilecek)
+              </div>
+              <span id="enriched-status-badge" style="font-size: 0.72rem; color: #059669; font-weight: 700; background: #dcfce7; padding: 2px 8px; border-radius: 10px;">Eşzamanlı Hazır</span>
+            </div>
+
+            <!-- Muadiller (Cross-References) Önizleme -->
+            <div style="margin-bottom: 12px;">
+              <span style="font-size: 0.75rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.4px; display: block; margin-bottom: 6px;">
+                Eşdeğer & Muadil Parçalar (Cross-References):
+              </span>
+              <div id="preview-cross-references" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                <!-- Muadil rozetleri buraya gelecek -->
+              </div>
+            </div>
+
+            <!-- Uyumlu Araçlar (Fitment) Önizleme -->
+            <div style="margin-bottom: 12px;">
+              <span style="font-size: 0.75rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.4px; display: block; margin-bottom: 6px;">
+                Uyumlu Araç Modelleri (Vehicle Fitment):
+              </span>
+              <div id="preview-fitment-list" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 120px; overflow-y: auto;">
+                <!-- Uyumlu araç rozetleri buraya gelecek -->
+              </div>
+            </div>
+
+            <!-- Teknik Özellikler (Attributes) Önizleme -->
+            <div>
+              <span style="font-size: 0.75rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.4px; display: block; margin-bottom: 6px;">
+                Teknik Özellikler (Attributes):
+              </span>
+              <div id="preview-attributes-table" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px; font-size: 0.75rem;">
+                <!-- Özellik kutuları buraya gelecek -->
+              </div>
+            </div>
+          </div>
+
           <!-- 9. Parça Görseli Yükle (Kompakt, Sürükle-Bırak Destekli & İsteğe Bağlı) -->
           <div class="form-group">
             <label class="form-label" for="prod-images">Manuel Görsel Yükle (Depo Fotoğrafı)</label>
@@ -1228,6 +1294,94 @@
         existingAdminElements.forEach(el => el.remove());
       }
 
+      // ==========================================================================
+      // BAYİ ONAY DURUMU KONTROLÜ (Prompt.md: Admin Onay Mekanizması)
+      // ==========================================================================
+      window.isDealerPendingApproval = false;
+
+      async function checkDealerApprovalStatus() {
+        let isPending = false;
+        let currentStatus = 'APPROVED';
+
+        // 1. Token ve localStorage önbelleğini kontrol et
+        if (currentUser && currentUser.status === 'PENDING') {
+          isPending = true;
+          currentStatus = 'PENDING';
+        }
+        if (tokenPayload && tokenPayload.status === 'PENDING') {
+          isPending = true;
+          currentStatus = 'PENDING';
+        }
+
+        // 2. Canlı veritabanı senkronizasyonu (/api/auth/me)
+        try {
+          const meRes = await apiFetch('/auth/me');
+          if (meRes && meRes.success && meRes.data && meRes.data.user) {
+            const liveUser = meRes.data.user;
+            const liveStatus = liveUser.status || (liveUser.tenant ? liveUser.tenant.status : 'APPROVED');
+            currentStatus = liveStatus;
+            isPending = (liveStatus === 'PENDING');
+
+            // Yerel depoyu güncelle
+            try {
+              const currentStored = JSON.parse(localStorage.getItem('user') || '{}');
+              currentStored.status = liveStatus;
+              if (liveUser.tenant) currentStored.tenant = liveUser.tenant;
+              localStorage.setItem('user', JSON.stringify(currentStored));
+            } catch (e) {}
+          }
+        } catch (err) {
+          console.warn('[CHECK_APPROVAL_STATUS_WARN]:', err);
+        }
+
+        // Süper Admin asla engellenmez
+        if (verifiedRole === 'SUPER_ADMIN') {
+          isPending = false;
+        }
+
+        window.isDealerPendingApproval = isPending;
+
+        const warningCard = document.getElementById('dealer-pending-approval-card');
+        const btnAddProduct = document.getElementById('btn-add-product');
+        const catalogHeader = document.querySelector('#view-catalog .section-header');
+
+        if (isPending) {
+          if (warningCard) warningCard.style.display = 'block';
+
+          // Ürün ekleme butonunu gizle / devre dışı bırak
+          if (btnAddProduct) {
+            btnAddProduct.style.display = 'none';
+            btnAddProduct.disabled = true;
+          }
+
+          // Katalog sayfasında bilgilendirme rozeti/kartı
+          if (catalogHeader && !document.getElementById('catalog-pending-banner')) {
+            const banner = document.createElement('div');
+            banner.id = 'catalog-pending-banner';
+            banner.style.cssText = 'background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 10px; padding: 14px 18px; color: #92400e; font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 12px; margin-bottom: 18px; box-shadow: 0 2px 6px rgba(245,158,11,0.06);';
+            banner.innerHTML = `
+              <span style="font-size: 22px;">🔒</span>
+              <div>
+                <strong style="display:block; margin-bottom:2px;">Hesabınız Onay Aşamasındadır</strong>
+                <span style="font-size:0.835rem; color:#b45309; font-weight:500;">Destek ekibimiz vitrin sayfanızı hazırlayabilmesi için en kısa sürede sizinle iletişime geçecektir. Onayın ardından ürün ekleme ve düzenleme özellikleri açılacaktır.</span>
+              </div>
+            `;
+            catalogHeader.parentNode.insertBefore(banner, catalogHeader.nextSibling);
+          }
+        } else {
+          if (warningCard) warningCard.style.display = 'none';
+          if (btnAddProduct) {
+            btnAddProduct.style.display = 'inline-flex';
+            btnAddProduct.disabled = false;
+          }
+          const catBanner = document.getElementById('catalog-pending-banner');
+          if (catBanner) catBanner.remove();
+        }
+
+        return isPending;
+      }
+      window.checkDealerApprovalStatus = checkDealerApprovalStatus;
+
       // 0. Güvenli HTML Kaçırma Yardımcısı (XSS Koruması)
       function escapeHtml(str) {
         if (str === null || str === undefined) return '';
@@ -1410,7 +1564,14 @@
         };
 
         try {
-          const res = await apiFetch('/tenant/dashboard-stats');
+          // 3. ADIM: Dashboard KPI sayaçlarının önbellekte takılı kalmaması için no-store ve timestamp ekle
+          const res = await apiFetch(`/tenant/dashboard-stats?_t=${Date.now()}`, {
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache'
+            }
+          });
           if (res && res.success && res.data) {
             const stats = res.data;
             const pendingCount = stats.pendingCount !== undefined ? Number(stats.pendingCount) : Number(stats.pendingOrders || 0);
@@ -1795,256 +1956,352 @@
       };
       // GELEN SİPARİŞLER (DETAYLI GEÇMİŞ) YÖNETİMİ
       // ==========================================================================
-      let currentOrderStatusFilter = 'ALL';
+      // 1. STATE (DURUM) YÖNETİMİ:
+      // Seçili olan filtreyi tutacak state, varsayılan değeri 'ALL' (Tümü)
+      let activeTab = 'ALL';
+      let currentOrderStatusFilter = 'ALL'; // Geriye dönük uyumluluk alias'ı
       let currentOrderSearchTerm = '';
+      let allTenantOrders = []; // Sunucudan gelen tüm siparişlerin ana veri havuzu
 
-      async function loadOrdersTab(statusFilter = null, searchTerm = null) {
-        if (statusFilter !== null) currentOrderStatusFilter = statusFilter;
-        if (searchTerm !== null) currentOrderSearchTerm = searchTerm;
+      // 3. TABLO VERİSİNİ FİLTRELEME (DERIVED STATE):
+      // Ekrana çizdirilen siparişler dizisini (array) doğrudan tabloya basmak yerine bir filtreleme işleminden geçir.
+      // Mantık: Eğer activeTab === 'ALL' ise tüm listeyi göster;
+      // değilse sadece order.status === activeTab olanları (seçili durumla eşleşenleri) filtreleyip (array.filter) ekrana bas.
+      function getFilteredOrders() {
+        const sourceOrders = Array.isArray(allTenantOrders) && allTenantOrders.length > 0
+          ? allTenantOrders
+          : (Array.isArray(cachedOrders) ? cachedOrders : []);
 
+        return sourceOrders.filter(order => {
+          if (!order) return false;
+
+          // Durum Filtresi (activeTab)
+          let statusMatches = false;
+          if (activeTab === 'ALL') {
+            statusMatches = true;
+          } else {
+            const ordStatus = String(order.status || '').trim().toUpperCase();
+            const target = String(activeTab || '').trim().toUpperCase();
+
+            if (ordStatus === target) {
+              statusMatches = true;
+            } else if (target === 'PENDING_APPROVAL' || target === 'PENDING') {
+              statusMatches = (ordStatus === 'PENDING_APPROVAL' || ordStatus === 'PENDING' || ordStatus.includes('ONAY') || ordStatus.includes('ÖDEME'));
+            } else if (target === 'PROCESSING' || target === 'APPROVED') {
+              statusMatches = (ordStatus === 'PROCESSING' || ordStatus === 'APPROVED' || ordStatus.includes('HAZIRLAN'));
+            } else if (target === 'SHIPPED') {
+              statusMatches = (ordStatus === 'SHIPPED' || ordStatus === 'DELIVERED' || ordStatus.includes('KARGO') || ordStatus.includes('TESLİM'));
+            } else if (target === 'REJECTED' || target === 'CANCELLED') {
+              statusMatches = (ordStatus === 'REJECTED' || ordStatus === 'CANCELLED' || ordStatus.includes('İPTAL') || ordStatus.includes('RED') || ordStatus.includes('İADE') || ordStatus === 'RETURNED');
+            }
+          }
+
+          if (!statusMatches) return false;
+
+          // Arama Filtresi (search-orders-input) Entegrasyonu
+          if (currentOrderSearchTerm) {
+            const term = currentOrderSearchTerm.toLowerCase();
+            const ordNum = String(order.orderNumber || order.id || '').toLowerCase();
+            const custName = String(order.customer?.companyName || order.customer?.name || '').toLowerCase();
+            const custPhone = String(order.customer?.phone || '').toLowerCase();
+            if (!ordNum.includes(term) && !custName.includes(term) && !custPhone.includes(term)) {
+              return false;
+            }
+          }
+
+          return true;
+        });
+      }
+
+      // Tabloyu filtrelenmiş verilerle çizdirme (Derived State Table Renderer)
+      function renderOrdersTable() {
         const tbody = document.getElementById('table-all-orders-tbody');
         const countBadge = document.getElementById('orders-full-count-badge');
         if (!tbody) return;
 
-        try {
-          let url = '/tenant/orders';
-          const params = [];
-          if (currentOrderStatusFilter && currentOrderStatusFilter !== 'ALL') {
-            params.push('status=' + encodeURIComponent(currentOrderStatusFilter));
-          }
-          if (currentOrderSearchTerm) {
-            params.push('search=' + encodeURIComponent(currentOrderSearchTerm));
-          }
-          if (params.length > 0) url += '?' + params.join('&');
+        // Derived state: filtrelenmiş sipariş listesini hesapla
+        const filteredOrders = getFilteredOrders();
+        cachedOrders = filteredOrders; // Detay modalı ve seçimler için senkronize et
 
-          const res = await apiFetch(url);
-          if (res && res.success && Array.isArray(res.data)) {
-            const orders = res.data;
-            cachedOrders = orders;
-
-            if (countBadge) {
-              countBadge.textContent = `${orders.length} Sipariş`;
-            }
-
-            if (orders.length === 0) {
-              tbody.innerHTML = `
-                <tr>
-                  <td colspan="7" style="text-align: center; padding: 48px 20px; color: #64748b;">
-                    <div style="font-size: 32px; margin-bottom: 8px;">📦</div>
-                    <div style="font-weight: 600; font-size: 15px; color: #1e293b;">Seçilen kriterlere uygun sipariş bulunamadı.</div>
-                    <div style="font-size: 13px; color: #64748b; margin-top: 4px;">Filtreleri temizleyebilir veya yeni siparişleri bekleyebilirsiniz.</div>
-                  </td>
-                </tr>
-              `;
-              return;
-            }
-
-            tbody.innerHTML = '';
-            orders.forEach(order => {
-              const tr = document.createElement('tr');
-              tr.dataset.orderId = order.id;
-
-              const orderNum = escapeHtml(order.orderNumber || order.id.slice(0, 8));
-              const customerName = escapeHtml(order.customer ? (order.customer.companyName || 'Müşteri') : 'Müşteri');
-              const customerPhone = escapeHtml(order.customer ? (order.customer.phone || '') : '');
-              const totalAmount = parseFloat(order.totalAmount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-              // 2. ADIM: Kalem Sayısı ve Toplam Parça Adedi Hesaplaması
-              let items = Array.isArray(order.items) ? order.items : [];
-              if (items.length === 0 && (order.totalAmount > 0 || order.subtotal > 0)) {
-                const subP = parseFloat(order.subtotal !== undefined ? order.subtotal : (order.totalAmount ? (order.totalAmount / 1.2) : 500));
-                items = [{
-                  quantity: 1,
-                  unitPrice: subP,
-                  totalPrice: subP,
-                  product: {
-                    name: 'Yedek Parça & Servis Kalemi',
-                    oeNumber: 'OE-' + (order.orderNumber ? order.orderNumber.replace(/[^A-Z0-9]/g, '').slice(-5) : '41060'),
-                    vehicleBrand: 'Otomotiv',
-                    imageUrl: ''
-                  }
-                }];
-                order.items = items;
-              }
-              const itemsCount = items.length;
-              const totalQty = items.reduce((sum, it) => sum + (parseInt(it.quantity, 10) || 1), 0);
-              const itemsBadgeText = itemsCount > 0
-                ? `${itemsCount} Kalem (Toplam ${totalQty} Adet)`
-                : '1 Kalem (Toplam 1 Adet)';
-
-              let dateText = '-';
-              if (order.createdAt) {
-                const orderDate = new Date(order.createdAt);
-                const isToday = orderDate.toDateString() === new Date().toDateString();
-                const timeStr = orderDate.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-                dateText = isToday ? `Bugün ${timeStr}` : `${orderDate.toLocaleDateString('tr-TR')} ${timeStr}`;
-              }
-
-              let statusBadgeHtml = '';
-              let actionsHtml = '';
-
-              if (order.status === 'PENDING_APPROVAL' || order.status === 'PENDING' || order.status === 'Ödeme Bekliyor') {
-                const isTransfer = order.status === 'Ödeme Bekliyor' || order.paymentMethod === 'BANK_TRANSFER';
-                statusBadgeHtml = `
-                  <span class="badge-status-yellow" style="${isTransfer ? 'background: #fffbeb; color: #b45309; border: 1px solid #fde68a;' : ''}">
-                    <span class="badge-dot-yellow" style="${isTransfer ? 'background: #d97706;' : ''}"></span>
-                    ${isTransfer ? 'Ödeme Bekliyor' : 'Onay Bekliyor'}
-                  </span>
-                `;
-                actionsHtml = `
-                  <div class="table-actions">
-                    <button type="button" class="btn-approve" onclick="approveOrder('${order.id}', '${orderNum}')" title="Siparişi Onayla ve Hazırla">Onayla</button>
-                    <button type="button" class="btn-reject" onclick="rejectOrder('${order.id}', '${orderNum}')" title="Siparişi Reddet / İptal Et">Reddet</button>
-                    <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
-                  </div>
-                `;
-              } else if (order.status === 'PROCESSING' || order.status === 'APPROVED' || order.status === 'Hazırlanıyor') {
-                statusBadgeHtml = `
-                  <span class="badge-status-green" style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd;">
-                    <span class="badge-dot-green" style="background: #0284c7;"></span>
-                    Hazırlanıyor
-                  </span>
-                `;
-                actionsHtml = `
-                  <div class="table-actions">
-                    <button type="button" class="btn-approve" style="background: #0284c7;" onclick="shipOrder('${order.id}', '${orderNum}')">Kargoya Ver 🚚</button>
-                    <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
-                  </div>
-                `;
-              } else if (order.status === 'REJECTED' || order.status === 'CANCELLED') {
-                statusBadgeHtml = `
-                  <span class="badge-status-red" title="${escapeHtml(order.rejectionReason || 'Bayi tarafından reddedildi')}">
-                    <span class="badge-dot-red"></span>
-                    İptal Edildi
-                  </span>
-                `;
-                actionsHtml = `
-                  <div class="table-actions">
-                    <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
-                  </div>
-                `;
-              } else if (order.status === 'SHIPPED') {
-                const cargoInfoHtml = (order.cargoCompany || order.trackingNumber)
-                  ? `<div style="font-size: 11px; color: #4338ca; margin-top: 3px; font-weight: 600;">
-                       🚚 ${escapeHtml(order.cargoCompany || 'Kargo')}: <span style="font-family: monospace;">${escapeHtml(order.trackingNumber || '')}</span>
-                     </div>`
-                  : '';
-                statusBadgeHtml = `
-                  <span class="badge-status-green" style="background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe;">
-                    <span class="badge-dot-green" style="background: #4338ca;"></span>
-                    Kargolandı 🚚
-                  </span>
-                  ${cargoInfoHtml}
-                `;
-                actionsHtml = `
-                  <div class="table-actions">
-                    <button type="button" class="btn-approve" style="background: #059669;" onclick="deliverOrder('${order.id}', '${orderNum}')" title="Müşteriye Teslim Edildi Olarak İşaretle">Teslim Edildi Yap ✓</button>
-                    <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
-                  </div>
-                `;
-              } else if (order.status === 'DELIVERED' || order.status === 'Teslim Edildi') {
-                statusBadgeHtml = `
-                  <span class="badge-status-green" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;">
-                    <span class="badge-dot-green" style="background: #059669;"></span>
-                    Teslim Edildi ✓
-                  </span>
-                `;
-                actionsHtml = `
-                  <div class="table-actions">
-                    <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
-                  </div>
-                `;
-              } else if (order.status === 'RETURNED' || order.status === 'İade Edildi') {
-                statusBadgeHtml = `
-                  <span class="badge-status-red" style="background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;">
-                    <span class="badge-dot-red"></span>
-                    İade Edildi ↩
-                  </span>
-                `;
-                actionsHtml = `
-                  <div class="table-actions">
-                    <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
-                  </div>
-                `;
-              } else {
-                statusBadgeHtml = `
-                  <span class="badge-status-green">
-                    <span class="badge-dot-green"></span>
-                    ${escapeHtml(order.status)}
-                  </span>
-                `;
-                actionsHtml = `
-                  <div class="table-actions">
-                    <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
-                  </div>
-                `;
-              }
-
-              const reasonNotice = order.rejectionReason
-                ? `<div style="font-size: 11px; color: #dc2626; margin-top: 4px; line-height: 1.2;"><strong>Ret:</strong> ${escapeHtml(order.rejectionReason)}</div>`
-                : '';
-
-              tr.innerHTML = `
-                <td>
-                  <span class="order-number">#${orderNum}</span>
-                  ${reasonNotice}
-                </td>
-                <td>
-                  <div class="customer-info">
-                    <span class="customer-name">${customerName}</span>
-                    <span class="customer-sub">${customerPhone ? customerPhone + ' • ' : ''}Servis</span>
-                  </div>
-                </td>
-                <td><span class="badge-category">${itemsBadgeText}</span></td>
-                <td><span class="order-amount">${totalAmount} ₺</span></td>
-                <td><span class="order-date">${dateText}</span></td>
-                <td>${statusBadgeHtml}</td>
-                <td>${actionsHtml}</td>
-              `;
-              tbody.appendChild(tr);
-            });
+        // Sipariş Adet Rozetini Güncelle
+        if (countBadge) {
+          const totalCount = allTenantOrders.length;
+          if (activeTab === 'ALL' && !currentOrderSearchTerm) {
+            countBadge.textContent = `${filteredOrders.length} Sipariş`;
           } else {
-            cachedOrders = [];
-            if (countBadge) countBadge.textContent = '0 Sipariş';
-            tbody.innerHTML = `
-              <tr>
-                <td colspan="7" style="text-align: center; padding: 48px 20px; color: #64748b;">
-                  <div style="font-size: 32px; margin-bottom: 8px;">📦</div>
-                  <div style="font-weight: 600; font-size: 15px; color: #1e293b;">Seçilen kriterlere uygun sipariş bulunamadı.</div>
-                  <div style="font-size: 13px; color: #64748b; margin-top: 4px;">Filtreleri temizleyebilir veya yeni siparişleri bekleyebilirsiniz.</div>
-                </td>
-              </tr>
+            countBadge.textContent = `${filteredOrders.length} / ${totalCount} Sipariş`;
+          }
+        }
+
+        if (filteredOrders.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="7" style="text-align: center; padding: 48px 20px; color: #64748b;">
+                <div style="font-size: 32px; margin-bottom: 8px;">📦</div>
+                <div style="font-weight: 600; font-size: 15px; color: #1e293b;">Seçilen kritere uygun sipariş bulunamadı.</div>
+                <div style="font-size: 13px; color: #64748b; margin-top: 4px;">Aktif Filtre: <strong>${escapeHtml(activeTab === 'ALL' ? 'Tümü' : activeTab)}</strong></div>
+                ${activeTab !== 'ALL' || currentOrderSearchTerm ? `
+                  <button type="button" class="btn-detail" style="margin-top: 12px; display: inline-block; cursor: pointer;" onclick="filterOrdersByStatus('ALL')">Tüm Siparişleri Göster</button>
+                ` : ''}
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = '';
+        filteredOrders.forEach(order => {
+          const tr = document.createElement('tr');
+          tr.dataset.orderId = order.id;
+
+          const orderNum = escapeHtml(order.orderNumber || order.id.slice(0, 8));
+          const customerName = escapeHtml(order.customer ? (order.customer.companyName || 'Müşteri') : 'Müşteri');
+          const customerPhone = escapeHtml(order.customer ? (order.customer.phone || '') : '');
+          const totalAmount = parseFloat(order.totalAmount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          
+          let items = Array.isArray(order.items) ? order.items : [];
+          if (items.length === 0 && (order.totalAmount > 0 || order.subtotal > 0)) {
+            const subP = parseFloat(order.subtotal !== undefined ? order.subtotal : (order.totalAmount ? (order.totalAmount / 1.2) : 500));
+            items = [{
+              quantity: 1,
+              unitPrice: subP,
+              totalPrice: subP,
+              product: {
+                name: 'Yedek Parça & Servis Kalemi',
+                oeNumber: 'OE-' + (order.orderNumber ? order.orderNumber.replace(/[^A-Z0-9]/g, '').slice(-5) : '41060'),
+                vehicleBrand: 'Otomotiv',
+                imageUrl: ''
+              }
+            }];
+            order.items = items;
+          }
+          const itemsCount = items.length;
+          const totalQty = items.reduce((sum, it) => sum + (parseInt(it.quantity, 10) || 1), 0);
+          const itemsBadgeText = itemsCount > 0
+            ? `${itemsCount} Kalem (Toplam ${totalQty} Adet)`
+            : '1 Kalem (Toplam 1 Adet)';
+
+          let dateText = '-';
+          if (order.createdAt) {
+            const orderDate = new Date(order.createdAt);
+            const isToday = orderDate.toDateString() === new Date().toDateString();
+            const timeStr = orderDate.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+            dateText = isToday ? `Bugün ${timeStr}` : `${orderDate.toLocaleDateString('tr-TR')} ${timeStr}`;
+          }
+
+          let statusBadgeHtml = '';
+          let actionsHtml = '';
+
+          if (order.status === 'PENDING_APPROVAL' || order.status === 'PENDING' || order.status === 'Ödeme Bekliyor') {
+            const isTransfer = order.status === 'Ödeme Bekliyor' || order.paymentMethod === 'BANK_TRANSFER';
+            statusBadgeHtml = `
+              <span class="badge-status-yellow" style="${isTransfer ? 'background: #fffbeb; color: #b45309; border: 1px solid #fde68a;' : ''}">
+                <span class="badge-dot-yellow" style="${isTransfer ? 'background: #d97706;' : ''}"></span>
+                ${isTransfer ? 'Ödeme Bekliyor' : 'Onay Bekliyor'}
+              </span>
             `;
+            actionsHtml = `
+              <div class="table-actions">
+                <button type="button" class="btn-approve" onclick="approveOrder('${order.id}', '${orderNum}')" title="Siparişi Onayla ve Hazırla">Onayla</button>
+                <button type="button" class="btn-reject" onclick="rejectOrder('${order.id}', '${orderNum}')" title="Siparişi Reddet / İptal Et">Reddet</button>
+                <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
+              </div>
+            `;
+          } else if (order.status === 'PROCESSING' || order.status === 'APPROVED' || order.status === 'Hazırlanıyor') {
+            statusBadgeHtml = `
+              <span class="badge-status-green" style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd;">
+                <span class="badge-dot-green" style="background: #0284c7;"></span>
+                Hazırlanıyor
+              </span>
+            `;
+            actionsHtml = `
+              <div class="table-actions">
+                <button type="button" class="btn-approve" style="background: #0284c7;" onclick="shipOrder('${order.id}', '${orderNum}')">Kargoya Ver 🚚</button>
+                <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
+              </div>
+            `;
+          } else if (order.status === 'REJECTED' || order.status === 'CANCELLED') {
+            statusBadgeHtml = `
+              <span class="badge-status-red" title="${escapeHtml(order.rejectionReason || 'Bayi tarafından reddedildi')}">
+                <span class="badge-dot-red"></span>
+                İptal Edildi
+              </span>
+            `;
+            actionsHtml = `
+              <div class="table-actions">
+                <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
+              </div>
+            `;
+          } else if (order.status === 'SHIPPED') {
+            const cargoInfoHtml = (order.cargoCompany || order.trackingNumber)
+              ? `<div style="font-size: 11px; color: #4338ca; margin-top: 3px; font-weight: 600;">
+                   🚚 ${escapeHtml(order.cargoCompany || 'Kargo')}: <span style="font-family: monospace;">${escapeHtml(order.trackingNumber || '')}</span>
+                 </div>`
+              : '';
+            statusBadgeHtml = `
+              <span class="badge-status-green" style="background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe;">
+                <span class="badge-dot-green" style="background: #4338ca;"></span>
+                Kargolandı 🚚
+              </span>
+              ${cargoInfoHtml}
+            `;
+            actionsHtml = `
+              <div class="table-actions">
+                <button type="button" class="btn-approve" style="background: #059669;" onclick="deliverOrder('${order.id}', '${orderNum}')" title="Müşteriye Teslim Edildi Olarak İşaretle">Teslim Edildi Yap ✓</button>
+                <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
+              </div>
+            `;
+          } else if (order.status === 'DELIVERED' || order.status === 'Teslim Edildi') {
+            statusBadgeHtml = `
+              <span class="badge-status-green" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;">
+                <span class="badge-dot-green" style="background: #059669;"></span>
+                Teslim Edildi ✓
+              </span>
+            `;
+            actionsHtml = `
+              <div class="table-actions">
+                <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
+              </div>
+            `;
+          } else if (order.status === 'RETURNED' || order.status === 'İade Edildi') {
+            statusBadgeHtml = `
+              <span class="badge-status-red" style="background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;">
+                <span class="badge-dot-red"></span>
+                İade Edildi ↩
+              </span>
+            `;
+            actionsHtml = `
+              <div class="table-actions">
+                <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
+              </div>
+            `;
+          } else {
+            statusBadgeHtml = `
+              <span class="badge-status-green">
+                <span class="badge-dot-green"></span>
+                ${escapeHtml(order.status)}
+              </span>
+            `;
+            actionsHtml = `
+              <div class="table-actions">
+                <button type="button" class="btn-detail" onclick="showOrderDetail('${order.id}')">Detay</button>
+              </div>
+            `;
+          }
+
+          const reasonNotice = order.rejectionReason
+            ? `<div style="font-size: 11px; color: #dc2626; margin-top: 4px; line-height: 1.2;"><strong>Ret:</strong> ${escapeHtml(order.rejectionReason)}</div>`
+            : '';
+
+          tr.innerHTML = `
+            <td>
+              <span class="order-number">#${orderNum}</span>
+              ${reasonNotice}
+            </td>
+            <td>
+              <div class="customer-info">
+                <span class="customer-name">${customerName}</span>
+                <span class="customer-sub">${customerPhone ? customerPhone + ' • ' : ''}Servis</span>
+              </div>
+            </td>
+            <td><span class="badge-category">${itemsBadgeText}</span></td>
+            <td><span class="order-amount">${totalAmount} ₺</span></td>
+            <td><span class="order-date">${dateText}</span></td>
+            <td>${statusBadgeHtml}</td>
+            <td>${actionsHtml}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      // 2. ONCLICK (TIKLAMA) ENTEGRASYONU:
+      // Her bir butona tıklandığında activeTab state'ini o butonun temsil ettiği veritabanı statüsüne eşitle.
+      // Ayrıca aktif olan butonun arkaplanı turuncu/renkli olsun, diğerleri pasif kalsın.
+      window.filterOrdersByStatus = function (status) {
+        activeTab = status || 'ALL';
+        currentOrderStatusFilter = activeTab;
+
+        // Üst butonların aktif/pasif görsel durumunu ve turuncu arkaplanını senkronize et
+        const pills = document.querySelectorAll('#orders-filter-pills .filter-pill');
+        pills.forEach(p => {
+          const pillStatus = p.getAttribute('data-status');
+          if (pillStatus === activeTab) {
+            p.classList.add('active');
+            p.style.backgroundColor = 'var(--tenant-color, #f97316)';
+            p.style.borderColor = 'var(--tenant-color, #f97316)';
+            p.style.color = '#ffffff';
+            p.style.boxShadow = '0 2px 8px rgba(249, 115, 22, 0.35)';
+          } else {
+            p.classList.remove('active');
+            p.style.backgroundColor = '';
+            p.style.borderColor = '';
+            p.style.color = '';
+            p.style.boxShadow = '';
+          }
+        });
+
+        // Derived State ile anında tablo verilerini filtrele ve ekrana bas
+        renderOrdersTable();
+      };
+
+      async function loadOrdersTab(statusFilter = null, searchTerm = null) {
+        if (statusFilter !== null) {
+          activeTab = statusFilter;
+          currentOrderStatusFilter = statusFilter;
+        }
+        if (searchTerm !== null) {
+          currentOrderSearchTerm = searchTerm;
+        }
+
+        const tbody = document.getElementById('table-all-orders-tbody');
+        if (!tbody) return;
+
+        try {
+          // Tüm bayi sipariş havuzunu sunucudan çek
+          const url = '/tenant/orders?_t=' + Date.now();
+          const res = await apiFetch(url, {
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache'
+            }
+          });
+
+          if (res && res.success && Array.isArray(res.data)) {
+            allTenantOrders = res.data;
+          } else {
+            allTenantOrders = [];
           }
         } catch (err) {
           console.error('[LOAD_ORDERS_TAB_ERROR]:', err);
-          cachedOrders = [];
-          if (countBadge) countBadge.textContent = '0 Sipariş';
-          if (tbody) {
-            tbody.innerHTML = `
-              <tr>
-                <td colspan="7" style="text-align: center; padding: 48px 20px; color: #64748b;">
-                  <div style="font-size: 32px; margin-bottom: 8px;">📦</div>
-                  <div style="font-weight: 600; font-size: 15px; color: #1e293b;">Seçilen kriterlere uygun sipariş bulunamadı.</div>
-                  <div style="font-size: 13px; color: #64748b; margin-top: 4px;">Filtreleri temizleyebilir veya yeni siparişleri bekleyebilirsiniz.</div>
-                </td>
-              </tr>
-            `;
+          if (!allTenantOrders || allTenantOrders.length === 0) {
+            allTenantOrders = [];
           }
         }
-      }
-      window.loadOrdersTab = loadOrdersTab;
 
-      window.filterOrdersByStatus = function (status) {
+        // Filtre butonlarının stilini activeTab ile senkronize et
         const pills = document.querySelectorAll('#orders-filter-pills .filter-pill');
         pills.forEach(p => {
-          if (p.getAttribute('data-status') === status) {
+          const pillStatus = p.getAttribute('data-status');
+          if (pillStatus === activeTab) {
             p.classList.add('active');
+            p.style.backgroundColor = 'var(--tenant-color, #f97316)';
+            p.style.borderColor = 'var(--tenant-color, #f97316)';
+            p.style.color = '#ffffff';
+            p.style.boxShadow = '0 2px 8px rgba(249, 115, 22, 0.35)';
           } else {
             p.classList.remove('active');
+            p.style.backgroundColor = '';
+            p.style.borderColor = '';
+            p.style.color = '';
+            p.style.boxShadow = '';
           }
         });
-        loadOrdersTab(status);
-      };
+
+        // Derived State ile tabloyu çizdir
+        renderOrdersTable();
+      }
+      window.loadOrdersTab = loadOrdersTab;
 
       window.showOrderDetail = async function (orderId) {
         let order = cachedOrders.find(o => o.id === orderId);
@@ -2078,9 +2335,14 @@
         const orderNum = escapeHtml(order.orderNumber || order.id.slice(0, 8));
         if (titleEl) titleEl.textContent = `Sipariş #${orderNum}`;
 
-        const customerName = escapeHtml(order.customer ? (order.customer.companyName || 'Müşteri') : 'Müşteri');
+        const customerName = escapeHtml(order.customer ? (order.customer.companyName || order.customer.name || 'Müşteri') : 'Müşteri');
         const customerPhone = escapeHtml(order.customer ? (order.customer.phone || '-') : '-');
         const customerDisc = order.customer && order.customer.discountRate !== undefined ? parseFloat(order.customer.discountRate) : 0;
+        const customerCity = escapeHtml(order.customer ? (order.customer.city || '') : '');
+        const customerDistrict = escapeHtml(order.customer ? (order.customer.district || '') : '');
+        const cityDistrictStr = [customerDistrict, customerCity].filter(Boolean).join(' / ');
+        const rawShippingAddr = order.shippingAddress || (order.customer ? [order.customer.address, order.customer.district, order.customer.city].filter(Boolean).join(', ') : 'Adres bilgisi bulunamadı');
+        const shippingAddr = escapeHtml(rawShippingAddr);
 
         if (subtitleEl) {
           subtitleEl.textContent = `${customerName} • ${customerPhone}`;
@@ -2255,6 +2517,50 @@
                   <strong>Ret Sebebi (Gerekçe):</strong> ${escapeHtml(order.rejectionReason)}
                 </div>
               ` : ''}
+            </div>
+
+            <!-- 🚚 Teslimat ve İrsaliye Adresi Kartı (Snapshot Mimarisi) -->
+            <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div style="width: 32px; height: 32px; border-radius: 8px; background: #fff7ed; color: #ea580c; display: flex; align-items: center; justify-content: center; font-size: 17px; border: 1px solid #ffedd5; flex-shrink: 0;">
+                    🚚
+                  </div>
+                  <div>
+                    <h4 style="font-size: 13.5px; font-weight: 800; color: #0f172a; margin: 0;">Teslimat ve İrsaliye Adresi</h4>
+                    <span style="font-size: 11px; color: #64748b;">Kargo, sevk irsaliyesi ve fatura teslim noktası</span>
+                  </div>
+                </div>
+                <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #059669; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 3px 9px; border-radius: 9999px;">
+                  🔒 Snapshot Adresi
+                </span>
+              </div>
+
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; font-size: 13px; margin-bottom: 10px;">
+                <div>
+                  <span style="color: #64748b; font-size: 11px; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">Alıcı / Şirket Ünvanı</span>
+                  <strong style="color: #0f172a; font-size: 13px;">${customerName}</strong>
+                </div>
+
+                <div>
+                  <span style="color: #64748b; font-size: 11px; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">İletişim Telefonu</span>
+                  <span style="color: #0284c7; font-weight: 700; font-family: monospace; font-size: 13px;">${customerPhone}</span>
+                </div>
+
+                <div>
+                  <span style="color: #64748b; font-size: 11px; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">İlçe / İl</span>
+                  <span style="display: inline-block; font-weight: 700; color: #334155; background: #f1f5f9; border: 1px solid #e2e8f0; padding: 2px 8px; border-radius: 4px; font-size: 12px;">
+                    ${cityDistrictStr || 'Belirtilmedi'}
+                  </span>
+                </div>
+              </div>
+
+              <div style="padding-top: 10px; border-top: 1px dashed #e2e8f0;">
+                <span style="color: #64748b; font-size: 11px; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 4px;">Açık Teslimat Adresi (Sipariş Anı Snapshot)</span>
+                <div style="color: #1e293b; line-height: 1.45; font-size: 13px; font-weight: 500; background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 12px; border-radius: 6px;">
+                  ${shippingAddr}
+                </div>
+              </div>
             </div>
 
             <!-- Kalemler Tablosu (Görsel/OE No, Parça Adı, Adet, Birim Fiyat, Ara Toplam) -->
@@ -2704,6 +3010,10 @@
 
       if (btnAddProduct) {
         btnAddProduct.addEventListener('click', () => {
+          if (window.isDealerPendingApproval) {
+            showToast('Hesabınız onay aşamasındadır. Destek ekibimiz vitrin sayfanızı hazırlayabilmesi için en kısa sürede sizinle iletişime geçecektir.', 'warning');
+            return;
+          }
           const editIdInput = document.getElementById('prod-edit-id');
           if (editIdInput) editIdInput.value = '';
           const drawerTitle = productDrawer?.querySelector('.drawer-title');
@@ -2792,8 +3102,15 @@
 
         galleryGrid.innerHTML = '';
         currentCatalogImages.forEach((item, idx) => {
-          const url = typeof item === 'string' ? item : item.url;
-          const title = typeof item === 'object' && item.name ? item.name : `Teknik Çizim #${idx + 1}`;
+          let rawUrl = typeof item === 'string' ? item : item.url;
+          if (!rawUrl) return;
+
+          let url = rawUrl;
+          if (url.startsWith('//')) {
+            url = 'https:' + url;
+          }
+
+          const title = typeof item === 'object' && item.name ? item.name : `OEM Montaj Şeması #${idx + 1}`;
 
           const card = document.createElement('div');
           card.className = 'catalog-img-card active';
@@ -2801,10 +3118,10 @@
           card.dataset.url = url;
 
           card.innerHTML = `
-            <div style="width: 100%; height: 75px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-              <img src="${url}" alt="${title}" style="width: 100%; height: 100%; object-fit: contain; pointer-events: none;" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'40\\' height=\\'40\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'%2394a3b8\\' stroke-width=\\'2\\'><rect x=\\'3\\' y=\\'3\\' width=\\'18\\' height=\\'18\\' rx=\\'2\\'/><circle cx=\\'8.5\\' cy=\\'8.5\\' r=\\'1.5\\'/></svg>';">
+            <div style="width: 100%; height: 85px; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 4px;">
+              <img src="${url}" alt="${title}" loading="eager" style="width: 100%; height: 100%; object-fit: contain; pointer-events: none;" onerror="if (!this.dataset.retried) { this.dataset.retried = '1'; this.src = '/api/catalog/image-proxy?url=' + encodeURIComponent('${url}'); }">
             </div>
-            <div style="padding: 4px; font-size: 0.68rem; color: #334155; font-weight: 600; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; text-align: center;">
+            <div style="padding: 6px 4px; font-size: 0.68rem; color: #1e293b; font-weight: 600; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; text-align: center; border-top: 1px solid #f1f5f9;" title="${title}">
               ${title}
             </div>
             <div class="card-check-badge" style="position: absolute; top: 4px; right: 4px; background: #2563eb; color: #fff; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 11px;">
@@ -2918,6 +3235,8 @@
             // 3. Kural: Şasi (VIN) sorgusundan ASLA galeriye görüntü gelmez!
             // Galeri tamamen temizlenir ve gizlenir. Sadece OEM / OE aramasında parça çizimi / görseli gelir.
             clearCatalogGallery();
+            const enrichedBox = document.getElementById('enriched-data-container');
+            if (enrichedBox) enrichedBox.style.display = 'none';
 
             // Şasi bağlamını kaydet (OE sorgusunda OEM şemalarını anında eşleştirmek için carId, criteria saklanır)
             window.currentVehicleContext = {
@@ -2963,6 +3282,55 @@
       // Mantık: Şasi bağlamıyla OEM montaj şemalarını parçaya bağlar.
       // Liste Fiyatı ve Stok Miktarına KESİNLİKLE dokunulmaz.
       // =========================================================================
+      function renderEnrichedData(data) {
+        const container = document.getElementById('enriched-data-container');
+        if (!container) return;
+
+        const crossesBox = document.getElementById('preview-cross-references');
+        const fitmentBox = document.getElementById('preview-fitment-list');
+        const attrsBox = document.getElementById('preview-attributes-table');
+
+        const crosses = (data && data.crossReferences) || [];
+        const fitments = (data && data.compatibleVehicles) || [];
+        const attrs = (data && data.attributes) || [];
+
+        if (crosses.length === 0 && fitments.length === 0 && attrs.length === 0) {
+          container.style.display = 'none';
+          return;
+        }
+
+        container.style.display = 'block';
+
+        if (crossesBox) {
+          crossesBox.innerHTML = crosses.map(c => `
+            <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 8px; display: inline-flex; align-items: center; gap: 5px; font-size: 0.76rem;">
+              <span style="font-weight: 700; color: #1e293b;">${escapeHtml(c.brand || '')}</span>
+              <span style="font-family: monospace; color: #2563eb; font-weight: 600;">${escapeHtml(c.code || c.oeNumber || '')}</span>
+              <span style="background: #eff6ff; color: #1d4ed8; padding: 1px 4px; border-radius: 4px; font-size: 0.68rem; font-weight: 600;">${escapeHtml(c.quality || 'Muadil')}</span>
+            </div>
+          `).join('') || '<span style="color:#94a3b8; font-size: 0.74rem;">Muadil kaydı yok</span>';
+        }
+
+        if (fitmentBox) {
+          fitmentBox.innerHTML = fitments.map(f => `
+            <div style="background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 8px; font-size: 0.74rem; color: #334155;">
+              <strong>${escapeHtml(f.make || '')} ${escapeHtml(f.model || '')}</strong>
+              <span style="color: #64748b;">(${escapeHtml(f.years || '')} - ${escapeHtml(f.engine || '')})</span>
+            </div>
+          `).join('') || '<span style="color:#94a3b8; font-size: 0.74rem;">Uyumlu araç kaydı yok</span>';
+        }
+
+        if (attrsBox) {
+          attrsBox.innerHTML = attrs.map(a => `
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 8px;">
+              <span style="color: #64748b; font-size: 0.7rem; display: block; font-weight: 600;">${escapeHtml(a.name || a.key || '')}</span>
+              <span style="color: #0f172a; font-weight: 700; font-size: 0.78rem;">${escapeHtml(a.value || '')}</span>
+            </div>
+          `).join('') || '<span style="color:#94a3b8; font-size: 0.74rem;">Teknik özellik yok</span>';
+        }
+      }
+      window.renderEnrichedData = renderEnrichedData;
+
       const btnSearchOe = document.getElementById('btn-search-oe');
       const inputProdOe = document.getElementById('prod-oe');
 
@@ -3054,8 +3422,36 @@
               }
             }
 
-            // 3. SADECE bu OEM / OE numarasına ait kayıtlı teknik detay çizimi ve parça görselini ekle
-            // Başka sorgulardan kalan görsellerle karışmaz, araca ait tüm ekstra şemalar dökülmez.
+            // 3. Araç Markası (prod-brand) - OE sorgusunda otomatik doldur
+            const brandSelect = document.getElementById('prod-brand');
+            const targetBrand = data.vehicleBrand || data.brand;
+            if (brandSelect && targetBrand) {
+              let matched = false;
+              for (let i = 0; i < brandSelect.options.length; i++) {
+                if (brandSelect.options[i].value.toLowerCase() === targetBrand.toLowerCase()) {
+                  brandSelect.selectedIndex = i;
+                  matched = true;
+                  break;
+                }
+              }
+              if (!matched) {
+                const opt = new Option(targetBrand, targetBrand, true, true);
+                brandSelect.add(opt);
+              }
+            }
+
+            // 4. Uyumlu Modeller (prod-models) - OE hangi marka/modellerle uyumluysa doldur
+            const modelsInput = document.getElementById('prod-models');
+            if (modelsInput && data.compatibleModels) {
+              if (Array.isArray(data.compatibleModels)) {
+                modelsInput.value = data.compatibleModels.filter(Boolean).join(', ');
+              } else {
+                modelsInput.value = data.compatibleModels;
+              }
+            }
+
+            // 5. SADECE bu OEM / OE numarasına ait kayıtlı teknik detay çizimi ve parça görselini ekle
+            // Başka sorgulardan kalan görsellerle karışmaz, şasi sorgusunda resim çıkmaz; sadece OE sorgusunda gelir.
             const images = data.images || [];
             const diagrams = data.diagrams || [];
             const allItems = [...diagrams, ...images.filter(img => !diagrams.some(d => d.url === img))];
@@ -3064,6 +3460,12 @@
               renderCatalogGallery(allItems, true); // replace = true: bir öncekini temizler ve sadece bunu gösterir
             } else {
               clearCatalogGallery();
+            }
+
+            // 6. Zengin Verileri Sakla ve Arayüzde Önizle (Uyumlu araçlar, muadiller, teknik özellikler)
+            window.currentEnrichedData = data;
+            if (typeof renderEnrichedData === 'function') {
+              renderEnrichedData(data);
             }
 
             // KRİTİK KURAL: Fiyat ve Stok inputlarına ASLA DOKUNULMAZ!
@@ -3166,6 +3568,11 @@
       if (formAddProduct) {
         formAddProduct.addEventListener('submit', async function (e) {
           e.preventDefault();
+
+          if (window.isDealerPendingApproval) {
+            alert('Hesabınız onay aşamasındadır. Destek ekibimiz vitrin sayfanızı hazırlayabilmesi için en kısa sürede sizinle iletişime geçecektir.');
+            return;
+          }
 
           const editId = document.getElementById('prod-edit-id')?.value || '';
           const name = document.getElementById('prod-name').value.trim();
@@ -3278,6 +3685,24 @@
 
             if (selectedCatalogImages.length > 0) {
               formData.append('catalogImages', JSON.stringify(selectedCatalogImages));
+            }
+
+            if (window.currentEnrichedData) {
+              if (window.currentEnrichedData.crossReferences) {
+                formData.append('crossReferences', JSON.stringify(window.currentEnrichedData.crossReferences));
+              }
+              if (window.currentEnrichedData.compatibleVehicles) {
+                formData.append('compatibleVehicles', JSON.stringify(window.currentEnrichedData.compatibleVehicles));
+              }
+              if (window.currentEnrichedData.attributes) {
+                formData.append('attributes', JSON.stringify(window.currentEnrichedData.attributes));
+              }
+              if (window.currentEnrichedData.diagramUrl) {
+                formData.append('diagramUrl', window.currentEnrichedData.diagramUrl);
+              }
+              if (window.currentEnrichedData.diagrams) {
+                formData.append('diagrams', JSON.stringify(window.currentEnrichedData.diagrams));
+              }
             }
 
             if (files && files.length > 0) {
@@ -4007,7 +4432,7 @@
 
           const imgHtml = displayImg
             ? `<div style="position: relative; display: inline-block;">
-                <img src="${escapeHtml(displayImg)}" alt="${prodName}" style="width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid #e2e8f0; display: block;">
+                <img src="${escapeHtml(displayImg)}" alt="${prodName}" style="width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid #e2e8f0; display: block;" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'product-thumb-box\\'><svg width=\\'22\\' height=\\'22\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><rect x=\\'2\\' y=\\'6\\' width=\\'20\\' height=\\'12\\' rx=\\'2\\'></rect><circle cx=\\'12\\' cy=\\'12\\' r=\\'3\\'></circle></svg></div>';">
                 ${imageList.length > 1 ? `<span style="position: absolute; bottom: -4px; right: -4px; background: #1e293b; color: #fff; font-size: 9px; padding: 1px 4px; border-radius: 4px; font-weight: 600;">+${imageList.length}</span>` : ''}
                </div>`
             : `<div class="product-thumb-box"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="3"></circle></svg></div>`;
@@ -4509,7 +4934,8 @@
       const searchOrdersInput = document.getElementById('search-orders-input');
       if (searchOrdersInput) {
         searchOrdersInput.addEventListener('input', function () {
-          loadOrdersTab(null, this.value.trim());
+          currentOrderSearchTerm = this.value.trim();
+          renderOrdersTable();
         });
       }
 
@@ -4541,11 +4967,13 @@
         });
       }
 
-      // Sayfa Açılışında Tüm Verileri Yükle
-      loadCustomers();
-      loadCatalog();
-      loadDashboard();
-      loadDiscountsTab();
+      // Sayfa Açılışında Onay Durumunu ve Tüm Verileri Yükle
+      checkDealerApprovalStatus().finally(() => {
+        loadCustomers();
+        loadCatalog();
+        loadDashboard();
+        loadDiscountsTab();
+      });
 
       // Üst Genel Arama Çubuğu
       const headerSearch = document.querySelector('.header-search input');

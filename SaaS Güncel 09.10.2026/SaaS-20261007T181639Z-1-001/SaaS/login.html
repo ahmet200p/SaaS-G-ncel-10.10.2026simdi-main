@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SaaS B2B Platformu - Güvenli Yönetici ve Bayi Giriş Portalı">
+  <title>Giriş Yap | SaaS Yönetim Platformu</title>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="login.css">
+  <script src="assets/js/api.js"></script>
+  <style>
+    body {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .login-left {
+      width: 45%;
+    }
+    .login-right {
+      width: 55%;
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="login-container">
+
+    <!-- SOL PANEL: MARKA TANITIMI & GÖRSEL VİTRİN (.login-left) -->
+    <section class="login-left">
+      <div class="glow-circle-1"></div>
+      <div class="glow-circle-2"></div>
+      <div class="grid-overlay"></div>
+
+      <!-- Marka Logosu & Başlık -->
+      <header class="brand-header">
+        <div class="brand-logo-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        <div class="brand-logo-text">
+          SaaS Platform
+          <span class="brand-tag">v2.4 Enterprise</span>
+        </div>
+      </header>
+
+      <!-- Orta Başlık & İstatistik Önizleme Kartı -->
+      <div class="brand-content">
+        <h1 class="brand-slogan">Yedek Parça Ekosistemine Hoş Geldiniz</h1>
+        <p class="brand-description">
+          Yüzlerce bayi ağını, merkezi stok ve parça havuzunu tek bir güvenli çatı altında kolayca yönetin.
+        </p>
+
+        <!-- Canlı Metrik Cam Kartı (Glassmorphic Card) -->
+        <div class="stats-glass-card">
+          <div class="glass-card-header">
+            <div class="glass-title">
+              <span class="live-dot"></span>
+              Sistem Durumu: Çevrimiçi
+            </div>
+            <span class="glass-badge">%99.98 Uptime</span>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="stat-number">142+</div>
+              <div class="stat-label">Aktif B2B Bayi</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">1.4M+</div>
+              <div class="stat-label">Merkezi Parça Havuzu</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sol Alt Güvenlik Bildirimi -->
+      <footer class="brand-footer">
+        <div class="security-badge">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          256-bit Uçtan Uca Şifreli Güvenli Oturum
+        </div>
+      </footer>
+    </section>
+
+    <!-- SAĞ PANEL: GİRİŞ FORMU ALANI (.login-right) -->
+    <section class="login-right">
+      <div class="login-box">
+
+        <!-- En üste 'Hesabınıza Giriş Yapın' başlığı ve gri alt metin -->
+        <header class="login-header">
+          <h2 class="login-title">Hesabınıza Giriş Yapın</h2>
+          <p class="login-subtitle">Lütfen e-posta ve şifrenizi giriniz</p>
+        </header>
+
+        <!-- Formun hemen üstüne id="error-msg" olan div -->
+        <div id="error-msg">
+          Hatalı e-posta veya şifre!
+        </div>
+
+        <!-- Form: <form id="login-form"> -->
+        <form id="login-form">
+
+          <!-- 1. Giriş Grubu: email -->
+          <div class="input-group">
+            <label for="email">E-posta</label>
+            <input type="email" id="email" name="email" placeholder="admin@sistem.com" required autocomplete="email">
+          </div>
+
+          <!-- 2. Giriş Grubu: password -->
+          <div class="input-group">
+            <label for="password">Şifre</label>
+            <input type="password" id="password" name="password" placeholder="••••••" required autocomplete="current-password">
+          </div>
+
+          <!-- Şifre alanının hemen altına sağa yaslı, ufak ve mavi renkli 'Şifremi Unuttum' linki -->
+          <div class="forgot-wrapper">
+            <a href="#forgot" class="forgot-link">Şifremi Unuttum</a>
+          </div>
+
+          <!-- Test e-posta adresleri notu (ufak ve silik bir not) -->
+          <div class="test-credentials-note">
+            <div class="note-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              Test Giriş Bilgileri (Tıklayıp Doldurabilirsiniz):
+            </div>
+            <div class="test-row" onclick="fillTestCreds('admin@sistem.com', '123456')">
+              <span><strong>Süper Admin:</strong> <code>admin@sistem.com</code></span>
+              <span>Şifre: <code>123456</code></span>
+            </div>
+            <div class="test-row" onclick="fillTestCreds('ahmet@ahmetoto.com', '123456')">
+              <span><strong>Bayi Yöneticisi:</strong> <code>ahmet@ahmetoto.com</code></span>
+              <span>Şifre: <code>123456</code></span>
+            </div>
+            <div class="test-row" onclick="fillTestCreds('kemal@kemaloto.com', '123456')">
+              <span><strong>Otoservis (Müşteri):</strong> <code>kemal@kemaloto.com</code></span>
+              <span>Şifre: <code>123456</code></span>
+            </div>
+          </div>
+
+          <!-- Formun en altına tam genişlikte, --primary arkaplanlı, kalın fontlu büyük 'Giriş Yap' butonu -->
+          <button type="submit" class="btn-login" id="btn-login">
+            Giriş Yap
+          </button>
+        </form>
+
+        <!-- Bayi Başvurusu / Kayıt Ol Butonu & Bilgilendirme -->
+        <div class="bayi-register-cta" style="margin-top: 16px; text-align: center; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px 14px;">
+          <span style="font-size: 0.84rem; color: #64748b; display: block; margin-bottom: 6px;">B2B Parça Ağına Katılmak İsteyen Yeni Bayi misiniz?</span>
+          <button type="button" class="btn-open-bayi-register" id="btn-open-bayi-register" onclick="openBayiRegisterModal()" style="background: #2563eb; color: #ffffff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 0.84rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(37,99,235,0.2);">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="8.5" cy="7" r="4"></circle>
+              <line x1="20" y1="8" x2="20" y2="14"></line>
+              <line x1="23" y1="11" x2="17" y2="11"></line>
+            </svg>
+            <span>Yeni Bayi Kaydı Yap (NVİ Onaylı)</span>
+          </button>
+        </div>
+
+        <!-- Hızlı Sayfa Geçişleri -->
+        <div class="divider">
+          <span>Doğrudan Panellere Git</span>
+        </div>
+
+        <!-- Sistem Panelleri Hızlı Linkler -->
+        <div class="quick-links">
+          <a href="admin.html" class="quick-link-card" onclick="quickLoginAndGo('SUPER_ADMIN', 'admin.html', event)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+              <polyline points="2 17 12 22 22 17"></polyline>
+              <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+            Süper Admin
+          </a>
+          <a href="bayi.html" class="quick-link-card" onclick="quickLoginAndGo('TENANT_ADMIN', 'bayi.html', event)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+            </svg>
+            Bayi Paneli
+          </a>
+          <a href="../storefront-ui/store.html" class="quick-link-card" onclick="quickLoginAndGo('CUSTOMER', '../storefront-ui/store.html', event)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="9" cy="21" r="1"/>
+              <circle cx="20" cy="21" r="1"/>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+            </svg>
+            B2B Vitrin
+          </a>
+        </div>
+
+        <!-- Alt Telif / Gizlilik -->
+        <footer class="box-footer">
+          Güvenli SaaS Oturum Yönetimi &copy; 2026<br>
+          <a href="#terms">Kullanım Koşulları</a> &bull; <a href="#privacy">KVKK &amp; Gizlilik Bildirimi</a>
+        </footer>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==========================================================================
+       NVİ DEVLET DOĞRULAMALI BAYİ KAYIT MODALI (REGISTER MODAL/FORM)
+       ========================================================================== -->
+  <div class="modal-backdrop" id="modal-bayi-register" style="display: none;" onclick="if(event.target === this) closeBayiRegisterModal()">
+    <div class="modal-dialog" style="max-width: 640px; width: 92%; max-height: 90vh; overflow-y: auto;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h3 class="modal-title" style="margin: 0; font-size: 1.2rem; font-weight: 700; color: #0f172a;">Yeni Bayi Kayıt Başvurusu</h3>
+            <span style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; padding: 2px 8px; border-radius: 9999px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              %100 NVİ KPS Korumalı
+            </span>
+          </div>
+          <p class="modal-subtitle" style="margin: 4px 0 0; font-size: 0.82rem; color: #64748b;">
+            Sahte hesapları ve yetkisiz işlemleri engellemek için T.C. İçişleri Bakanlığı NVİ Kimlik Doğrulama sistemi devrededir.
+          </p>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="closeBayiRegisterModal()" aria-label="Kapat" style="background: none; border: none; font-size: 1.4rem; line-height: 1; cursor: pointer; color: #94a3b8;">✕</button>
+      </div>
+
+      <div id="bayi-register-alert" style="display: none; margin: 16px 20px 0; padding: 12px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 500;"></div>
+
+      <form id="form-bayi-register" onsubmit="handleBayiRegisterSubmit(event)" style="padding: 20px;">
+        <!-- Güvenlik Bilgilendirme Kartı -->
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 14px; margin-bottom: 18px; display: flex; gap: 10px; align-items: flex-start;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" style="flex-shrink: 0; margin-top: 2px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <div style="font-size: 0.78rem; color: #1e40af; line-height: 1.45;">
+            <strong>Devlet (NVİ) Doğrulama Zorunluluğu:</strong> Girilen Ad, Soyad, 11 haneli T.C. Kimlik No ve 4 haneli Doğum Yılı doğrudan devlet nüfus kayıtlarıyla eşleştirilir. Bilgiler uyuşmadığı takdirde kayıt anında iptal edilir.
+          </div>
+        </div>
+
+        <!-- 1. KISIM: YETKİLİ KİMLİK BİLGİLERİ (Zorunlu 4 Alan) -->
+        <div style="font-size: 0.8rem; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
+          1. Bayi Yetkilisi Kimlik Bilgileri (NVİ KPS)
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div class="input-group" style="margin: 0;">
+            <label for="bayi-reg-ad" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #1e293b;">
+              Ad <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="bayi-reg-ad" name="ad" placeholder="Örn: Ahmet" required autocomplete="given-name" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem;">
+          </div>
+          <div class="input-group" style="margin: 0;">
+            <label for="bayi-reg-soyad" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #1e293b;">
+              Soyad <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="bayi-reg-soyad" name="soyad" placeholder="Örn: Yılmaz" required autocomplete="family-name" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem;">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px;">
+          <div class="input-group" style="margin: 0;">
+            <label for="bayi-reg-tc" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #1e293b;">
+              TC Kimlik No <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="bayi-reg-tc" name="tcKimlikNo" maxlength="11" pattern="[0-9]{11}" placeholder="11 Haneli T.C. No" required autocomplete="off" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem; font-family: monospace;">
+          </div>
+          <div class="input-group" style="margin: 0;">
+            <label for="bayi-reg-dogum-yili" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #1e293b;">
+              Doğum Yılı (4 Hane) <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="bayi-reg-dogum-yili" name="dogumYili" maxlength="4" pattern="[0-9]{4}" placeholder="Örn: 1990" required autocomplete="bday-year" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem; font-family: monospace;">
+          </div>
+        </div>
+
+        <!-- 2. KISIM: FİRMA VE GİRİŞ BİLGİLERİ -->
+        <div style="font-size: 0.8rem; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
+          2. Bayi Firma ve Giriş Bilgileri
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div class="input-group" style="margin: 0;">
+            <label for="bayi-reg-firm-name" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #1e293b;">
+              Firma / Bayi Adı <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="bayi-reg-firm-name" name="firmName" placeholder="Örn: Özkan Otomotiv" required style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem;">
+          </div>
+          <div class="input-group" style="margin: 0;">
+            <label for="bayi-reg-subdomain" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #1e293b;">
+              Subdomain Tercihi <span style="color: #ef4444;">*</span>
+            </label>
+            <div style="display: flex; align-items: center;">
+              <input type="text" id="bayi-reg-subdomain" name="subdomainPrefix" placeholder="ozkanoto" required style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-right: none; border-radius: 6px 0 0 6px; font-size: 0.88rem;">
+              <span style="background: #f1f5f9; border: 1px solid #cbd5e1; border-left: none; padding: 9px 10px; font-size: 0.8rem; color: #64748b; border-radius: 0 6px 6px 0; white-space: nowrap;">.sistem.com</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div class="input-group" style="margin: 0;">
+            <label for="bayi-reg-email" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #1e293b;">
+              Yönetici E-posta <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="email" id="bayi-reg-email" name="email" placeholder="admin@ozkanoto.com" required autocomplete="email" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem;">
+          </div>
+          <div class="input-group" style="margin: 0;">
+            <label for="bayi-reg-password" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #1e293b;">
+              Yönetici Şifresi <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="password" id="bayi-reg-password" name="password" minlength="6" placeholder="En az 6 karakter" required autocomplete="new-password" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem;">
+          </div>
+        </div>
+
+        <div class="input-group" style="margin-bottom: 20px;">
+          <label for="bayi-reg-phone" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #1e293b;">
+            İletişim Telefonu <span style="color: #ef4444;">*</span>
+          </label>
+          <input type="tel" id="bayi-reg-phone" name="phone" placeholder="Örn: 0555 123 45 67" required autocomplete="tel" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem;">
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 16px;">
+          <button type="button" onclick="closeBayiRegisterModal()" style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px 18px; border-radius: 6px; font-weight: 600; color: #475569; cursor: pointer; font-size: 0.88rem;">
+            Vazgeç
+          </button>
+          <button type="submit" id="btn-submit-bayi-register" style="background: #2563eb; border: none; padding: 10px 22px; border-radius: 6px; font-weight: 700; color: #ffffff; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 0.88rem; box-shadow: 0 2px 4px rgba(37,99,235,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>NVİ ile Doğrula ve Kaydı Tamamla</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- API İstemcisi & Kimlik Doğrulama Köprüsü -->
+  <script src="assets/js/api.js"></script>
+
+  <!-- JavaScript Backend Entegrasyonu -->
+  <script>
+    function openBayiRegisterModal() {
+      const modal = document.getElementById('modal-bayi-register');
+      if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function closeBayiRegisterModal() {
+      const modal = document.getElementById('modal-bayi-register');
+      if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+      const alertBox = document.getElementById('bayi-register-alert');
+      if (alertBox) alertBox.style.display = 'none';
+    }
+
+    async function handleBayiRegisterSubmit(event) {
+      event.preventDefault();
+      const alertBox = document.getElementById('bayi-register-alert');
+      const submitBtn = document.getElementById('btn-submit-bayi-register');
+
+      // 1. Form Verilerini Toplama
+      const ad = (document.getElementById('bayi-reg-ad').value || '').trim();
+      const soyad = (document.getElementById('bayi-reg-soyad').value || '').trim();
+      const tcKimlikNo = (document.getElementById('bayi-reg-tc').value || '').trim();
+      const dogumYili = (document.getElementById('bayi-reg-dogum-yili').value || '').trim();
+
+      const firmName = (document.getElementById('bayi-reg-firm-name').value || '').trim();
+      const subdomainPrefix = (document.getElementById('bayi-reg-subdomain').value || '').trim();
+      const email = (document.getElementById('bayi-reg-email').value || '').trim();
+      const password = (document.getElementById('bayi-reg-password').value || '').trim();
+      const phone = (document.getElementById('bayi-reg-phone').value || '').trim();
+
+      // Prompt 1. ADIM Kuralı: Form verilerini toplarken bu 4 verinin (Ad, Soyad, TC Kimlik No, Doğum Yılı) boş olmadığından emin ol.
+      if (!ad || !soyad || !tcKimlikNo || !dogumYili) {
+        if (alertBox) {
+          alertBox.style.display = 'block';
+          alertBox.style.background = '#fef2f2';
+          alertBox.style.color = '#b91c1c';
+          alertBox.style.border = '1px solid #f87171';
+          alertBox.innerHTML = '<strong>Hata:</strong> Devlet (NVİ) doğrulaması için Ad, Soyad, TC Kimlik No ve Doğum Yılı alanları boş bırakılamaz!';
+        }
+        return;
+      }
+
+      if (tcKimlikNo.length !== 11 || !/^[0-9]{11}$/.test(tcKimlikNo)) {
+        if (alertBox) {
+          alertBox.style.display = 'block';
+          alertBox.style.background = '#fef2f2';
+          alertBox.style.color = '#b91c1c';
+          alertBox.style.border = '1px solid #f87171';
+          alertBox.innerHTML = '<strong>Hata:</strong> TC Kimlik Numarası 11 haneli rakamlardan oluşmalıdır.';
+        }
+        return;
+      }
+
+      if (dogumYili.length !== 4 || !/^[0-9]{4}$/.test(dogumYili)) {
+        if (alertBox) {
+          alertBox.style.display = 'block';
+          alertBox.style.background = '#fef2f2';
+          alertBox.style.color = '#b91c1c';
+          alertBox.style.border = '1px solid #f87171';
+          alertBox.innerHTML = '<strong>Hata:</strong> Doğum Yılı sadece 4 haneli yıl olmalıdır (Örn: 1990).';
+        }
+        return;
+      }
+
+      if (alertBox) alertBox.style.display = 'none';
+      const origBtnText = submitBtn ? submitBtn.innerHTML : 'Kaydet';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Devlet (NVİ) Doğrulanıyor...';
+      }
+
+      try {
+        const payload = {
+          ad,
+          soyad,
+          tcKimlikNo,
+          dogumYili,
+          firmName,
+          companyName: firmName,
+          subdomainPrefix,
+          email,
+          password,
+          phone
+        };
+
+        const res = await apiFetch('/auth/register-bayi', {
+          method: 'POST',
+          body: payload
+        });
+
+        if (res && res.success) {
+          if (alertBox) {
+            alertBox.style.display = 'block';
+            alertBox.style.background = '#ecfdf5';
+            alertBox.style.color = '#065f46';
+            alertBox.style.border = '1px solid #6ee7b7';
+            alertBox.innerHTML = '<strong>Tebrikler!</strong> Kimlik bilgileriniz NVİ tarafından onaylandı ve bayi hesabınız oluşturuldu. Yönlendiriliyorsunuz...';
+          }
+          document.getElementById('form-bayi-register').reset();
+          if (res.token) {
+            localStorage.setItem('token', res.token);
+            if (res.user) localStorage.setItem('user', JSON.stringify(res.user));
+          }
+          setTimeout(() => {
+            window.location.href = 'bayi.html';
+          }, 1500);
+        } else {
+          // Prompt 3. KURAL: Eğer NVİ'den dönen sonuç false ise... 400 Bad Request: Girdiğiniz kimlik bilgileri devlet kayıtlarıyla uyuşmuyor.
+          const errorMsg = (res && res.message) ? res.message : 'Girdiğiniz kimlik bilgileri devlet kayıtlarıyla uyuşmuyor.';
+          if (alertBox) {
+            alertBox.style.display = 'block';
+            alertBox.style.background = '#fef2f2';
+            alertBox.style.color = '#b91c1c';
+            alertBox.style.border = '1px solid #f87171';
+            alertBox.innerHTML = `<strong>Doğrulama Başarısız:</strong> ${errorMsg}`;
+          }
+        }
+      } catch (err) {
+        if (alertBox) {
+          alertBox.style.display = 'block';
+          alertBox.style.background = '#fef2f2';
+          alertBox.style.color = '#b91c1c';
+          alertBox.style.border = '1px solid #f87171';
+          alertBox.innerHTML = `<strong>Hata:</strong> ${err.message || 'Bağlantı hatası oluştu.'}`;
+        }
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = origBtnText;
+        }
+      }
+    }
+
+    // Test bilgilerini tek tıkla forma doldurma yardımcısı
+    function fillTestCreds(email, password) {
+      document.getElementById('email').value = email;
+      document.getElementById('password').value = password;
+      const errorMsg = document.getElementById('error-msg');
+      if (errorMsg) {
+        errorMsg.style.display = 'none';
+      }
+    }
+
+    // Doğrudan panellere hızlı giriş yardımcısı
+    function quickLoginAndGo(role, targetPage, event) {
+      if (event) event.preventDefault();
+      if (role === 'SUPER_ADMIN') {
+        fillTestCreds('admin@sistem.com', '123456');
+      } else if (role === 'TENANT_ADMIN') {
+        fillTestCreds('ahmet@ahmetoto.com', '123456');
+      } else if (role === 'CUSTOMER') {
+        fillTestCreds('kemal@kemaloto.com', '123456');
+      }
+      const form = document.getElementById('login-form');
+      if (form) {
+        form.dispatchEvent(new Event('submit', { cancelable: true }));
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const loginForm = document.getElementById('login-form');
+      const errorMsg = document.getElementById('error-msg');
+      const errorDiv = document.getElementById('error-msg');
+      const btnLogin = document.getElementById('btn-login');
+      const emailInput = document.getElementById('email');
+      const passwordInput = document.getElementById('password');
+
+      // Kullanıcı tekrar yazmaya başladığında hata mesajını gizle
+      [emailInput, passwordInput].forEach(inp => {
+        if (inp) {
+          inp.addEventListener('input', function () {
+            if (errorMsg) errorMsg.style.display = 'none';
+          });
+        }
+      });
+
+      // Tarayıcıda vitrinden (storefront) kalma müşteri (CUSTOMER) oturumu varsa,
+      // SaaS yönetim paneli girişini engellememesi ve kullanıcıyı zorla vitrine atmaması için temizle.
+      const existingToken = localStorage.getItem('token');
+      const existingUserStr = localStorage.getItem('user');
+      if (existingUserStr) {
+        try {
+          const user = JSON.parse(existingUserStr);
+          if (user && user.role === 'CUSTOMER') {
+            // Müşteri oturumu SaaS paneli için geçerli değildir; giriş formunu açık tut
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+          } else if (existingToken && user && user.role) {
+            // Yalnızca aktif yönetici veya bayi oturumu varsa ve kullanıcı zorla login sayfasına gelmediyse yönlendir
+            const params = new URLSearchParams(window.location.search);
+            const forceLogin = params.has('logout') || params.has('switch') || params.has('login');
+            if (!forceLogin) {
+              if (user.role === 'SUPER_ADMIN') {
+                window.location.href = 'admin.html';
+              } else if (user.role === 'TENANT_ADMIN') {
+                window.location.href = 'bayi.html';
+              }
+            }
+          }
+        } catch (e) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        }
+      }
+
+      // Organik Yönlendirme (Promotional Link): Eğer kullanıcı ?register=bayi veya ?action=register ile gelmişse kayıt modalını otomatik aç
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('action') === 'register' || urlParams.get('register') === 'bayi') {
+          setTimeout(() => {
+            if (typeof openBayiRegisterModal === 'function') {
+              openBayiRegisterModal();
+            }
+          }, 150);
+        }
+      } catch (e) {}
+
+      // Şifremi Unuttum Bağlantısı
+      const forgotLink = document.querySelector('.forgot-link');
+      if (forgotLink) {
+        forgotLink.addEventListener('click', function (e) {
+          e.preventDefault();
+          const email = prompt('Şifre sıfırlama bağlantısı gönderilecek e-posta adresini giriniz:', emailInput ? emailInput.value : '');
+          if (email && email.trim() !== '') {
+            alert(`Şifre sıfırlama talimatları ${email.trim()} adresine başarıyla gönderildi.`);
+          }
+        });
+      }
+
+      // Kullanım Koşulları ve KVKK Linkleri
+      const termsLink = document.querySelector('a[href="#terms"]');
+      if (termsLink) {
+        termsLink.addEventListener('click', function (e) {
+          e.preventDefault();
+          alert('SaaS v2.4 Enterprise Platformu Kullanım Koşulları: Bu sistem yetkili kurumsal B2B bayileri ve yöneticileri içindir. Verileriniz KVKK kapsamında korunmaktadır.');
+        });
+      }
+
+      const privacyLink = document.querySelector('a[href="#privacy"]');
+      if (privacyLink) {
+        privacyLink.addEventListener('click', function (e) {
+          e.preventDefault();
+          alert('KVKK ve Gizlilik Bildirimi: Kullanıcı oturum ve işlem logları 256-bit SSL şifreleme ve KVKK mevzuatına uygun olarak güvenli bulut kümesinde saklanmaktadır.');
+        });
+      }
+
+      // Form Gönderimi: prompt.md Yönergelerine Göre API Entegrasyonu & Rol Bazlı Yönlendirme
+      if (loginForm) {
+        loginForm.addEventListener('submit', async function (e) {
+          // 1. Formun submit olayını yakala (e.preventDefault())
+          e.preventDefault();
+
+          // 2. Kullanıcının girdiği e-posta ve şifreyi al
+          const email = emailInput.value.trim();
+          const password = passwordInput.value.trim();
+
+          // Hata mesajı alanını gizle
+          if (errorMsg) {
+            errorMsg.style.display = 'none';
+          }
+
+          if (!email || !password) {
+            if (errorMsg) {
+              errorMsg.textContent = 'Lütfen e-posta ve şifrenizi eksiksiz giriniz.';
+              errorMsg.style.display = 'block';
+            }
+            return;
+          }
+
+          // Buton yükleniyor durumu
+          const originalBtnText = btnLogin ? btnLogin.innerHTML : 'Giriş Yap';
+          if (btnLogin) {
+            btnLogin.disabled = true;
+            btnLogin.textContent = 'Giriş Yapılıyor...';
+          }
+
+          try {
+            // apiFetch: Yerel Express sunucusuna (http://localhost:5000/api/auth/login) bağlanır,
+            // sunucu kapalıysa veya yerel demo modundaysa otomatik offline köprüsünü devreye alır.
+            const res = await apiFetch('/auth/login', {
+              method: 'POST',
+              body: { email, password }
+            });
+
+            // 4. Eğer giriş başarılıysa, sunucudan dönen token ve user nesnelerini localStorage içine kaydet
+            if (res && res.success && res.token) {
+              localStorage.setItem('token', res.token);
+              if (res.user) {
+                localStorage.setItem('user', JSON.stringify(res.user));
+              }
+
+              // 5. Kullanıcının rolüne göre yönlendirme yap (window.location.href)
+              const userRole = (res.user && res.user.role) || res.role;
+              if (userRole === 'SUPER_ADMIN') {
+                // Role 'SUPER_ADMIN' ise admin.html'e git
+                window.location.href = 'admin.html';
+              } else if (userRole === 'TENANT_ADMIN') {
+                // Role 'TENANT_ADMIN' ise bayi.html'e git
+                window.location.href = 'bayi.html';
+              } else if (userRole === 'CUSTOMER') {
+                // Role 'CUSTOMER' ise storefront vitrinine git (3-katmanlı mimari konumu)
+                window.location.href = '../storefront-ui/store.html';
+              } else {
+                window.location.href = 'admin.html';
+              }
+            } else {
+              // 6. Eğer giriş hatalıysa, arayüzdeki hata div'ini (#error-msg) görünür yapıp hata mesajını bas
+              // Prompt 4. ADIM: API'den dönen hata mesajını (res.message) doğrudan hata kutusuna (#error-msg) yazdır:
+              errorDiv.textContent = res.message || 'Hatalı e-posta veya şifre!';
+              errorDiv.style.display = 'block';
+
+              // Butona titreşim efekti ver
+              if (btnLogin) {
+                btnLogin.classList.remove('btn-shake');
+                void btnLogin.offsetWidth;
+                btnLogin.classList.add('btn-shake');
+
+                setTimeout(function () {
+                  btnLogin.classList.remove('btn-shake');
+                }, 500);
+              }
+            }
+          } catch (err) {
+            console.error('[LOGIN_ERROR]:', err);
+            if (errorDiv) {
+              errorDiv.textContent = (err && err.message) || 'Giriş işlemi sırasında hata oluştu. Lütfen bağlantınızı kontrol ediniz.';
+              errorDiv.style.display = 'block';
+            }
+          } finally {
+            if (btnLogin) {
+              btnLogin.disabled = false;
+              btnLogin.innerHTML = originalBtnText;
+            }
+          }
+        });
+      }
+    });
+  </script>
+
+</body>
+
+</html>

@@ -988,6 +988,12 @@ router.delete('/customers/:id', async (req, res) => {
  */
 const handleGetTenantStats = async (req, res) => {
   try {
+    // 3. ADIM: Dashboard KPI sayaçlarının önbellekte (cache) takılı kalmasını engelle
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+
     const tenantId = resolveTenantId(req, res);
     if (!tenantId) return;
 
@@ -1031,6 +1037,9 @@ const handleGetTenantStats = async (req, res) => {
             id: true,
             companyName: true,
             phone: true,
+            address: true,
+            city: true,
+            district: true,
             discountRate: true,
             balance: true
           }
@@ -1102,6 +1111,10 @@ router.get('/stats', handleGetTenantStats);
  */
 router.get('/orders', async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     const tenantId = resolveTenantId(req, res);
     if (!tenantId) return;
 
@@ -1125,6 +1138,9 @@ router.get('/orders', async (req, res) => {
             id: true,
             companyName: true,
             phone: true,
+            address: true,
+            city: true,
+            district: true,
             discountRate: true,
             balance: true
           }

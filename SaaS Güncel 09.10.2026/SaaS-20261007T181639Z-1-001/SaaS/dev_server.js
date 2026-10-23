@@ -47,6 +47,32 @@ const frontendServer = http.createServer((req, res) => {
     return;
   }
 
+  // 1. API ve Uploads İsteklerini Doğrudan Express Backend REST API'sine (Port 5000) Şeffaf Yönlendir (Reverse Proxy)
+  if (req.url.startsWith('/api/') || req.url.startsWith('/uploads/')) {
+    const proxyReq = http.request({
+      hostname: '127.0.0.1',
+      port: 5000,
+      path: req.url,
+      method: req.method,
+      headers: req.headers
+    }, (proxyRes) => {
+      const responseHeaders = { ...proxyRes.headers };
+      responseHeaders['access-control-allow-origin'] = '*';
+      responseHeaders['cross-origin-resource-policy'] = 'cross-origin';
+      delete responseHeaders['access-control-allow-credentials'];
+      res.writeHead(proxyRes.statusCode, responseHeaders);
+      proxyRes.pipe(res);
+    });
+
+    proxyReq.on('error', (err) => {
+      res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ success: false, message: 'Backend REST API bağlantı hatası: ' + err.message }));
+    });
+
+    req.pipe(proxyReq);
+    return;
+  }
+
   let reqUrl = req.url.split('?')[0];
   let reqPath = decodeURI(reqUrl);
 

@@ -119,7 +119,7 @@ async function runTests() {
       path: '/api/auth/login',
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
-    }, { email: 'ahmet@ahmetoto.com', password: '123456' });
+    }, { email: 'ahmet@ahmetoto.com', password: process.env.DEFAULT_DEALER_PASSWORD || 'SaaS_Dealer_Admin_2026!#Secure' });
 
     assert(loginRes.status === 200, 'Login HTTP 200 dönmeli');
     const token = loginRes.body.token || loginRes.body.data?.token;
@@ -147,9 +147,9 @@ async function runTests() {
         stock: '35'
       },
       [
-        { name: 'images', filename: 'triger1.png', content: Buffer.from('IMG1') },
-        { name: 'images', filename: 'triger2.png', content: Buffer.from('IMG2') },
-        { name: 'images', filename: 'triger3.png', content: Buffer.from('IMG3') }
+        { name: 'images', filename: 'triger1.png', content: Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000a49444154789c63000100000500010d0a2db40000000049454e44ae426082', 'hex') },
+        { name: 'images', filename: 'triger2.png', content: Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000a49444154789c63000100000500010d0a2db40000000049454e44ae426082', 'hex') },
+        { name: 'images', filename: 'triger3.png', content: Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000a49444154789c63000100000500010d0a2db40000000049454e44ae426082', 'hex') }
       ]
     );
 
@@ -253,7 +253,7 @@ async function runTests() {
     console.log('\n--- 7. GET /api/store/products Müşteri Arama & Otomotiv Alanları ---');
     let custCheck = await prisma.user.findUnique({ where: { email: 'kemal@kemaloto.com' } });
     if (!custCheck) {
-      require('child_process').execSync('node prisma/seed.js', { stdio: 'ignore' });
+      require('child_process').execSync('node prisma/seed.js', { stdio: 'ignore', env: { ...process.env, NODE_ENV: 'development' } });
     }
     const custLoginRes = await runHttp({
       hostname: '127.0.0.1',

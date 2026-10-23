@@ -71,7 +71,7 @@ async function main() {
   });
 
   console.log(`👑 Süper Admin oluşturuldu: ${superAdmin.email} (Rol: ${superAdmin.role})`);
-  console.log(`🔑 İlk Kurulum Süper Admin Şifresi: ${rawAdminPassword}`);
+  console.log(`🔑 İlk Kurulum Süper Admin Şifresi: ${adminPassword}`);
 
   // 3. 'Ahmet Oto' Adlı Bayi (Tenant) Oluşturma
   // Subdomain: ahmetoto, Tema: #f97316 (Turuncu)

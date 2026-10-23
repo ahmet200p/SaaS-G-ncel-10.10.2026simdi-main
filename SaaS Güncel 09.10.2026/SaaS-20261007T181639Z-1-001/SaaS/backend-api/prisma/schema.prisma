@@ -22,6 +22,7 @@ model User {
   password         String
   role             String           @default("CUSTOMER") // SUPER_ADMIN, TENANT_ADMIN, CUSTOMER
   name             String?          // Ad Soyad
+  status           String           @default("PENDING")  // PENDING, APPROVED, REJECTED
 
   // Super Admin için null; Tenant Admin ve Customer için zorunlu (1-n Tenant İlişkisi)
   tenantId         String?
@@ -38,6 +39,7 @@ model User {
   updatedAt        DateTime         @updatedAt
 
   @@index([tenantId])
+  @@index([status])
 }
 
 // ----------------------------------------------------------------------------
@@ -50,6 +52,7 @@ model Tenant {
   subdomain        String            @unique
   themeColor       String            @default("#2563eb")
   isActive         Boolean           @default(true)
+  status           String            @default("PENDING") // PENDING, APPROVED, REJECTED
 
   // İlişkiler (1-n)
   users            User[]
@@ -62,6 +65,8 @@ model Tenant {
 
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
+
+  @@index([status])
 }
 
 // ----------------------------------------------------------------------------
@@ -80,6 +85,13 @@ model Product {
   vehicleBrand     String?         // Parçanın uyumlu olduğu araç markası (Örn: Volkswagen, Hyundai)
   compatibleModels String?         // Uyumlu olduğu spesifik modeller (Örn: Golf 7, Passat B8)
   partGroup        String?         // Parçanın araçtaki yeri (Örn: İç Aksam, Dış Aksam/Kaporta, Motor)
+
+  // Zenginleştirilmiş Parça Verileri (prompt.md Mimarisi - Cross-references, Fitment, Attributes, Diagrams)
+  crossReferences    Json?         // Muadiller / Eşdeğer parçalar: [{ oeNumber, brand, name, quality, type }]
+  compatibleVehicles Json?         // Uyumlu Araçlar (Fitment): [{ make, model, years, engine, trim, kw, hp }]
+  attributes         Json?         // Teknik Özellikler: [{ name, value, unit }]
+  diagramUrl         String?       // Teknik Montaj / Patlatılmış Şema Görseli URL
+  diagrams           Json?         // Ek şemalar ve patlatılmış montaj çizimleri listesi
 
   tenantProducts   TenantProduct[]
 
@@ -134,6 +146,8 @@ model CustomerProfile {
   companyName     String
   phone           String
   address         String?          // Otoservis açık adresi
+  city            String?          // İl / Şehir
+  district        String?          // İlçe
   customerType    String           @default("MECHANIC") // MECHANIC (Tamirci / B2B) veya RETAIL (Bireysel / B2C)
   taxNumber       String?          // Vergi/TC No
   status          String           @default("APPROVED") // APPROVED (Onaylı) veya PENDING_APPROVAL (Onay Bekliyor)
@@ -174,6 +188,7 @@ model Order {
   rejectionReason String?        // Bayi ret sebebi (Örn: 'Cari limitiniz dolmuştur, lütfen ödeme yapınız.')
   cargoCompany   String?         // Kargo Firması adı (Yurtiçi Kargo, Aras Kargo, MNG Kargo, Sürat Kargo, PTT Kargo vb.)
   trackingNumber String?         // Kargo Takip Barkod Numarası
+  shippingAddress String?        // Sipariş anındaki teslimat ve irsaliye adresi (Snapshot)
 
   items          OrderItem[]
   stockMovements StockMovement[]

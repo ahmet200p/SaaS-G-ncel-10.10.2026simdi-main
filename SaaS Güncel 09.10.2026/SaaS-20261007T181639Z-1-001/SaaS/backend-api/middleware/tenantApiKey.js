@@ -190,6 +190,11 @@ async function validateApiKey(apiKey) {
  * - Geçersizse: Anında HTTP 401 Unauthorized döner.
  */
 async function tenantApiKeyInterceptor(req, res, next) {
+  // CORS Preflight (OPTIONS) isteklerini atla
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+
   const apiKey = req.headers['x-tenant-api-key'] ||
                  req.headers['X-Tenant-API-Key'] ||
                  req.headers['x-api-key'] ||
@@ -279,6 +284,11 @@ async function tenantApiKeyInterceptor(req, res, next) {
  * Belirli dış entegrasyon uç noktalarında X-Tenant-API-Key zorunlu kılar.
  */
 async function requireTenantApiKey(req, res, next) {
+  // CORS Preflight (OPTIONS) isteklerini atla
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+
   const apiKey = req.headers['x-tenant-api-key'] ||
                  req.headers['X-Tenant-API-Key'] ||
                  req.headers['x-api-key'] ||

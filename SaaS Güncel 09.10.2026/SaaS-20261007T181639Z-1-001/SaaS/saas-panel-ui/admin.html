@@ -68,6 +68,7 @@
               </svg>
               <span>Müşteri Firmalar (Tenants)</span>
               <span class="nav-count">24</span>
+              <span class="badge" id="pending-tenants-badge" style="display:none; margin-left: 6px; font-size: 11px; padding: 2px 7px; border-radius: 9999px; background: #f59e0b; color: #ffffff; font-weight: 700; box-shadow: 0 1px 3px rgba(245,158,11,0.3);">0 Onay</span>
             </a>
           </li>
           <li class="menu-item" data-target="section-pool">
@@ -314,7 +315,7 @@
               </div>
               <div class="quick-action-text">
                 <strong>Platform Ayarları</strong>
-                <span>TecDoc API entegrasyonu ve finansal iskonto parametrelerini yapılandır</span>
+                <span>Parts-Catalogs API entegrasyonu ve finansal iskonto parametrelerini yapılandır</span>
               </div>
               <span class="quick-action-arrow">→</span>
             </button>
@@ -399,6 +400,54 @@
         </button>
       </section>
 
+      <!-- Onay Bekleyen Bayi Başvuruları Bölümü (Yeni Bayi Kaydı Admin Onayı) -->
+      <section id="pending-tenants-section" style="display: none; margin-bottom: 28px;">
+        <div style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1.5px solid #f59e0b; border-radius: 12px; padding: 18px 22px; margin-bottom: 14px; box-shadow: 0 4px 12px rgba(245,158,11,0.08);">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 40px; height: 40px; border-radius: 10px; background: #fef08a; border: 1.5px solid #fde047; display: flex; align-items: center; justify-content: center; color: #b45309; flex-shrink: 0;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              </div>
+              <div>
+                <h4 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: #92400e; display: flex; align-items: center; gap: 8px;">
+                  Onay Bekleyen Bayi Başvuruları
+                  <span id="pending-count-badge" style="background: #f59e0b; color: #ffffff; font-size: 0.75rem; padding: 2px 8px; border-radius: 9999px;">0</span>
+                </h4>
+                <p style="margin: 3px 0 0 0; font-size: 0.835rem; color: #b45309;">
+                  Yeni kayıt olan bayiler sistem yöneticisi onay verene kadar ürün kataloğu ekleyemezler ve mağaza vitrinleri pasiftir.
+                </p>
+              </div>
+            </div>
+            <button type="button" onclick="loadPendingTenants()" class="btn-table-action" style="background: #ffffff; border: 1px solid #fde68a; color: #92400e; padding: 7px 14px; border-radius: 8px; cursor: pointer; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+              Yenile
+            </button>
+          </div>
+        </div>
+
+        <div class="table-container" style="border: 1.5px solid #fde68a; border-radius: 12px; overflow: hidden; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+          <table class="tenants-table" style="margin: 0;">
+            <thead>
+              <tr style="background: #fffbeb;">
+                <th>Firma Adı</th>
+                <th>Subdomain</th>
+                <th>Yönetici</th>
+                <th>Başvuru Tarihi</th>
+                <th>Durum</th>
+                <th style="text-align: right;">Onay İşlemleri</th>
+              </tr>
+            </thead>
+            <tbody id="pending-tenants-tbody">
+              <!-- JS ile dinamik doldurulacak -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <!-- Kayıtlı Firmalar Tablosu -->
       <section class="table-container">
         <table class="tenants-table">
@@ -421,12 +470,12 @@
                 </div>
               </td>
               <td>
-                <a href="store.html?subdomain=ahmetoto" class="subdomain-text" title="Mağazayı Aç" style="text-decoration: none; color: inherit;">ahmetoto.sistem.com ↗</a>
+                <a href="../storefront-ui/store.html?subdomain=ahmetoto" class="subdomain-text" target="_blank" title="B2B Mağazasını Aç">ahmetoto.sistem.com ↗</a>
               </td>
               <td>
                 <div class="color-badge-wrapper">
                   <span class="color-swatch-box" style="background-color: #f97316;" title="Turuncu"></span>
-                  <span class="color-name">Turuncu</span>
+                  <span class="color-name">#f97316 (Turuncu)</span>
                 </div>
               </td>
               <td>
@@ -461,17 +510,21 @@
         </div>
       </section>
 
-      <!-- 'Yapım Aşamasında' Bilgilendirme Kutusu -->
-      <div class="under-construction-banner">
-        <div class="construction-icon-box">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            <!-- Parts-Catalogs Entegrasyon Bilgi Kutusu -->
+      <div class="integration-active-banner">
+        <div class="integration-icon-box">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+            <path d="m9 12 2 2 4-4"></path>
           </svg>
         </div>
-        <div class="construction-text">
-          <div class="construction-badge">Yapım Aşamasında</div>
-          <h4 class="construction-title">Merkezi Parça Havuzu & TecDoc Entegrasyonu Hazırlanıyor</h4>
-          <p class="construction-desc">Bu modül üzerinden veritabanındaki tüm orijinal yedek parçalar küresel çapta listelenecektir. TecDoc API ve katalog senkronizasyonu tamamlandığında parçalar otomatik olarak burada görüntülenecektir.</p>
+        <div class="integration-text">
+          <div class="integration-badge">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #4ade80; display: inline-block;"></span>
+            Entegrasyon Başarılı
+          </div>
+          <h4 class="integration-title">Merkezi Parça Havuzu & Parts-Catalogs Entegrasyonu Aktif</h4>
+          <p class="integration-desc">Bu modül, Parts-Catalogs API altyapısı ile tam entegre çalışmaktadır. Tüm şasi (VIN) ve orijinal yedek parça (OE) sorgulamalarınız küresel veri ağı üzerinden anlık ve otomatik olarak listelenmektedir.</p>
         </div>
       </div>
 
@@ -655,7 +708,7 @@
       <section class="section-action-header">
         <div>
           <h3 class="section-title">Sistem Ayarları & Yapılandırma</h3>
-          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">Platform genel parametreleri, TecDoc API anahtarları ve iskonto kuralları</p>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">Platform genel parametreleri, Parts-Catalogs API anahtarları ve iskonto kuralları</p>
         </div>
       </section>
 
@@ -672,7 +725,7 @@
               </svg>
             </div>
             <div>
-              <h4 class="settings-card-title">TecDoc & Parça Veri Entegrasyonu</h4>
+              <h4 class="settings-card-title">Parts-Catalogs & Parça Veri Entegrasyonu</h4>
               <p class="settings-card-desc">Küresel katalog sağlayıcısı ve OE parça eşleştirme API anahtarları</p>
             </div>
           </div>
@@ -1083,10 +1136,130 @@
     }
 
     // ==========================================================================
+    // 1.9 ONAY BEKLEYEN BAYİLER YÖNETİMİ (GET /api/admin/pending-tenants)
+    // ==========================================================================
+    async function loadPendingTenants() {
+      try {
+        const res = await apiFetch('/admin/pending-tenants');
+        const badge = document.getElementById('pending-tenants-badge');
+        const section = document.getElementById('pending-tenants-section');
+        const tbody = document.getElementById('pending-tenants-tbody');
+        const countBadge = document.getElementById('pending-count-badge');
+
+        if (res && res.success && Array.isArray(res.data)) {
+          const pendingList = res.data;
+          const count = pendingList.length;
+
+          if (badge) {
+            if (count > 0) {
+              badge.textContent = `${count} Onay`;
+              badge.style.display = 'inline-block';
+            } else {
+              badge.style.display = 'none';
+            }
+          }
+
+          if (countBadge) countBadge.textContent = count;
+
+          if (count > 0) {
+            if (section) section.style.display = 'block';
+            if (tbody) {
+              tbody.innerHTML = '';
+              pendingList.forEach(t => {
+                const adminUser = (t.users && t.users.length > 0) ? t.users[0] : null;
+                const adminEmail = adminUser ? escapeHtml(adminUser.email) : (t.adminEmail ? escapeHtml(t.adminEmail) : '—');
+                const safeName = escapeHtml(t.name || 'İsimsiz Firma');
+                const safeSubdomain = escapeHtml(t.subdomain || '');
+                const safeColor = escapeHtml(t.themeColor || '#f59e0b');
+                const dateStr = t.createdAt ? new Date(t.createdAt).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                  <td>
+                    <div class="firm-identity">
+                      <div class="firm-avatar" style="background-color: ${safeColor}; color:#fff; font-weight:700;">${safeName.slice(0, 2).toUpperCase()}</div>
+                      <span class="firm-name" style="font-weight: 700; color:#1e293b;">${safeName}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="subdomain-text" style="font-family: monospace; font-weight: 700; color: #2563eb;">${safeSubdomain}.sistem.com</span>
+                  </td>
+                  <td>
+                    <div style="font-size: 0.85rem;">
+                      <strong style="color: var(--text-dark);">${adminEmail}</strong>
+                    </div>
+                  </td>
+                  <td style="color: var(--text-muted); font-size: 0.85rem;">${dateStr}</td>
+                  <td>
+                    <span style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; padding: 4px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
+                      <span style="width: 6px; height: 6px; background: #f59e0b; border-radius: 50%; display: inline-block;"></span>
+                      ONAY BEKLİYOR
+                    </span>
+                  </td>
+                  <td style="text-align: right;">
+                    <div class="actions-group" style="justify-content: flex-end;">
+                      <button type="button" class="btn-table-action" onclick="approveTenant('${t.id}', '${safeName}')" style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 700;" title="Bayiyi Onayla">✓ Onayla</button>
+                      <button type="button" class="btn-table-action" onclick="rejectTenant('${t.id}', '${safeName}')" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 700;" title="Bayiyi Reddet">✕ Reddet</button>
+                    </div>
+                  </td>
+                `;
+                tbody.appendChild(tr);
+              });
+            }
+          } else {
+            if (section) section.style.display = 'none';
+          }
+        }
+      } catch (err) {
+        console.error('[LOAD_PENDING_TENANTS_ERROR]:', err);
+      }
+    }
+    window.loadPendingTenants = loadPendingTenants;
+
+    async function approveTenant(tenantId, tenantName) {
+      if (!confirm(`"${tenantName}" bayisinin başvurusunu onaylamak ve mağaza yönetimini aktif etmek istiyor musunuz?`)) return;
+      try {
+        const res = await apiFetch(`/admin/tenants/${tenantId}/approve`, { method: 'PUT' });
+        if (res && res.success) {
+          showToast(res.message || 'Bayi başarıyla onaylandı.', 'success');
+          await loadPendingTenants();
+          await loadTenants();
+          await loadAdminStats();
+        } else {
+          showToast(res && res.message ? res.message : 'Onaylama başarısız.', 'danger');
+        }
+      } catch (err) {
+        showToast('Hata: ' + err.message, 'danger');
+      }
+    }
+    window.approveTenant = approveTenant;
+
+    async function rejectTenant(tenantId, tenantName) {
+      if (!confirm(`"${tenantName}" bayisinin başvurusunu reddetmek istediğinize emin misiniz?`)) return;
+      try {
+        const res = await apiFetch(`/admin/tenants/${tenantId}/reject`, { method: 'PUT' });
+        if (res && res.success) {
+          showToast(res.message || 'Bayi başvurusu reddedildi.', 'warning');
+          await loadPendingTenants();
+          await loadTenants();
+          await loadAdminStats();
+        } else {
+          showToast(res && res.message ? res.message : 'Reddetme başarısız.', 'danger');
+        }
+      } catch (err) {
+        showToast('Hata: ' + err.message, 'danger');
+      }
+    }
+    window.rejectTenant = rejectTenant;
+
+    // ==========================================================================
     // 2. FİRMALARI YÜKLEME VE TABLOYA BASMA (API ENTEGRASYONU & XSS SANİTİZASYONU)
     // ==========================================================================
     async function loadTenants() {
       try {
+        // Önce onay bekleyenleri tazele
+        await loadPendingTenants();
+
         const res = await apiFetch('/admin/tenants');
         if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
           const tbody = document.querySelector('.tenants-table tbody');
@@ -1100,12 +1273,19 @@
             const isActive = tenant.isActive !== false;
             const initials = safeName.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || 'AO';
 
-            // DURUM sütununda (Prompt 3. ADIM)
-            const statusHtml = isActive
-              ? `<span class="badge-status-green"><span class="badge-dot-green"></span>Aktif</span>`
-              : `<span class="badge-status-red" style="background:#fee2e2; color:#ef4444; border:1px solid #fca5a5; padding:4px 10px; border-radius:9999px; font-weight:700; font-size:0.75rem;"><span style="display:inline-block; width:6px; height:6px; background:#ef4444; border-radius:50%; margin-right:5px;"></span>Pasif</span>`;
+            // DURUM sütununda: PENDING, REJECTED veya APPROVED (Aktif / Pasif)
+            let statusHtml = '';
+            if (tenant.status === 'PENDING') {
+              statusHtml = `<span style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; padding:4px 10px; border-radius:9999px; font-weight:700; font-size:0.75rem; display:inline-flex; align-items:center; gap:5px;"><span style="display:inline-block; width:6px; height:6px; background:#f59e0b; border-radius:50%;"></span>Onay Bekliyor</span>`;
+            } else if (tenant.status === 'REJECTED') {
+              statusHtml = `<span style="background:#fee2e2; color:#ef4444; border:1px solid #fca5a5; padding:4px 10px; border-radius:9999px; font-weight:700; font-size:0.75rem; display:inline-flex; align-items:center; gap:5px;"><span style="display:inline-block; width:6px; height:6px; background:#ef4444; border-radius:50%;"></span>Reddedildi</span>`;
+            } else if (isActive) {
+              statusHtml = `<span class="badge-status-green"><span class="badge-dot-green"></span>Aktif</span>`;
+            } else {
+              statusHtml = `<span class="badge-status-red" style="background:#fee2e2; color:#ef4444; border:1px solid #fca5a5; padding:4px 10px; border-radius:9999px; font-weight:700; font-size:0.75rem;"><span style="display:inline-block; width:6px; height:6px; background:#ef4444; border-radius:50%; margin-right:5px;"></span>Pasif</span>`;
+            }
 
-            // İŞLEMLER sütununda (Prompt 3. ADIM)
+            // İŞLEMLER sütununda
             const statusBtnHtml = isActive
               ? `<button class="btn-table-action btn-status-toggle btn-deactivate" style="background:#fff7ed; color:#ea580c; border:1px solid #fed7aa; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600;" title="Firmayı Pasife Al">Pasife Al</button>`
               : `<button class="btn-table-action btn-status-toggle btn-activate" style="background:#ecfdf5; color:#059669; border:1px solid #a7f3d0; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600;" title="Firmayı Aktifleştir">Aktife Al</button>`;
@@ -1120,7 +1300,7 @@
                 </div>
               </td>
               <td>
-                <a href="store.html?subdomain=${safeSubdomain}" class="subdomain-text" title="Mağazayı Aç" style="text-decoration: none; color: inherit;">${safeSubdomain}.sistem.com ↗</a>
+                <a href="../storefront-ui/store.html?subdomain=${safeSubdomain}" class="subdomain-text" target="_blank" title="B2B Mağazasını Aç">${safeSubdomain}.sistem.com ↗</a>
               </td>
               <td>
                 <div class="color-badge-wrapper">
@@ -1431,7 +1611,7 @@
             <div style="grid-column: 1 / -1; text-align: center; padding: 48px 20px; color: #64748b; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 12px;">
               <div style="font-size: 32px; margin-bottom: 8px;">📦</div>
               <div style="font-weight: 600; font-size: 15px; color: #1e293b;">Merkezi parça havuzunda henüz kayıtlı ürün bulunmuyor.</div>
-              <div style="font-size: 13px; color: #64748b; margin-top: 4px;">Yeni parçalar eklendiğinde veya TecDoc entegrasyonu sağlandığında burada görüntülenecektir.</div>
+              <div style="font-size: 13px; color: #64748b; margin-top: 4px;">Yeni parçalar eklendiğinde veya Parts-Catalogs entegrasyonu üzerinden çekildiğinde burada görüntülenecektir.</div>
             </div>
           `;
         }

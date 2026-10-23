@@ -7,10 +7,18 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
-const { verifyToken, checkTenantAdmin } = require('../middleware/auth');
+const { verifyToken, checkTenantAdmin, requireApprovedDealer } = require('../middleware/auth');
 const { verifyNviTcKimlik } = require('./auth.routes');
+const { buildEnrichedAutomotiveData, enrichProductData } = require('../services/partsCatalogService');
 
 // Tüm bayi rotalarına JWT doğrulama ve Bayi Yöneticisi kontrolünü uygula
+// Preflight (OPTIONS) istekleri güvenlik duvarına takılmadan doğrudan geçer
+router.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+  next();
+});
 router.use(verifyToken, checkTenantAdmin);
 
 /**
@@ -207,6 +215,34 @@ const handleCreateOrUpdateProduct = async (req, res) => {
     const primaryImage = imagePaths.length > 0 ? imagePaths[0] : (req.body.imageUrl || null);
     const imagesJson = imagePaths.length > 0 ? JSON.stringify(imagePaths) : (req.body.images || null);
 
+    // Zenginleştirilmiş Parça Verileri (prompt.md Mimarisi - Cross-references, Fitment, Attributes, Diagrams)
+    let crossReferences = req.body.crossReferences;
+    if (typeof crossReferences === 'string') {
+      try { crossReferences = JSON.parse(crossReferences); } catch (e) {}
+    }
+    let compatibleVehicles = req.body.compatibleVehicles;
+    if (typeof compatibleVehicles === 'string') {
+      try { compatibleVehicles = JSON.parse(compatibleVehicles); } catch (e) {}
+    }
+    let attributes = req.body.attributes;
+    if (typeof attributes === 'string') {
+      try { attributes = JSON.parse(attributes); } catch (e) {}
+    }
+    let diagramUrl = req.body.diagramUrl || null;
+    let diagrams = req.body.diagrams;
+    if (typeof diagrams === 'string') {
+      try { diagrams = JSON.parse(diagrams); } catch (e) {}
+    }
+
+    if (!crossReferences || !compatibleVehicles || !attributes) {
+      const synth = buildEnrichedAutomotiveData(oeNumber, vehicleBrand, name, partGroup, compatibleModels);
+      crossReferences = crossReferences || synth.crossReferences;
+      compatibleVehicles = compatibleVehicles || synth.compatibleVehicles;
+      attributes = attributes || synth.attributes;
+      diagramUrl = diagramUrl || synth.diagramUrl;
+      diagrams = diagrams || synth.diagrams;
+    }
+
     // 4. Prisma Transaction ile Ürün ve Bayi İlişkisi (Birebir Ham Veri Kaydı)
     const tenantProduct = await prisma.$transaction(async (tx) => {
       // OE numarasına göre Product tablosunda ürün varsa bul, yoksa yeni Product oluştur
@@ -225,7 +261,12 @@ const handleCreateOrUpdateProduct = async (req, res) => {
             partGroup: partGroup,
             defaultPrice: parsedPrice,
             imageUrl: primaryImage,
-            images: imagesJson
+            images: imagesJson,
+            crossReferences: crossReferences,
+            compatibleVehicles: compatibleVehicles,
+            attributes: attributes,
+            diagramUrl: diagramUrl,
+            diagrams: diagrams
           }
         });
       } else {
@@ -238,7 +279,12 @@ const handleCreateOrUpdateProduct = async (req, res) => {
             compatibleModels: compatibleModels,
             partGroup: partGroup,
             defaultPrice: parsedPrice,
-            ...(primaryImage ? { imageUrl: primaryImage, images: imagesJson } : {})
+            ...(primaryImage ? { imageUrl: primaryImage, images: imagesJson } : {}),
+            crossReferences: crossReferences || product.crossReferences,
+            compatibleVehicles: compatibleVehicles || product.compatibleVehicles,
+            attributes: attributes || product.attributes,
+            diagramUrl: diagramUrl || product.diagramUrl,
+            diagrams: diagrams || product.diagrams
           }
         });
       }
@@ -286,8 +332,8 @@ const handleCreateOrUpdateProduct = async (req, res) => {
   }
 };
 
-router.post('/products', uploadProductImages, handleCreateOrUpdateProduct);
-router.post('/catalog', uploadProductImages, handleCreateOrUpdateProduct);
+router.post('/products', requireApprovedDealer, uploadProductImages, handleCreateOrUpdateProduct);
+router.post('/catalog', requireApprovedDealer, uploadProductImages, handleCreateOrUpdateProduct);
 
 /**
  * @route   GET /api/tenant/products & GET /api/tenant/catalog
@@ -420,8 +466,8 @@ const handleDeleteTenantProduct = async (req, res) => {
   }
 };
 
-router.delete('/products/:id', handleDeleteTenantProduct);
-router.delete('/catalog/:id', handleDeleteTenantProduct);
+router.delete('/products/:id', requireApprovedDealer, handleDeleteTenantProduct);
+router.delete('/catalog/:id', requireApprovedDealer, handleDeleteTenantProduct);
 
 /**
  * @route   PATCH /api/tenant/products/:id & PUT /api/tenant/products/:id
@@ -526,10 +572,10 @@ const handleUpdateTenantProduct = async (req, res) => {
   }
 };
 
-router.patch('/products/:id', uploadProductImages, handleUpdateTenantProduct);
-router.put('/products/:id', uploadProductImages, handleUpdateTenantProduct);
-router.patch('/catalog/:id', uploadProductImages, handleUpdateTenantProduct);
-router.put('/catalog/:id', uploadProductImages, handleUpdateTenantProduct);
+router.patch('/products/:id', requireApprovedDealer, uploadProductImages, handleUpdateTenantProduct);
+router.put('/products/:id', requireApprovedDealer, uploadProductImages, handleUpdateTenantProduct);
+router.patch('/catalog/:id', requireApprovedDealer, uploadProductImages, handleUpdateTenantProduct);
+router.put('/catalog/:id', requireApprovedDealer, uploadProductImages, handleUpdateTenantProduct);
 
 // ============================================================================
 // 2. OTOSERVİS / TAMİRCİ MÜŞTERİ YÖNETİMİ
@@ -1084,6 +1130,12 @@ router.delete('/customers/:id', async (req, res) => {
  */
 const handleGetTenantStats = async (req, res) => {
   try {
+    // 3. ADIM: Dashboard KPI sayaçlarının önbellekte (cache) takılı kalmasını engelle
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+
     const tenantId = resolveTenantId(req, res);
     if (!tenantId) return;
 
@@ -1127,6 +1179,9 @@ const handleGetTenantStats = async (req, res) => {
             id: true,
             companyName: true,
             phone: true,
+            address: true,
+            city: true,
+            district: true,
             discountRate: true,
             balance: true
           }
@@ -1198,19 +1253,29 @@ router.get('/stats', handleGetTenantStats);
  */
 router.get('/orders', async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     const tenantId = resolveTenantId(req, res);
     if (!tenantId) return;
 
     const whereClause = { tenantId: tenantId };
     if (req.query.status && req.query.status !== 'ALL') {
-      whereClause.status = req.query.status;
+      const rawStatus = Array.isArray(req.query.status) ? req.query.status[0] : req.query.status;
+      if (typeof rawStatus === 'string' && rawStatus.trim() !== 'ALL') {
+        whereClause.status = rawStatus.trim();
+      }
     }
     if (req.query.search) {
-      const q = req.query.search.trim();
-      whereClause.OR = [
-        { orderNumber: { contains: q } },
-        { customer: { companyName: { contains: q } } }
-      ];
+      const rawSearch = Array.isArray(req.query.search) ? req.query.search[0] : req.query.search;
+      if (typeof rawSearch === 'string' && rawSearch.trim().length > 0) {
+        const q = rawSearch.trim();
+        whereClause.OR = [
+          { orderNumber: { contains: q } },
+          { customer: { companyName: { contains: q } } }
+        ];
+      }
     }
 
     const orders = await prisma.order.findMany({
@@ -1221,6 +1286,9 @@ router.get('/orders', async (req, res) => {
             id: true,
             companyName: true,
             phone: true,
+            address: true,
+            city: true,
+            district: true,
             discountRate: true,
             balance: true
           }

@@ -224,11 +224,12 @@ router.post('/login', loginLimiter, async (req, res) => {
       user.tenant = tenant;
     }
 
-    // 7. JWT Payload hazırlığı (id, email, role, tenantId eksiksiz eklenir)
+    // 7. JWT Payload hazırlığı (id, email, role, status, tenantId eksiksiz eklenir)
     const payload = {
       id: user.id,
       email: user.email,
       role: user.role,
+      status: user.status || 'PENDING',
       tenantId: user.tenantId || effectiveTenantId
     };
 
@@ -243,6 +244,7 @@ router.post('/login', loginLimiter, async (req, res) => {
       email: user.email,
       name: user.name || (user.customerProfile ? user.customerProfile.companyName : null),
       role: user.role,
+      status: user.status || 'PENDING',
       tenantId: effectiveTenantId,
       tenant: user.tenant || null,
       customerProfile: user.customerProfile || null
@@ -265,8 +267,51 @@ router.post('/login', loginLimiter, async (req, res) => {
     console.error('[AUTH_LOGIN_ERROR]:', error);
     return res.status(500).json({
       success: false,
-      message: 'Giriş işlemi sırasında sunucu hatası oluştu.',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Giriş işlemi sırasında sunucu hatası oluştu.'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/auth/me
+ * @desc    Aktif oturum açmış kullanıcının gerçek zamanlı veritabanı profilini ve onay statüsünü döner.
+ * @access  Protected
+ */
+router.get('/me', verifyToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: {
+        tenant: true,
+        customerProfile: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Kullanıcı bulunamadı.'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        status: user.status,
+        tenantId: user.tenantId,
+        tenant: user.tenant,
+        customerProfile: user.customerProfile
+      }
+    });
+  } catch (err) {
+    console.error('[AUTH_ME_ERROR]:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Kullanıcı profili alınırken hata oluştu.'
     });
   }
 });

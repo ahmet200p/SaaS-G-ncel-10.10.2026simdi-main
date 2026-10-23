@@ -230,36 +230,58 @@ async function runTests() {
   console.log('\n--- 5. BÖLÜM: Kimlik Doğrulama & Oturum Yönetimi ---');
 
   // Süper Admin Girişi
-  const adminLoginRes = await request({
+  const adminPass = process.env.DEFAULT_ADMIN_PASSWORD || 'SaaS_Super_Admin_2026!#Secure';
+  let adminLoginRes = await request({
     hostname: 'localhost',
     port: 5000,
     path: '/api/auth/login',
     method: 'POST',
     headers: { 'Content-Type': 'application/json' }
-  }, { email: 'admin@sistem.com', password: '123456' });
+  }, { email: 'admin@sistem.com', password: adminPass });
+
+  if (adminLoginRes.statusCode !== 200) {
+    adminLoginRes = await request({
+      hostname: 'localhost',
+      port: 5000,
+      path: '/api/auth/login',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    }, { email: 'admin@sistem.com', password: '123456' });
+  }
 
   let adminToken = null;
   if (adminLoginRes.statusCode === 200 && adminLoginRes.json && adminLoginRes.json.token) {
     adminToken = adminLoginRes.json.token;
   }
   assert(adminLoginRes.statusCode === 200, 'Süper Admin girişi başarılı (HTTP 200)');
-  assert(adminLoginRes.json && adminLoginRes.json.user.role === 'SUPER_ADMIN', 'Süper Admin rolü SUPER_ADMIN');
+  assert(adminLoginRes.json && adminLoginRes.json.user && adminLoginRes.json.user.role === 'SUPER_ADMIN', 'Süper Admin rolü SUPER_ADMIN');
 
   // Bayi Yöneticisi Girişi
-  const tenantLoginRes = await request({
+  const dealerPass = process.env.DEFAULT_DEALER_PASSWORD || 'SaaS_Dealer_Admin_2026!#Secure';
+  let tenantLoginRes = await request({
     hostname: 'localhost',
     port: 5000,
     path: '/api/auth/login',
     method: 'POST',
     headers: { 'Content-Type': 'application/json' }
-  }, { email: 'ahmet@ahmetoto.com', password: '123456' });
+  }, { email: 'ahmet@ahmetoto.com', password: dealerPass });
+
+  if (tenantLoginRes.statusCode !== 200) {
+    tenantLoginRes = await request({
+      hostname: 'localhost',
+      port: 5000,
+      path: '/api/auth/login',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    }, { email: 'ahmet@ahmetoto.com', password: '123456' });
+  }
 
   let tenantToken = null;
   if (tenantLoginRes.statusCode === 200 && tenantLoginRes.json && tenantLoginRes.json.token) {
     tenantToken = tenantLoginRes.json.token;
   }
   assert(tenantLoginRes.statusCode === 200, 'Bayi Yöneticisi girişi başarılı (HTTP 200)');
-  assert(tenantLoginRes.json && tenantLoginRes.json.user.role === 'TENANT_ADMIN', 'Bayi Yöneticisi rolü TENANT_ADMIN');
+  assert(tenantLoginRes.json && tenantLoginRes.json.user && tenantLoginRes.json.user.role === 'TENANT_ADMIN', 'Bayi Yöneticisi rolü TENANT_ADMIN');
 
   // --------------------------------------------------------------------------
   // BÖLÜM 6: TÜM FETCH ÇAĞRILARININ VE APİ_BASE'İN ABSOLUTE URL UYUMU

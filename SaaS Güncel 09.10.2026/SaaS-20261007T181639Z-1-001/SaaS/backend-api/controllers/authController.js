@@ -123,20 +123,21 @@ async function register(req, res) {
     const isBayiReg = Boolean(req.body.isBayi || customerType === 'BAYI' || req.body.firmName);
     const hasNviIntent = Boolean(isBayiReg || rawTc || rawDogumYili || (rawAd && rawSoyad && (tcKimlikNo || dogumYili)));
 
+    const cleanAd = rawAd ? formatTurkishUpper(rawAd) : '';
+    const cleanSoyad = rawSoyad ? formatTurkishUpper(rawSoyad) : '';
+    const cleanTc = rawTc ? String(rawTc).trim() : (taxNumber ? String(taxNumber).trim() : null);
+
     // 1. ADIM (Prompt Kuralı): Bayi kayıt formunda / NVİ doğrulamalı işlemlerde:
     // 'Ad', 'Soyad' ve 'TC Kimlik No' alanlarına ek olarak zorunlu 'Doğum Yılı' input'u.
     // Form verilerini toplarken bu 4 verinin boş olmadığından emin ol.
     if (hasNviIntent) {
-      if (!rawTc || !rawAd || !rawSoyad || !rawDogumYili) {
+      if (!cleanTc || !rawAd || !rawSoyad || !rawDogumYili) {
         return res.status(400).json({
           success: false,
           message: 'Devlet (NVİ) kimlik doğrulaması için Ad, Soyad, TC Kimlik No ve Doğum Yılı alanlarının doldurulması zorunludur.'
         });
       }
 
-      const cleanTc = String(rawTc).trim();
-      const cleanAd = formatTurkishUpper(rawAd);
-      const cleanSoyad = formatTurkishUpper(rawSoyad);
       const cleanDogumYili = parseInt(String(rawDogumYili).trim(), 10);
 
       // Biçim Kontrolleri
@@ -186,12 +187,14 @@ async function register(req, res) {
       });
     }
 
-    // 5. Hedef Bayi (Tenant) Belirleme
-    let targetTenantId = tenantId || null;
+    // 5. Hedef Bayi (Tenant) Belirleme (X-Tenant-Slug Header, req.tenant veya Body subdomain)
+    let targetTenantId = tenantId || (req.tenant && req.tenant.id) || null;
     if (!targetTenantId) {
-      const subToFind = subdomain || 'ahmetoto';
+      const headerSlug = req.headers['x-tenant-slug'];
+      const subToFind = subdomain || headerSlug || (req.tenant && req.tenant.subdomain) || 'ahmetoto';
+      const cleanSub = String(subToFind).trim().toLowerCase();
       const tenantMatch = await prisma.tenant.findUnique({
-        where: { subdomain: subToFind }
+        where: { subdomain: cleanSub }
       });
       if (tenantMatch) {
         targetTenantId = tenantMatch.id;
@@ -239,6 +242,8 @@ async function register(req, res) {
             customerType: assignedCustomerType,
             taxNumber: cleanTc, // Doğrulanmış T.C. Kimlik No güvenle kaydedilir
             address: address ? String(address).trim() : null,
+            city: req.body.city ? String(req.body.city).trim() : null,
+            district: req.body.district ? String(req.body.district).trim() : null,
             status: assignedCustomerType === 'MECHANIC' ? 'PENDING_APPROVAL' : 'APPROVED',
             balance: 0.0,
             discountRate: 0.0
@@ -394,7 +399,8 @@ async function registerBayi(req, res) {
           name: cleanFirmName,
           subdomain: targetSubdomain,
           themeColor: '#2563eb',
-          isActive: true
+          isActive: true,
+          status: 'PENDING'
         }
       });
 
@@ -404,6 +410,7 @@ async function registerBayi(req, res) {
           password: hashedPassword,
           name: `${cleanAd} ${cleanSoyad}`,
           role: 'TENANT_ADMIN',
+          status: 'PENDING',
           tenantId: newTenant.id
         }
       });
@@ -416,6 +423,7 @@ async function registerBayi(req, res) {
         id: result.user.id,
         email: result.user.email,
         role: result.user.role,
+        status: result.user.status,
         tenantId: result.user.tenantId
       },
       config.JWT_SECRET,
@@ -424,8 +432,17 @@ async function registerBayi(req, res) {
 
     return res.status(201).json({
       success: true,
-      message: 'NVİ doğrulamalı bayi hesabınız başarıyla oluşturuldu.',
+      message: 'NVİ doğrulamalı bayi hesabınız başarıyla oluşturuldu. Hesabınız admin onayına gönderilmiştir.',
       token,
+      user: {
+        id: result.user.id,
+        email: result.user.email,
+        name: result.user.name,
+        role: result.user.role,
+        status: result.user.status,
+        tenantId: result.user.tenantId
+      },
+      tenant: result.tenant,
       data: {
         token,
         tenant: result.tenant,
@@ -434,6 +451,7 @@ async function registerBayi(req, res) {
           email: result.user.email,
           name: result.user.name,
           role: result.user.role,
+          status: result.user.status,
           tenantId: result.user.tenantId
         }
       }
