@@ -233,7 +233,12 @@ const ensureNeonTables = async () => {
       `CREATE INDEX IF NOT EXISTS "ReturnRequest_orderId_idx" ON "ReturnRequest"("orderId");`,
       `CREATE INDEX IF NOT EXISTS "ReturnRequest_tenantId_idx" ON "ReturnRequest"("tenantId");`,
       `CREATE INDEX IF NOT EXISTS "ReturnRequest_customerId_idx" ON "ReturnRequest"("customerId");`,
-      `CREATE INDEX IF NOT EXISTS "ReturnRequest_status_idx" ON "ReturnRequest"("status");`
+      `CREATE INDEX IF NOT EXISTS "ReturnRequest_status_idx" ON "ReturnRequest"("status");`,
+      `UPDATE "Tenant" SET "status" = 'APPROVED' WHERE "status" IS NULL AND "isActive" = true;`,
+      `UPDATE "Tenant" SET "status" = 'PENDING' WHERE "status" IS NULL AND "isActive" = false;`,
+      `UPDATE "User" SET "status" = 'APPROVED' WHERE "status" IS NULL;`,
+      `UPDATE "Tenant" SET "isActive" = true WHERE "isActive" IS NULL;`,
+      `UPDATE "Tenant" SET "themeColor" = '#2563eb' WHERE "themeColor" IS NULL;`
     ];
 
     for (const patch of schemaPatches) {

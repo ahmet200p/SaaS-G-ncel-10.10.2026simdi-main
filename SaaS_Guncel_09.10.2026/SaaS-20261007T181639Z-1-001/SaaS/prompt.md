@@ -1,7 +1,7 @@
-"Sistemimizde bir onay mantığı sorunu var. Yeni bir bayi (Tenant) kayıt olduğunda, veritabanına yazılıyor ve sisteme login olabiliyor. Ancak Admin paneline veri sağlayan bayi listeleme API'mizde (muhtemelen GET /tenants veya ilgili admin endpoint'i) bu yeni onaysız kayıtlar listelenmiyor.
+"Admin panelinden GET /api/tenants ve GET /api/pending-tenants (veya ilgili endpoint'lere) istek atıldığında backend 500 Internal Server Error döndürüyor.
 
-Kayıt (Register) işlemi sırasında User ve Tenant tabloları arasındaki ilişkinin eksiksiz kurulduğundan emin ol.
+Bu endpoint'lerdeki bayi listeleme (tenant fetch) fonksiyonlarını kontrol et.
 
-Admin panelini besleyen bayi listeleme API'sinin, sadece 'aktif/onaylı' olanları değil, durumu 'onay bekliyor (pending)' olan bayileri de döndürecek şekilde filtrelemesini düzelt. Admin'in tüm kayıtları görebilmesi gerekiyor.
+Veritabanından veriyi çeken Prisma sorgularında bir hata, eksik ilişki (relation) veya tip uyumsuzluğu var ve sunucuyu çökertiyor.
 
-Admin'in durumu 'pending' olan bir bayiyi 'active' yapabilmesi için gerekli onaylama (approve/update) endpoint'inin çalıştığından emin ol."
+İlgili controller'lara detaylı hata loglaması (console.error) içeren try-catch blokları ekle ve veritabanı sorgusundaki problemi gidererek bayilerin JSON formatında hatasız bir şekilde dönmesini sağla."

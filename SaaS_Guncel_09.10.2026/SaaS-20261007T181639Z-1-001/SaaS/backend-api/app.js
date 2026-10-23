@@ -271,7 +271,22 @@ app.use('/api/admin', superAdminRoutes);
 app.use('/admin', superAdminRoutes);
 app.use(['/api/tenants', '/tenants'], (req, res, next) => {
   if (req.method === 'OPTIONS') return next();
-  req.url = '/tenants' + (req.url === '/' ? '' : req.url);
+  if (req.url === '/' || req.url === '') {
+    req.url = '/tenants';
+  } else if (!req.url.startsWith('/tenants')) {
+    req.url = '/tenants' + req.url;
+  }
+  return superAdminRoutes(req, res, next);
+});
+
+// B.1 Doğrudan Onay Bekleyen Bayi Listeleme Köprüsü (GET /api/pending-tenants & /pending-tenants)
+app.use(['/api/pending-tenants', '/pending-tenants'], (req, res, next) => {
+  if (req.method === 'OPTIONS') return next();
+  if (req.url === '/' || req.url === '') {
+    req.url = '/pending-tenants';
+  } else if (!req.url.startsWith('/pending-tenants')) {
+    req.url = '/pending-tenants' + req.url;
+  }
   return superAdminRoutes(req, res, next);
 });
 

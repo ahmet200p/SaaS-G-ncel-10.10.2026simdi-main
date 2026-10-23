@@ -8,6 +8,7 @@ const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
 const { verifyToken, checkSuperAdmin } = require('../middleware/auth');
 const { verifyTcKimlikWithNvi } = require('../lib/nviService');
+const tenantController = require('../controllers/tenantController');
 
 // Tüm süper admin rotalarına güvenlik katmanını uygula
 // Preflight (OPTIONS) istekleri güvenlik duvarına takılmadan doğrudan geçer
@@ -176,220 +177,38 @@ router.post('/tenants', async (req, res) => {
 });
 
 /**
- * @route   GET /api/admin/tenants
+ * @route   GET /api/admin/tenants, GET /api/tenants, GET /tenants
  * @desc    Sistemdeki tüm kayıtlı firmaları ve özet istatistiklerini listeler.
  * @access  Protected (SUPER_ADMIN)
  */
-router.get('/tenants', async (req, res) => {
-  try {
-    const tenants = await prisma.tenant.findMany({
-      include: {
-        users: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            role: true,
-            status: true
-          }
-        },
-        _count: {
-          select: {
-            tenantProducts: true,   // Bayinin kataloğundaki ürün sayısı
-            customerProfiles: true, // Kayıtlı otoservis sayısı
-            orders: true            // Toplam sipariş sayısı
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
-    return res.status(200).json({
-      success: true,
-      count: tenants.length,
-      data: tenants
-    });
-
-  } catch (error) {
-    console.error('[SUPER_ADMIN_GET_TENANTS_ERROR]:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Firmalar listelenirken bir hata oluştu.',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
+router.get(['/tenants', '/api/tenants', '/admin/tenants'], tenantController.getAllTenants);
 
 /**
- * @route   GET /api/admin/pending-tenants & GET /api/admin/tenants/pending
+ * @route   GET /api/admin/pending-tenants, GET /api/pending-tenants, GET /pending-tenants, GET /tenants/pending
  * @desc    Onay bekleyen bayilerin (status === 'PENDING') listesini döner.
  * @access  Protected (SUPER_ADMIN)
  */
-router.get(['/pending-tenants', '/tenants/pending'], async (req, res) => {
-  try {
-    const pendingTenants = await prisma.tenant.findMany({
-      where: {
-        OR: [
-          { status: { in: ['PENDING', 'pending', 'PENDING_APPROVAL'] } },
-          { isActive: false },
-          { users: { some: { status: { in: ['PENDING', 'pending', 'PENDING_APPROVAL'] } } } }
-        ]
-      },
-      include: {
-        users: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            role: true,
-            status: true,
-            createdAt: true
-          }
-        },
-        _count: {
-          select: {
-            tenantProducts: true,
-            customerProfiles: true,
-            orders: true
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
-    return res.status(200).json({
-      success: true,
-      count: pendingTenants.length,
-      data: pendingTenants
-    });
-  } catch (error) {
-    console.error('[SUPER_ADMIN_PENDING_TENANTS_ERROR]:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Onay bekleyen bayiler listelenirken sunucu hatası oluştu.'
-    });
-  }
-});
+router.get([
+  '/pending-tenants',
+  '/tenants/pending',
+  '/api/pending-tenants',
+  '/admin/pending-tenants',
+  '/api/tenants/pending'
+], tenantController.getPendingTenants);
 
 /**
  * @route   PUT /api/admin/tenants/:id/approve
  * @desc    Onay bekleyen bayiyi onaylar (status: APPROVED, isActive: true).
  * @access  Protected (SUPER_ADMIN)
  */
-router.all(['/tenants/:id/approve', '/tenants/approve/:id'], async (req, res) => {
-  if (req.method !== 'PUT' && req.method !== 'PATCH' && req.method !== 'POST') {
-    return res.status(405).json({ success: false, message: 'Method not allowed' });
-  }
-
-  try {
-    const { id } = req.params;
-
-    const tenant = await prisma.tenant.findUnique({
-      where: { id },
-      include: { users: true }
-    });
-
-    if (!tenant) {
-      return res.status(404).json({
-        success: false,
-        message: 'Onaylanacak bayi bulunamadı.'
-      });
-    }
-
-    const updated = await prisma.$transaction(async (tx) => {
-      const t = await tx.tenant.update({
-        where: { id },
-        data: {
-          status: 'APPROVED',
-          isActive: true
-        }
-      });
-
-      await tx.user.updateMany({
-        where: { tenantId: id },
-        data: {
-          status: 'APPROVED'
-        }
-      });
-
-      return t;
-    });
-
-    console.log(`[SUPER_ADMIN_APPROVE] Bayi Onaylandı: "${tenant.name}" (${tenant.subdomain}) - Vitrin Yetkileri Verildi.`);
-
-    return res.status(200).json({
-      success: true,
-      message: `"${updated.name}" bayisi başarıyla onaylandı ve vitrin yetkileri açıldı.`,
-      data: updated
-    });
-  } catch (error) {
-    console.error('[SUPER_ADMIN_APPROVE_ERROR]:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Bayi onaylama işlemi sırasında sunucu hatası oluştu.'
-    });
-  }
-});
+router.all(['/tenants/:id/approve', '/tenants/approve/:id'], tenantController.approveTenant);
 
 /**
  * @route   PUT /api/admin/tenants/:id/reject
  * @desc    Bayi başvurusunu reddeder (status: REJECTED, isActive: false).
  * @access  Protected (SUPER_ADMIN)
  */
-router.all(['/tenants/:id/reject', '/tenants/reject/:id'], async (req, res) => {
-  if (req.method !== 'PUT' && req.method !== 'PATCH' && req.method !== 'POST') {
-    return res.status(405).json({ success: false, message: 'Method not allowed' });
-  }
-
-  try {
-    const { id } = req.params;
-    const reason = req.body?.reason || '';
-
-    const tenant = await prisma.tenant.findUnique({
-      where: { id }
-    });
-
-    if (!tenant) {
-      return res.status(404).json({
-        success: false,
-        message: 'Reddedilecek bayi bulunamadı.'
-      });
-    }
-
-    const updated = await prisma.$transaction(async (tx) => {
-      const t = await tx.tenant.update({
-        where: { id },
-        data: {
-          status: 'REJECTED',
-          isActive: false
-        }
-      });
-
-      await tx.user.updateMany({
-        where: { tenantId: id },
-        data: {
-          status: 'REJECTED'
-        }
-      });
-
-      return t;
-    });
-
-    console.log(`[SUPER_ADMIN_REJECT] Bayi Reddedildi: "${tenant.name}" - ${reason || 'Gerekçe belirtilmedi'}`);
-
-    return res.status(200).json({
-      success: true,
-      message: `"${updated.name}" bayilik başvurusu reddedildi.`,
-      data: updated
-    });
-  } catch (error) {
-    console.error('[SUPER_ADMIN_REJECT_ERROR]:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Bayi reddetme işlemi sırasında sunucu hatası oluştu.'
-    });
-  }
-});
+router.all(['/tenants/:id/reject', '/tenants/reject/:id'], tenantController.rejectTenant);
 
 /**
  * @route   PATCH /api/admin/tenants/:id/status
