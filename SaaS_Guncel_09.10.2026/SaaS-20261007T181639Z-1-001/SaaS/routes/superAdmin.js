@@ -7,9 +7,16 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
 const { verifyToken, checkSuperAdmin } = require('../middleware/auth');
+const { verifyTcKimlikWithNvi } = require('../lib/nviService');
 
 // Tüm süper admin rotalarına güvenlik katmanını uygula
-// Yalnızca geçerli token'a sahip ve rolü SUPER_ADMIN olan kullanıcılar erişebilir
+// Preflight (OPTIONS) istekleri güvenlik duvarına takılmadan doğrudan geçer
+router.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+  next();
+});
 router.use(verifyToken, checkSuperAdmin);
 
 // ============================================================================
@@ -56,14 +63,31 @@ router.get('/stats', async (req, res) => {
  */
 router.post('/tenants', async (req, res) => {
   try {
-    // 1. İstekten (req.body) firmName, subdomainPrefix, adminEmail, adminPassword ve themeColor verilerini al
-    const { firmName, subdomainPrefix, adminEmail, adminPassword, themeColor, name, subdomain } = req.body;
+    // 1. İstekten (req.body) verileri al
+    const { firmName, subdomainPrefix, adminEmail, adminPassword, themeColor, name, subdomain, ad, soyad, tcKimlikNo, dogumYili } = req.body;
 
     const resolvedFirmName = (firmName || name || '').trim();
     const resolvedSubdomain = (subdomainPrefix || subdomain || '').toLowerCase().trim();
     const cleanEmail = (adminEmail || '').toLowerCase().trim();
     const rawPassword = adminPassword ? String(adminPassword) : '';
     const cleanThemeColor = themeColor ? themeColor.trim() : '#2563eb';
+
+    // NVİ Kimlik Doğrulaması (Eğer TC veya yetkili kimlik bilgisi gönderildiyse)
+    if (tcKimlikNo || ad || soyad || dogumYili) {
+      if (!tcKimlikNo || !ad || !soyad || !dogumYili) {
+        return res.status(400).json({
+          success: false,
+          message: 'Devlet (NVİ) doğrulaması için Yetkili Ad, Soyad, TC Kimlik No ve Doğum Yılı alanları zorunludur.'
+        });
+      }
+      const isNviValid = await verifyTcKimlikWithNvi({ tcKimlikNo, ad, soyad, dogumYili });
+      if (!isNviValid) {
+        return res.status(400).json({
+          success: false,
+          message: 'Girdiğiniz kimlik bilgileri devlet kayıtlarıyla uyuşmuyor.'
+        });
+      }
+    }
 
     // Zorunlu Alan Doğrulamaları
     if (!resolvedFirmName || !resolvedSubdomain || !cleanEmail || !rawPassword) {
@@ -164,7 +188,9 @@ router.get('/tenants', async (req, res) => {
           select: {
             id: true,
             email: true,
-            role: true
+            name: true,
+            role: true,
+            status: true
           }
         },
         _count: {
@@ -195,13 +221,185 @@ router.get('/tenants', async (req, res) => {
 });
 
 /**
+ * @route   GET /api/admin/pending-tenants & GET /api/admin/tenants/pending
+ * @desc    Onay bekleyen bayilerin (status === 'PENDING') listesini döner.
+ * @access  Protected (SUPER_ADMIN)
+ */
+router.get(['/pending-tenants', '/tenants/pending'], async (req, res) => {
+  try {
+    const pendingTenants = await prisma.tenant.findMany({
+      where: {
+        OR: [
+          { status: { in: ['PENDING', 'pending', 'PENDING_APPROVAL'] } },
+          { isActive: false },
+          { users: { some: { status: { in: ['PENDING', 'pending', 'PENDING_APPROVAL'] } } } }
+        ]
+      },
+      include: {
+        users: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            status: true,
+            createdAt: true
+          }
+        },
+        _count: {
+          select: {
+            tenantProducts: true,
+            customerProfiles: true,
+            orders: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: pendingTenants.length,
+      data: pendingTenants
+    });
+  } catch (error) {
+    console.error('[SUPER_ADMIN_PENDING_TENANTS_ERROR]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Onay bekleyen bayiler listelenirken sunucu hatası oluştu.'
+    });
+  }
+});
+
+/**
+ * @route   PUT /api/admin/tenants/:id/approve
+ * @desc    Onay bekleyen bayiyi onaylar (status: APPROVED, isActive: true).
+ * @access  Protected (SUPER_ADMIN)
+ */
+router.all(['/tenants/:id/approve', '/tenants/approve/:id'], async (req, res) => {
+  if (req.method !== 'PUT' && req.method !== 'PATCH' && req.method !== 'POST') {
+    return res.status(405).json({ success: false, message: 'Method not allowed' });
+  }
+
+  try {
+    const { id } = req.params;
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id },
+      include: { users: true }
+    });
+
+    if (!tenant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Onaylanacak bayi bulunamadı.'
+      });
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const t = await tx.tenant.update({
+        where: { id },
+        data: {
+          status: 'APPROVED',
+          isActive: true
+        }
+      });
+
+      await tx.user.updateMany({
+        where: { tenantId: id },
+        data: {
+          status: 'APPROVED'
+        }
+      });
+
+      return t;
+    });
+
+    console.log(`[SUPER_ADMIN_APPROVE] Bayi Onaylandı: "${tenant.name}" (${tenant.subdomain}) - Vitrin Yetkileri Verildi.`);
+
+    return res.status(200).json({
+      success: true,
+      message: `"${updated.name}" bayisi başarıyla onaylandı ve vitrin yetkileri açıldı.`,
+      data: updated
+    });
+  } catch (error) {
+    console.error('[SUPER_ADMIN_APPROVE_ERROR]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Bayi onaylama işlemi sırasında sunucu hatası oluştu.'
+    });
+  }
+});
+
+/**
+ * @route   PUT /api/admin/tenants/:id/reject
+ * @desc    Bayi başvurusunu reddeder (status: REJECTED, isActive: false).
+ * @access  Protected (SUPER_ADMIN)
+ */
+router.all(['/tenants/:id/reject', '/tenants/reject/:id'], async (req, res) => {
+  if (req.method !== 'PUT' && req.method !== 'PATCH' && req.method !== 'POST') {
+    return res.status(405).json({ success: false, message: 'Method not allowed' });
+  }
+
+  try {
+    const { id } = req.params;
+    const reason = req.body?.reason || '';
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id }
+    });
+
+    if (!tenant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Reddedilecek bayi bulunamadı.'
+      });
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const t = await tx.tenant.update({
+        where: { id },
+        data: {
+          status: 'REJECTED',
+          isActive: false
+        }
+      });
+
+      await tx.user.updateMany({
+        where: { tenantId: id },
+        data: {
+          status: 'REJECTED'
+        }
+      });
+
+      return t;
+    });
+
+    console.log(`[SUPER_ADMIN_REJECT] Bayi Reddedildi: "${tenant.name}" - ${reason || 'Gerekçe belirtilmedi'}`);
+
+    return res.status(200).json({
+      success: true,
+      message: `"${updated.name}" bayilik başvurusu reddedildi.`,
+      data: updated
+    });
+  } catch (error) {
+    console.error('[SUPER_ADMIN_REJECT_ERROR]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Bayi reddetme işlemi sırasında sunucu hatası oluştu.'
+    });
+  }
+});
+
+/**
  * @route   PATCH /api/admin/tenants/:id/status
- * @desc    Bayi durumunu aktif/pasif olarak değiştirir (Status Toggle).
+ * @desc    Bayi durumunu aktif/pasif veya statüsünü (APPROVED, PENDING, REJECTED) günceller.
  * @access  Protected (SUPER_ADMIN)
  */
 router.patch('/tenants/:id/status', async (req, res) => {
   try {
     const { id } = req.params;
+    const { status, isActive } = req.body || {};
 
     const tenant = await prisma.tenant.findUnique({
       where: { id }
@@ -214,15 +412,33 @@ router.patch('/tenants/:id/status', async (req, res) => {
       });
     }
 
-    const updatedTenant = await prisma.tenant.update({
-      where: { id },
-      data: { isActive: !tenant.isActive }
+    const nextIsActive = isActive !== undefined ? Boolean(isActive) : !tenant.isActive;
+    const nextStatus = status || (nextIsActive ? 'APPROVED' : tenant.status);
+
+    const updatedTenant = await prisma.$transaction(async (tx) => {
+      const t = await tx.tenant.update({
+        where: { id },
+        data: {
+          isActive: nextIsActive,
+          status: nextStatus
+        }
+      });
+
+      if (status) {
+        await tx.user.updateMany({
+          where: { tenantId: id },
+          data: { status: nextStatus }
+        });
+      }
+
+      return t;
     });
 
     return res.status(200).json({
       success: true,
       message: 'Bayi durumu güncellendi',
       isActive: updatedTenant.isActive,
+      status: updatedTenant.status,
       tenant: updatedTenant,
       data: updatedTenant
     });
@@ -440,19 +656,19 @@ router.get('/products', async (req, res) => {
       where.category = category;
     }
     if (brand) {
-      where.vehicleBrand = { contains: String(brand).trim() };
+      where.vehicleBrand = { contains: String(brand).trim(), mode: 'insensitive' };
     }
     if (partGroup) {
-      where.partGroup = { contains: String(partGroup).trim() };
+      where.partGroup = { contains: String(partGroup).trim(), mode: 'insensitive' };
     }
     if (search) {
       const s = String(search).trim();
       where.OR = [
-        { oeNumber: { contains: s } },
-        { name: { contains: s } },
-        { vehicleBrand: { contains: s } },
-        { compatibleModels: { contains: s } },
-        { partGroup: { contains: s } }
+        { oeNumber: { contains: s, mode: 'insensitive' } },
+        { name: { contains: s, mode: 'insensitive' } },
+        { vehicleBrand: { contains: s, mode: 'insensitive' } },
+        { compatibleModels: { contains: s, mode: 'insensitive' } },
+        { partGroup: { contains: s, mode: 'insensitive' } }
       ];
     }
 

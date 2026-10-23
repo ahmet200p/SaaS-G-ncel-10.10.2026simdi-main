@@ -266,8 +266,14 @@ app.use('/api/auth', authRoutes);
 app.use('/auth', authRoutes);
 
 // B. Süper Admin: Bayi oluşturma (Transaction), bayi listeleme, parça havuzu yönetimi
-// POST & GET /api/admin/tenants, POST & GET /api/admin/products
+// POST & GET /api/admin/tenants, POST & GET /api/admin/products, /admin/tenants
 app.use('/api/admin', superAdminRoutes);
+app.use('/admin', superAdminRoutes);
+app.use(['/api/tenants', '/tenants'], (req, res, next) => {
+  if (req.method === 'OPTIONS') return next();
+  req.url = '/tenants' + (req.url === '/' ? '' : req.url);
+  return superAdminRoutes(req, res, next);
+});
 
 // C. Bayi (Tenant) Operasyonları: Kendi kataloğunu yönetme, gelen siparişler, sipariş onaylama
 // POST & GET /api/tenant/catalog, GET & PATCH /api/tenant/orders

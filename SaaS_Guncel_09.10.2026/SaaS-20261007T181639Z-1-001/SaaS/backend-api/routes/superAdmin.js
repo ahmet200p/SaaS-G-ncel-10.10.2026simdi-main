@@ -230,8 +230,9 @@ router.get(['/pending-tenants', '/tenants/pending'], async (req, res) => {
     const pendingTenants = await prisma.tenant.findMany({
       where: {
         OR: [
-          { status: 'PENDING' },
-          { users: { some: { status: 'PENDING' } } }
+          { status: { in: ['PENDING', 'pending', 'PENDING_APPROVAL'] } },
+          { isActive: false },
+          { users: { some: { status: { in: ['PENDING', 'pending', 'PENDING_APPROVAL'] } } } }
         ]
       },
       include: {
