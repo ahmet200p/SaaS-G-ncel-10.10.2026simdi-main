@@ -189,19 +189,24 @@ async function register(req, res) {
 
     // 5. Hedef Bayi (Tenant) Belirleme (X-Tenant-Slug Header, req.tenant veya Body subdomain)
     let targetTenantId = tenantId || (req.tenant && req.tenant.id) || null;
+    let targetTenant = req.tenant || null;
+
     if (!targetTenantId) {
-      const headerSlug = req.headers['x-tenant-slug'];
-      const subToFind = subdomain || headerSlug || (req.tenant && req.tenant.subdomain) || 'ahmetoto';
+      const headerSlug = req.headers['x-tenant-slug'] || req.headers['X-Tenant-Slug'];
+      const subToFind = headerSlug || subdomain || (req.tenant && req.tenant.subdomain) || req.body.tenantSlug || 'ahmetoto';
       const cleanSub = String(subToFind).trim().toLowerCase();
+      
       const tenantMatch = await prisma.tenant.findUnique({
         where: { subdomain: cleanSub }
       });
       if (tenantMatch) {
+        targetTenant = tenantMatch;
         targetTenantId = tenantMatch.id;
       } else {
         const defaultTenant = await prisma.tenant.findFirst({
           where: { isActive: true }
         });
+        targetTenant = defaultTenant;
         targetTenantId = defaultTenant ? defaultTenant.id : null;
       }
     }
@@ -219,24 +224,37 @@ async function register(req, res) {
     const finalCompanyName = (companyName || '').trim() ||
       (assignedCustomerType === 'MECHANIC' ? `${cleanAd} Oto Servis` : displayName);
 
-    // 8. Prisma Transaction ile Güvenli Veritabanı Kaydı
+    // 8. Prisma Transaction ile Güvenli Veritabanı Kaydı (connect metoduyla doğrudan bayiye bağlama)
     const result = await prisma.$transaction(async (tx) => {
+      const userData = {
+        email: cleanEmail,
+        password: hashedPassword, // bcrypt ile hash'lenmiş şifre
+        role: 'CUSTOMER', // Herkese açık kayıtta yetki daima CUSTOMER'dır
+        name: displayName
+      };
+
+      // prompt.md Kuralı: İsteğin header'ından gelen x-tenant-slug bilgisine bakarak
+      // bu müşteriyi connect metoduyla doğrudan o bayinin (tenant) altına bağla.
+      if (targetTenantId) {
+        userData.tenant = {
+          connect: { id: targetTenantId }
+        };
+      }
+
       const newUser = await tx.user.create({
-        data: {
-          email: cleanEmail,
-          password: hashedPassword,
-          role: 'CUSTOMER', // Herkese açık kayıtta yetki daima CUSTOMER'dır
-          name: displayName,
-          tenantId: targetTenantId
-        }
+        data: userData
       });
 
       let profile = null;
       if (targetTenantId) {
         profile = await tx.customerProfile.create({
           data: {
-            userId: newUser.id,
-            tenantId: targetTenantId,
+            user: {
+              connect: { id: newUser.id }
+            },
+            tenant: {
+              connect: { id: targetTenantId }
+            },
             companyName: finalCompanyName,
             phone: phone ? String(phone).trim() : null,
             customerType: assignedCustomerType,

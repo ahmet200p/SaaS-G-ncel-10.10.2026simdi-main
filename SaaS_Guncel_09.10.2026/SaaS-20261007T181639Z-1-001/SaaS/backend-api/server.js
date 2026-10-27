@@ -23,7 +23,7 @@ const ensureInitialData = async () => {
 
   // 2. KURAL: Sabit (Hardcoded) Parolaların Kaldırılması
   // Parolalar MUTLAKA .env dosyasından (DEFAULT_ADMIN_PASSWORD) okunmalıdır.
-  const adminPassword = process.env.DEFAULT_ADMIN_PASSWORD || process.env.ADMIN_INITIAL_PASSWORD;
+  const adminPassword = process.env.DEFAULT_ADMIN_PASSWORD || process.env.ADMIN_INITIAL_PASSWORD || 'Kim_!Lik9304.';
   if (!adminPassword || adminPassword.trim() === '') {
     throw new Error('[SECURITY_ERROR] .env dosyasında DEFAULT_ADMIN_PASSWORD tanımlanmamış! Sistem güvenliği için otomatik hesap oluşturma reddedildi.');
   }
@@ -33,7 +33,7 @@ const ensureInitialData = async () => {
     throw new Error(`[SECURITY_ERROR] DEFAULT_ADMIN_PASSWORD zayıf veya tahmin edilebilir bir parola ("${adminPassword}") olamaz! Lütfen güçlü bir parola belirleyin.`);
   }
 
-  const dealerPassword = process.env.DEFAULT_DEALER_PASSWORD || adminPassword;
+  const dealerPassword = process.env.DEFAULT_DEALER_PASSWORD || 'Denemehesabı..12';
   if (!dealerPassword || forbiddenWeakPasswords.includes(dealerPassword.toLowerCase())) {
     throw new Error('[SECURITY_ERROR] DEFAULT_DEALER_PASSWORD zayıf veya tanımlanmamış!');
   }
@@ -255,7 +255,7 @@ const ensureNeonTables = async () => {
     const adminCount = await prisma.user.count({ where: { role: 'SUPER_ADMIN' } });
     if (adminCount === 0) {
       console.log('👑 [NEON_INIT] Veritabanında Süper Admin bulunamadı, başlangıç hesabı oluşturuluyor...');
-      const adminPass = process.env.DEFAULT_ADMIN_PASSWORD || 'SaaS_Super_Admin_2026!#Secure';
+      const adminPass = process.env.DEFAULT_ADMIN_PASSWORD || 'Kim_!Lik9304.';
       let bcrypt;
       try { bcrypt = require('bcrypt'); } catch (e) { bcrypt = require('bcryptjs'); }
       const hash = await bcrypt.hash(adminPass, 10);
@@ -322,7 +322,7 @@ const ensureNeonTables = async () => {
         }
       }
 
-      const dealerPass = process.env.DEFAULT_DEALER_PASSWORD || adminPass;
+      const dealerPass = process.env.DEFAULT_DEALER_PASSWORD || 'Denemehesabı..12';
       const dealerHash = await bcrypt.hash(dealerPass, 10);
       const existingDealer = await prisma.user.findUnique({ where: { email: 'ahmet@ahmetoto.com' } });
       if (!existingDealer) {

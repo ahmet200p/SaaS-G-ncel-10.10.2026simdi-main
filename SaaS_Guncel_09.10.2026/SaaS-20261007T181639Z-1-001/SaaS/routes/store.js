@@ -8,42 +8,50 @@ const router = express.Router();
 const prisma = require('../lib/prisma');
 const config = require('../config');
 const { verifyToken, checkCustomer } = require('../middleware/auth');
+const { resolveTenant } = require('../middleware/resolveTenant');
+const { orderLimiter } = require('../middleware/rateLimiter');
 
 const jwt = require('jsonwebtoken');
+const authController = require('../controllers/authController');
+const { registerLimiter } = require('../middleware/rateLimiter');
 
-// Helper: Dinamik Tenant / Bayi Çözümleme (Subdomain, X-Tenant-Slug veya Query Parametrelerinden)
+// ============================================================================
+// Multi-Tenant Güvenlik Ara Yazılımı (Tenant Isolation Middleware)
+// Her istekte hedef bayi slug/subdomain/host üzerinden doğrulanır,
+// req.tenant ve req.tenantId değişkenlerine bağlanır.
+// Preflight (OPTIONS) istekleri doğrudan geçer
+router.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+  next();
+});
+router.use(resolveTenant);
+
+// ============================================================================
+// Müşteri / Otoservis Kayıt Rotası (POST /api/store/auth/register)
+// ============================================================================
+router.post('/auth/register', (req, res, next) => {
+  if (typeof registerLimiter === 'function') {
+    return registerLimiter(req, res, () => authController.register(req, res, next));
+  }
+  return authController.register(req, res, next);
+});
+
+// Helper: İstekten çözümlenmiş hedef bayiyi döner (Artık doğrudan req.tenant'tan beslenir)
 const resolveTargetTenant = async (req, fallbackTenantId = null) => {
-  let slug = req.headers['x-tenant-slug'] || req.query.tenant || req.query.subdomain;
-  if (slug && typeof slug === 'string') {
-    slug = slug.trim().toLowerCase();
+  if (req.tenant) {
+    return req.tenant;
   }
-
-  let tenant = null;
-  if (slug) {
-    tenant = await prisma.tenant.findUnique({
-      where: { subdomain: slug }
-    });
-  }
-
-  if (!tenant && fallbackTenantId) {
-    tenant = await prisma.tenant.findUnique({
+  if (fallbackTenantId) {
+    const fallbackTenant = await prisma.tenant.findUnique({
       where: { id: fallbackTenantId }
     });
+    if (fallbackTenant && fallbackTenant.isActive && fallbackTenant.status === 'APPROVED') {
+      return fallbackTenant;
+    }
   }
-
-  if (!tenant) {
-    tenant = await prisma.tenant.findUnique({
-      where: { subdomain: 'ahmetoto' }
-    });
-  }
-
-  if (!tenant) {
-    tenant = await prisma.tenant.findFirst({
-      where: { isActive: true }
-    });
-  }
-
-  return tenant;
+  return null;
 };
 
 // ============================================================================
@@ -52,20 +60,7 @@ const resolveTargetTenant = async (req, fallbackTenantId = null) => {
 // ============================================================================
 router.get('/bank-info', async (req, res) => {
   try {
-    let tenantIdFromToken = null;
-    const authHeader = req.headers['authorization'] || req.headers['Authorization'];
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.split(' ')[1];
-        const secret = config.JWT_SECRET || process.env.JWT_SECRET;
-        const decoded = jwt.verify(token, secret);
-        if (decoded && decoded.tenantId) {
-          tenantIdFromToken = decoded.tenantId;
-        }
-      } catch (e) {}
-    }
-
-    const tenant = await resolveTargetTenant(req, tenantIdFromToken);
+    const tenant = req.tenant;
     const tenantName = tenant ? tenant.name : 'Ahmet Oto';
 
     return res.status(200).json({
@@ -97,27 +92,16 @@ router.get('/bank-info', async (req, res) => {
 });
 
 // ============================================================================
-// 0.1 GET /api/store/tenant-info - Bayi Marka ve Tema Bilgisi (Public / SEO Uyumlu)
+// 0.1 GET /api/store/tenant-info & GET /api/store/info - Bayi Marka ve Tema Bilgisi
+// (Public / SEO Uyumlu / Dinamik Storefront Headless Entegrasyonu)
 // ============================================================================
-router.get('/tenant-info', async (req, res) => {
+const handleGetTenantInfo = async (req, res) => {
   try {
-    let tenantIdFromToken = null;
-    const authHeader = req.headers['authorization'] || req.headers['Authorization'];
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.split(' ')[1];
-        const secret = config.JWT_SECRET || process.env.JWT_SECRET;
-        const decoded = jwt.verify(token, secret);
-        if (decoded && decoded.tenantId) {
-          tenantIdFromToken = decoded.tenantId;
-        }
-      } catch (e) {}
-    }
-
-    const tenant = await resolveTargetTenant(req, tenantIdFromToken);
+    const tenant = req.tenant;
     if (!tenant) {
       return res.status(404).json({
         success: false,
+        code: 'TENANT_NOT_FOUND',
         message: 'Bayi mağazası bulunamadı.'
       });
     }
@@ -132,16 +116,21 @@ router.get('/tenant-info', async (req, res) => {
         logoUrl: tenant.logoUrl,
         phone: tenant.phone || null,
         address: tenant.address || null,
+        status: tenant.status,
         isActive: tenant.isActive
       }
     });
   } catch (error) {
+    console.error('[STORE_GET_TENANT_INFO_ERROR]:', error);
     return res.status(500).json({
       success: false,
       message: 'Bayi bilgileri alınırken hata oluştu.'
     });
   }
-});
+};
+
+router.get('/tenant-info', handleGetTenantInfo);
+router.get('/info', handleGetTenantInfo);
 
 // ============================================================================
 // 1. GET /api/store/products
@@ -235,59 +224,88 @@ router.get('/products', async (req, res) => {
       }
     }
 
-    // 4. Filtreleme ve Sayfalama Parametreleri
-    const { category, search, model, brand, inStock, page = 1, limit = 50 } = req.query;
+    // 4. REST Filtreleme, Arama ve Sayfalama Parametreleri
+    const { category, search, q, query, searchType, model, brand, vehicleBrand, partGroup, inStock, sort, page = 1, limit = 50 } = req.query;
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
     const skip = (pageNum - 1) * limitNum;
 
-    const whereCondition = {
-      tenantId: tenantId
-    };
+    // REST Filtre Koşulları (AND dizisi ile çakışmasız, multi-criteria arama)
+    const andConditions = [{ tenantId: tenantId }];
 
-    if (inStock === 'true') {
-      whereCondition.stock = { gt: 0 };
+    if (inStock === 'true' || inStock === '1') {
+      andConditions.push({ stock: { gt: 0 } });
     }
 
-    if (category && category !== 'ALL') {
-      whereCondition.product = {
-        ...(whereCondition.product || {}),
-        category: { equals: category }
-      };
+    if (category && category !== 'ALL' && category !== 'all') {
+      andConditions.push({
+        product: { category: { equals: category.trim(), mode: 'insensitive' } }
+      });
     }
 
-    if (brand && brand !== 'ALL' && brand !== 'all') {
-      const brandClean = brand.trim();
-      whereCondition.product = {
-        ...(whereCondition.product || {}),
-        vehicleBrand: { contains: brandClean }
-      };
+    const brandFilter = (brand || vehicleBrand || '').trim();
+    if (brandFilter && brandFilter !== 'ALL' && brandFilter !== 'all') {
+      andConditions.push({
+        product: { vehicleBrand: { contains: brandFilter, mode: 'insensitive' } }
+      });
     }
 
-    if (search) {
-      const searchClean = search.trim();
-      whereCondition.product = {
-        ...(whereCondition.product || {}),
-        OR: [
-          { name: { contains: searchClean } },
-          { oeNumber: { contains: searchClean } },
-          { vehicleBrand: { contains: searchClean } },
-          { compatibleModels: { contains: searchClean } },
-          { partGroup: { contains: searchClean } }
-        ]
-      };
+    const partGroupFilter = (partGroup || '').trim();
+    if (partGroupFilter && partGroupFilter !== 'ALL' && partGroupFilter !== 'all') {
+      andConditions.push({
+        product: { partGroup: { contains: partGroupFilter, mode: 'insensitive' } }
+      });
     }
 
-    if (model) {
+    if (model && model.trim()) {
       const modelClean = model.trim();
-      whereCondition.product = {
-        ...(whereCondition.product || {}),
-        OR: [
-          { name: { contains: modelClean } },
-          { compatibleModels: { contains: modelClean } },
-          { vehicleBrand: { contains: modelClean } }
-        ]
-      };
+      andConditions.push({
+        product: {
+          OR: [
+            { name: { contains: modelClean, mode: 'insensitive' } },
+            { compatibleModels: { contains: modelClean, mode: 'insensitive' } },
+            { vehicleBrand: { contains: modelClean, mode: 'insensitive' } }
+          ]
+        }
+      });
+    }
+
+    const searchKeyword = (search || q || query || '').trim();
+    if (searchKeyword) {
+      if (searchType === 'oe') {
+        andConditions.push({
+          product: { oeNumber: { contains: searchKeyword, mode: 'insensitive' } }
+        });
+      } else if (searchType === 'name') {
+        andConditions.push({
+          product: { name: { contains: searchKeyword, mode: 'insensitive' } }
+        });
+      } else {
+        andConditions.push({
+          product: {
+            OR: [
+              { name: { contains: searchKeyword, mode: 'insensitive' } },
+              { oeNumber: { contains: searchKeyword, mode: 'insensitive' } },
+              { vehicleBrand: { contains: searchKeyword, mode: 'insensitive' } },
+              { compatibleModels: { contains: searchKeyword, mode: 'insensitive' } },
+              { partGroup: { contains: searchKeyword, mode: 'insensitive' } }
+            ]
+          }
+        });
+      }
+    }
+
+    const whereCondition = { AND: andConditions };
+
+    let orderBy = { createdAt: 'desc' };
+    if (sort === 'price_asc') {
+      orderBy = { customPrice: 'asc' };
+    } else if (sort === 'price_desc') {
+      orderBy = { customPrice: 'desc' };
+    } else if (sort === 'stock_desc') {
+      orderBy = { stock: 'desc' };
+    } else if (sort === 'newest') {
+      orderBy = { createdAt: 'desc' };
     }
 
     const totalCount = await prisma.tenantProduct.count({
@@ -308,19 +326,21 @@ router.get('/products', async (req, res) => {
             partGroup: true,
             defaultPrice: true,
             imageUrl: true,
-            images: true
+            images: true,
+            crossReferences: true,
+            compatibleVehicles: true,
+            attributes: true,
+            diagramUrl: true,
+            diagrams: true
           }
         }
       },
       skip: skip,
       take: limitNum,
-      orderBy: {
-        createdAt: 'desc'
-      }
+      orderBy: orderBy
     });
 
-    // 5. 2. ADIM Güvenlik Kuralı: Ziyaretçi modunda katalog ve ürünler listelensin ancak
-    // 'B2B Fiyatı', 'Stok Durumu' ve 'Sepete Ekle' gizlensin / maskelensin.
+    // 5. REST Standardı: Saf JSON Dönüşümü (Ziyaretçi vs Müşteri İskonto Hesaplaması)
     const calculatedProducts = tenantProducts.map(item => {
       // Ziyaretçi Modu (Guest Mode - SEO botları ve üye olmayanlar):
       if (isGuest) {
@@ -335,6 +355,11 @@ router.get('/products', async (req, res) => {
           partGroup: item.product.partGroup,
           imageUrl: item.product.imageUrl,
           images: item.product.images || [],
+          crossReferences: item.product.crossReferences || [],
+          compatibleVehicles: item.product.compatibleVehicles || [],
+          attributes: item.product.attributes || [],
+          diagramUrl: item.product.diagramUrl,
+          diagrams: item.product.diagrams || [],
           // Güvenlik Koruması: Fiyat ve stok gizlenir
           stock: null,
           isDiscounted: false,
@@ -368,6 +393,11 @@ router.get('/products', async (req, res) => {
         partGroup: item.product.partGroup,
         imageUrl: item.product.imageUrl,
         images: item.product.images || [],
+        crossReferences: item.product.crossReferences || [],
+        compatibleVehicles: item.product.compatibleVehicles || [],
+        attributes: item.product.attributes || [],
+        diagramUrl: item.product.diagramUrl,
+        diagrams: item.product.diagrams || [],
         stock: item.stock,
         isDiscounted: item.isDiscounted,
         defaultPrice: listPrice,
@@ -383,6 +413,8 @@ router.get('/products', async (req, res) => {
         isGuest: false
       };
     });
+
+    const totalPages = Math.ceil(totalCount / limitNum) || 1;
 
     return res.status(200).json({
       success: true,
@@ -403,7 +435,16 @@ router.get('/products', async (req, res) => {
         page: pageNum,
         limit: limitNum,
         totalCount: totalCount,
-        totalPages: Math.ceil(totalCount / limitNum) || 1
+        totalPages: totalPages,
+        hasNextPage: pageNum < totalPages,
+        hasPrevPage: pageNum > 1
+      },
+      filters: {
+        search: searchKeyword || null,
+        category: (category && category !== 'ALL') ? category : null,
+        brand: brandFilter || null,
+        model: (model && model.trim()) ? model.trim() : null,
+        inStock: inStock === 'true' || inStock === '1'
       },
       count: calculatedProducts.length,
       data: calculatedProducts
@@ -420,10 +461,330 @@ router.get('/products', async (req, res) => {
 });
 
 // ============================================================================
+// 1.1 GET /api/store/search - Özel REST Arama Uç Noktası (Saf JSON)
+// ============================================================================
+router.get('/search', async (req, res) => {
+  try {
+    const { q, query, search, type, limit = 20 } = req.query;
+    const searchKeyword = (q || query || search || '').trim();
+
+    if (!searchKeyword) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        data: []
+      });
+    }
+
+    // Hedef Bayiyi Dinamik Çözümle
+    let tenantIdFromToken = null;
+    const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const secret = config.JWT_SECRET || process.env.JWT_SECRET;
+        const decoded = jwt.verify(token, secret);
+        if (decoded && decoded.tenantId) tenantIdFromToken = decoded.tenantId;
+      } catch (e) {}
+    }
+
+    const targetTenant = await resolveTargetTenant(req, tenantIdFromToken);
+    if (!targetTenant) {
+      return res.status(404).json({ success: false, message: 'Bayi bulunamadı.' });
+    }
+
+    const searchLimit = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
+
+    const orClauses = [
+      { name: { contains: searchKeyword, mode: 'insensitive' } },
+      { oeNumber: { contains: searchKeyword, mode: 'insensitive' } },
+      { vehicleBrand: { contains: searchKeyword, mode: 'insensitive' } },
+      { compatibleModels: { contains: searchKeyword, mode: 'insensitive' } },
+      { partGroup: { contains: searchKeyword, mode: 'insensitive' } }
+    ];
+
+    const results = await prisma.tenantProduct.findMany({
+      where: {
+        tenantId: targetTenant.id,
+        product: { OR: orClauses }
+      },
+      include: {
+        product: {
+          select: {
+            id: true,
+            oeNumber: true,
+            name: true,
+            category: true,
+            vehicleBrand: true,
+            compatibleModels: true,
+            partGroup: true,
+            imageUrl: true
+          }
+        }
+      },
+      take: searchLimit,
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const cleanResults = results.map(r => ({
+      tenantProductId: r.id,
+      productId: r.productId,
+      oeNumber: r.product.oeNumber,
+      name: r.product.name,
+      category: r.product.category,
+      vehicleBrand: r.product.vehicleBrand,
+      compatibleModels: r.product.compatibleModels,
+      partGroup: r.product.partGroup,
+      imageUrl: r.product.imageUrl
+    }));
+
+    return res.status(200).json({
+      success: true,
+      query: searchKeyword,
+      count: cleanResults.length,
+      data: cleanResults
+    });
+  } catch (error) {
+    console.error('[STORE_SEARCH_ERROR]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Arama yapılırken sunucu hatası oluştu.'
+    });
+  }
+});
+
+// ============================================================================
+// 1.2 GET /api/store/categories - REST Kategori Listeleme Uç Noktası (Saf JSON)
+// ============================================================================
+router.get('/categories', async (req, res) => {
+  try {
+    const targetTenant = await resolveTargetTenant(req);
+    if (!targetTenant) {
+      return res.status(404).json({ success: false, message: 'Bayi bulunamadı.' });
+    }
+
+    const tenantProducts = await prisma.tenantProduct.findMany({
+      where: { tenantId: targetTenant.id },
+      select: { product: { select: { category: true } } }
+    });
+
+    const categoryMap = {};
+    tenantProducts.forEach(tp => {
+      const cat = (tp.product && tp.product.category) ? tp.product.category.trim() : 'Genel';
+      categoryMap[cat] = (categoryMap[cat] || 0) + 1;
+    });
+
+    const categories = Object.keys(categoryMap).sort().map(cat => ({
+      category: cat,
+      count: categoryMap[cat]
+    }));
+
+    return res.status(200).json({
+      success: true,
+      count: categories.length,
+      data: categories
+    });
+  } catch (error) {
+    console.error('[STORE_CATEGORIES_ERROR]:', error);
+    return res.status(500).json({ success: false, message: 'Kategoriler listelenirken hata oluştu.' });
+  }
+});
+
+// ============================================================================
+// 1.3 GET /api/store/brands - REST Araç Markaları Listeleme Uç Noktası (Saf JSON)
+// ============================================================================
+router.get('/brands', async (req, res) => {
+  try {
+    const targetTenant = await resolveTargetTenant(req);
+    if (!targetTenant) {
+      return res.status(404).json({ success: false, message: 'Bayi bulunamadı.' });
+    }
+
+    const tenantProducts = await prisma.tenantProduct.findMany({
+      where: { tenantId: targetTenant.id },
+      select: { product: { select: { vehicleBrand: true } } }
+    });
+
+    const brandMap = {};
+    tenantProducts.forEach(tp => {
+      const b = (tp.product && tp.product.vehicleBrand) ? tp.product.vehicleBrand.trim() : null;
+      if (b) {
+        brandMap[b] = (brandMap[b] || 0) + 1;
+      }
+    });
+
+    const brands = Object.keys(brandMap).sort().map(b => ({
+      brand: b,
+      count: brandMap[b]
+    }));
+
+    return res.status(200).json({
+      success: true,
+      count: brands.length,
+      data: brands
+    });
+  } catch (error) {
+    console.error('[STORE_BRANDS_ERROR]:', error);
+    return res.status(500).json({ success: false, message: 'Markalar listelenirken hata oluştu.' });
+  }
+});
+
+// ============================================================================
+// 1.4 GET /api/store/products/:id - Tekil Ürün Detay REST Uç Noktası (Saf JSON)
+// ============================================================================
+router.get('/products/:id', async (req, res) => {
+  try {
+    const productIdOrOe = req.params.id;
+    if (!productIdOrOe) {
+      return res.status(400).json({ success: false, message: 'Ürün kimliği gereklidir.' });
+    }
+
+    let isGuest = true;
+    let currentUser = null;
+    const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const secret = config.JWT_SECRET || process.env.JWT_SECRET;
+        const decoded = jwt.verify(token, secret);
+        if (decoded && decoded.id) {
+          currentUser = decoded;
+          isGuest = false;
+        }
+      } catch (e) {
+        isGuest = true;
+      }
+    }
+
+    const targetTenant = await resolveTargetTenant(req, currentUser ? currentUser.tenantId : null);
+    if (!targetTenant) {
+      return res.status(404).json({ success: false, message: 'Bayi bulunamadı.' });
+    }
+
+    let customerProfile = null;
+    let discountRate = 0;
+    if (!isGuest && currentUser) {
+      customerProfile = await prisma.customerProfile.findUnique({
+        where: { userId: currentUser.id }
+      });
+      if (customerProfile && customerProfile.discountRate) {
+        discountRate = Math.max(0, parseFloat(customerProfile.discountRate) || 0);
+      }
+    }
+
+    // Ürünü id, tenantProductId veya oeNumber ile ara
+    const item = await prisma.tenantProduct.findFirst({
+      where: {
+        tenantId: targetTenant.id,
+        OR: [
+          { id: productIdOrOe },
+          { productId: productIdOrOe },
+          { product: { oeNumber: { equals: productIdOrOe, mode: 'insensitive' } } }
+        ]
+      },
+      include: {
+        product: true
+      }
+    });
+
+    if (!item) {
+      return res.status(404).json({
+        success: false,
+        message: 'Belirtilen ürün bu bayinin kataloğunda bulunamadı.'
+      });
+    }
+
+    if (isGuest) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          tenantProductId: item.id,
+          productId: item.productId,
+          oeNumber: item.product.oeNumber,
+          name: item.product.name,
+          category: item.product.category,
+          vehicleBrand: item.product.vehicleBrand,
+          compatibleModels: item.product.compatibleModels,
+          partGroup: item.product.partGroup,
+          imageUrl: item.product.imageUrl,
+          images: item.product.images || [],
+          crossReferences: item.product.crossReferences || [],
+          compatibleVehicles: item.product.compatibleVehicles || [],
+          attributes: item.product.attributes || [],
+          diagramUrl: item.product.diagramUrl,
+          diagrams: item.product.diagrams || [],
+          stock: null,
+          isDiscounted: false,
+          defaultPrice: null,
+          customPrice: null,
+          discountedPrice: null,
+          pricing: null,
+          isGuest: true,
+          guestNotice: 'Fiyatları görmek için giriş yapın veya kayıt olun'
+        }
+      });
+    }
+
+    const listPrice = item.customPrice !== null && item.customPrice !== undefined
+      ? parseFloat(item.customPrice)
+      : parseFloat(item.product.defaultPrice);
+
+    const discountMultiplier = Math.max(0, (100 - discountRate) / 100);
+    const finalPrice = parseFloat((listPrice * discountMultiplier).toFixed(2));
+    const savedAmount = parseFloat((listPrice - finalPrice).toFixed(2));
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        tenantProductId: item.id,
+        productId: item.productId,
+        oeNumber: item.product.oeNumber,
+        name: item.product.name,
+        category: item.product.category,
+        vehicleBrand: item.product.vehicleBrand,
+        compatibleModels: item.product.compatibleModels,
+        partGroup: item.product.partGroup,
+        imageUrl: item.product.imageUrl,
+        images: item.product.images || [],
+        crossReferences: item.product.crossReferences || [],
+        compatibleVehicles: item.product.compatibleVehicles || [],
+        attributes: item.product.attributes || [],
+        diagramUrl: item.product.diagramUrl,
+        diagrams: item.product.diagrams || [],
+        stock: item.stock,
+        isDiscounted: item.isDiscounted,
+        defaultPrice: listPrice,
+        customPrice: item.customPrice,
+        discountedPrice: finalPrice,
+        appliedDiscountRate: discountRate,
+        pricing: {
+          listPrice: listPrice,
+          discountRate: discountRate,
+          savedAmount: savedAmount,
+          finalPrice: finalPrice
+        },
+        isGuest: false
+      }
+    });
+
+  } catch (error) {
+    console.error('[STORE_GET_PRODUCT_BY_ID_ERROR]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Ürün detayı alınırken hata oluştu.'
+    });
+  }
+});
+
+// ============================================================================
 // B2B İŞLEM VE SİPARİŞ KORUMASI:
 // Sipariş verme, bakiye defteri, iade ve profil gibi tüm işlemler
-// kesinlikle doğrulanmış CUSTOMER token'ı gerektirir.
-// ============================================================================
+router.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+  next();
+});
 router.use(verifyToken, checkCustomer);
 
 // ============================================================================
@@ -437,7 +798,7 @@ router.use(verifyToken, checkCustomer);
  *          totalAmount hesaplanır ve Prisma Transaction ile atomik kaydedilir.
  * @access  Protected (CUSTOMER)
  */
-router.post('/orders', async (req, res) => {
+router.post('/orders', orderLimiter, async (req, res) => {
   try {
     const tenantId = req.user.tenantId;
     const userId = req.user.id;

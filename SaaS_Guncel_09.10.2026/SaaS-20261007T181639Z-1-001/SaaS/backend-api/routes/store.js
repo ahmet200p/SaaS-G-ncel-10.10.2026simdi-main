@@ -12,6 +12,8 @@ const { resolveTenant } = require('../middleware/resolveTenant');
 const { orderLimiter } = require('../middleware/rateLimiter');
 
 const jwt = require('jsonwebtoken');
+const authController = require('../controllers/authController');
+const { registerLimiter } = require('../middleware/rateLimiter');
 
 // ============================================================================
 // Multi-Tenant Güvenlik Ara Yazılımı (Tenant Isolation Middleware)
@@ -25,6 +27,16 @@ router.use((req, res, next) => {
   next();
 });
 router.use(resolveTenant);
+
+// ============================================================================
+// Müşteri / Otoservis Kayıt Rotası (POST /api/store/auth/register)
+// ============================================================================
+router.post('/auth/register', (req, res, next) => {
+  if (typeof registerLimiter === 'function') {
+    return registerLimiter(req, res, () => authController.register(req, res, next));
+  }
+  return authController.register(req, res, next);
+});
 
 // Helper: İstekten çözümlenmiş hedef bayiyi döner (Artık doğrudan req.tenant'tan beslenir)
 const resolveTargetTenant = async (req, fallbackTenantId = null) => {

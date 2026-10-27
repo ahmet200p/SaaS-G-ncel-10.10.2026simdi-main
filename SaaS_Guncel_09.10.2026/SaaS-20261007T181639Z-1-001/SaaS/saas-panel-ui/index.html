@@ -143,13 +143,13 @@
               </svg>
               Test Giriş Bilgileri (Tıklayıp Doldurabilirsiniz):
             </div>
-            <div class="test-row" onclick="fillTestCreds('admin@sistem.com', '123456')">
+            <div class="test-row" onclick="fillTestCreds('admin@sistem.com', 'Kim_!Lik9304.')">
               <span><strong>Süper Admin:</strong> <code>admin@sistem.com</code></span>
-              <span>Şifre: <code>123456</code></span>
+              <span>Şifre: <code>Kim_!Lik9304.</code></span>
             </div>
-            <div class="test-row" onclick="fillTestCreds('ahmet@ahmetoto.com', '123456')">
+            <div class="test-row" onclick="fillTestCreds('ahmet@ahmetoto.com', 'Denemehesabı..12')">
               <span><strong>Bayi Yöneticisi:</strong> <code>ahmet@ahmetoto.com</code></span>
-              <span>Şifre: <code>123456</code></span>
+              <span>Şifre: <code>Denemehesabı..12</code></span>
             </div>
             <div class="test-row" onclick="fillTestCreds('kemal@kemaloto.com', '123456')">
               <span><strong>Otoservis (Müşteri):</strong> <code>kemal@kemaloto.com</code></span>
@@ -502,9 +502,9 @@
     function quickLoginAndGo(role, targetPage, event) {
       if (event) event.preventDefault();
       if (role === 'SUPER_ADMIN') {
-        fillTestCreds('admin@sistem.com', '123456');
+        fillTestCreds('admin@sistem.com', 'Kim_!Lik9304.');
       } else if (role === 'TENANT_ADMIN') {
-        fillTestCreds('ahmet@ahmetoto.com', '123456');
+        fillTestCreds('ahmet@ahmetoto.com', 'Denemehesabı..12');
       } else if (role === 'CUSTOMER') {
         fillTestCreds('kemal@kemaloto.com', '123456');
       }

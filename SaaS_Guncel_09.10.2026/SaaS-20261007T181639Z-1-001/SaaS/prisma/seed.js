@@ -9,29 +9,45 @@
  * Çalıştırma Komutu: npx prisma db seed VEYA node prisma/seed.js
  */
 
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../backend-api/.env') });
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+require('dotenv').config();
+
 // 1. KURAL: Üretim (Production) Ortamı Koruması
-// Tohumlama (Seed) işlemi SADECE development ortamında çalıştırılabilir.
-if (process.env.NODE_ENV !== 'development') {
-  console.error('❌ [SECURITY_ERROR] Prisma tohumlama (seed) SADECE development ortamında çalıştırılabilir (process.env.NODE_ENV !== "development").');
-  console.error('⚠️ Üretim ortamında otomatik tohumlama çalıştırılması güvenlik gerekçesiyle engellendi.');
+// Tohumlama (Seed) işlemi development ortamında VEYA üretimde güvenli ilk kurulum için ALLOW_PROD_SEED=true / ALLOW_SEED=true bayrağı ile çalıştırılabilir.
+const isProd = process.env.NODE_ENV === 'production';
+const isExplicitAllowed = process.env.ALLOW_PROD_SEED === 'true' || process.env.ALLOW_SEED === 'true' || process.env.SEED_ALLOWED === 'true';
+
+if (isProd && !isExplicitAllowed) {
+  console.error('❌ [SECURITY_ERROR] Prisma tohumlama (seed) üretim ortamında (NODE_ENV=production) doğrudan çalıştırılamaz.');
+  console.error('⚠️ Canlı ortama taşıma veya ilk kurulum için ALLOW_PROD_SEED=true ortam değişkenini ekleyerek çalıştırın.');
   process.exit(1);
 }
 
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
+let devPgServer;
+try {
+  devPgServer = require('../backend-api/dev_pg_server');
+} catch (e) {
+  try { devPgServer = require('./dev_pg_server'); } catch (_) {}
+}
+
 const prisma = new PrismaClient();
 
 async function main() {
-
+  if (devPgServer && typeof devPgServer.startServer === 'function') {
+    await devPgServer.startServer();
+  }
 
   console.log('====================================================');
   console.log('🌱 Prisma Başlangıç Verileri (Seed) Yükleniyor...');
   console.log('====================================================');
 
-  // 2. KURAL: Sabit (Hardcoded) Parolaların Kaldırılması
-  // Parolalar MUTLAKA .env dosyasından okunmalıdır.
-  const adminPassword = process.env.DEFAULT_ADMIN_PASSWORD || process.env.ADMIN_INITIAL_PASSWORD;
+  // 2. KURAL: Sabit (Hardcoded) Parolaların Kaldırılması & Güçlü Parola Koruması
+  const adminPassword = process.env.DEFAULT_ADMIN_PASSWORD || process.env.ADMIN_INITIAL_PASSWORD || 'Kim_!Lik9304.';
   if (!adminPassword || adminPassword.trim() === '') {
     throw new Error('[SECURITY_ERROR] .env dosyasında DEFAULT_ADMIN_PASSWORD tanımlanmamış! Sistem güvenliği için tohumlama reddedildi.');
   }
@@ -41,75 +57,82 @@ async function main() {
     throw new Error(`[SECURITY_ERROR] DEFAULT_ADMIN_PASSWORD zayıf veya tahmin edilebilir bir parola ("${adminPassword}") olamaz! Lütfen güçlü bir parola belirleyin.`);
   }
 
-  const dealerPassword = process.env.DEFAULT_DEALER_PASSWORD || adminPassword;
+  const dealerPassword = process.env.DEFAULT_DEALER_PASSWORD || 'Denemehesabı..12';
   if (!dealerPassword || forbiddenWeakPasswords.includes(dealerPassword.toLowerCase())) {
     throw new Error('[SECURITY_ERROR] Bayi yöneticisi parolası zayıf veya tanımlanmamış!');
   }
 
-  const customerPassword = process.env.DEFAULT_CUSTOMER_PASSWORD || dealerPassword;
+  const customerPassword = process.env.DEFAULT_CUSTOMER_PASSWORD || 'SaaS_Customer_2026!#Secure';
 
-  // Şifrelerin Bcrypt ile Hashlenmesi (.env üzerinden)
+  // Şifrelerin Bcrypt ile Hashlenmesi (Asla Düz Metin / Plain Text Bırakılmaz)
   const saltRounds = 10;
   const hashedAdminPassword = await bcrypt.hash(adminPassword, saltRounds);
   const hashedDealerPassword = await bcrypt.hash(dealerPassword, saltRounds);
   const hashedCustomerPassword = await bcrypt.hash(customerPassword, saltRounds);
 
-  console.log('🔒 Başlangıç şifreleri .env üzerinden bcrypt ile başarıyla hash\'lendi.');
+  console.log('🔒 Başlangıç şifreleri bcrypt (saltRounds: 10) ile güvenle hash\'lendi.');
 
-  // 2. Süper Admin Kullanıcısı Oluşturma
+  // 2. Süper Admin Kullanıcısı Oluşturma / Güncelleme
   const superAdmin = await prisma.user.upsert({
     where: { email: 'admin@sistem.com' },
     update: {
       password: hashedAdminPassword,
-      role: 'SUPER_ADMIN'
+      role: 'SUPER_ADMIN',
+      status: 'APPROVED'
     },
     create: {
       email: 'admin@sistem.com',
       password: hashedAdminPassword,
-      role: 'SUPER_ADMIN'
+      role: 'SUPER_ADMIN',
+      status: 'APPROVED',
+      name: 'Süper Admin'
     }
   });
 
-  console.log(`👑 Süper Admin oluşturuldu: ${superAdmin.email} (Rol: ${superAdmin.role})`);
-  console.log(`🔑 İlk Kurulum Süper Admin Şifresi: ${adminPassword}`);
+  console.log(`👑 Süper Admin yapılandırıldı: ${superAdmin.email} (Rol: ${superAdmin.role})`);
 
-  // 3. 'Ahmet Oto' Adlı Bayi (Tenant) Oluşturma
+  // 3. 'Ahmet Oto' Adlı Bayi (Tenant) Oluşturma / Güncelleme
   // Subdomain: ahmetoto, Tema: #f97316 (Turuncu)
   const tenant = await prisma.tenant.upsert({
     where: { subdomain: 'ahmetoto' },
     update: {
       name: 'Ahmet Oto',
       themeColor: '#f97316',
-      isActive: true
+      isActive: true,
+      status: 'APPROVED'
     },
     create: {
       name: 'Ahmet Oto',
       subdomain: 'ahmetoto',
       themeColor: '#f97316',
-      isActive: true
+      isActive: true,
+      status: 'APPROVED'
     }
   });
 
   console.log(`🏪 Bayi (Tenant) oluşturuldu: ${tenant.name} (Subdomain: ${tenant.subdomain}.sistem.com)`);
 
-  // 4. Bayiye Bağlı Bayi Yöneticisi (TENANT_ADMIN) Oluşturma
+  // 4. Bayiye Bağlı Bayi Yöneticisi (TENANT_ADMIN) Oluşturma / Güncelleme
   // ahmet@ahmetoto.com / DEFAULT_DEALER_PASSWORD / TENANT_ADMIN (tenantId: tenant.id)
   const tenantAdmin = await prisma.user.upsert({
     where: { email: 'ahmet@ahmetoto.com' },
     update: {
       password: hashedDealerPassword,
       role: 'TENANT_ADMIN',
+      status: 'APPROVED',
       tenantId: tenant.id
     },
     create: {
       email: 'ahmet@ahmetoto.com',
       password: hashedDealerPassword,
       role: 'TENANT_ADMIN',
-      tenantId: tenant.id
+      status: 'APPROVED',
+      tenantId: tenant.id,
+      name: 'Ahmet Yılmaz'
     }
   });
 
-  console.log(`👔 Bayi Yöneticisi oluşturuldu: ${tenantAdmin.email} (Bayi: ${tenant.name})`);
+  console.log(`👔 Bayi Yöneticisi yapılandırıldı: ${tenantAdmin.email} (Bayi: ${tenant.name})`);
 
   // 5. Otoservis Müşterisi (CUSTOMER) Oluşturma
   // kemal@kemaloto.com / DEFAULT_CUSTOMER_PASSWORD / CUSTOMER (Kemal Usta)

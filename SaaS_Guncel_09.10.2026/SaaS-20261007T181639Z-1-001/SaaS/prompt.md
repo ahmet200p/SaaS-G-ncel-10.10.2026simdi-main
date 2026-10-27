@@ -1,1 +1,7 @@
-"Müşteri vitrini ürünleri çekerken (örneğin: GET /api/store/products), backend hangi bayinin (tenant) ürünlerini getireceğini nasıl anlıyor? Tenant bilgisini URL Query'den mi (req.query.tenant), Header'dan mı (req.headers['x-tenant-id']), yoksa Origin/Host üzerinden mi okuyor? Lütfen Store Controller dosyasındaki tenant algılama mantığını kontrol et ve frontend'in bu bilgiyi tam olarak nasıl göndermesi gerektiğini söyle."
+"Projeyi canlı ortama (production) taşıdığımız için varsayılan test hesaplarını (Super Admin, Bayi Yöneticisi vb.) güncelleyeceğiz. Lütfen veritabanı tohumlama (seeding) dosyasını (örneğin prisma/seed.js veya başlangıç verilerini oluşturan ilgili dosyayı) bul.
+
+admin@sistem.com olan Super  şifresini [Kim_!Lik9304.] yap.
+
+ahmet@ahmetoto.com olan Bayi Yöneticisi  şifresini [Denemehesabı..12] yap.
+
+Yeni şifreleri veritabanına kaydederken bcrypt kullanarak hash'leme işleminin doğru çalıştığından emin ol, şifreleri asla düz metin (plain text) olarak bırakma."
