@@ -9,7 +9,7 @@ const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
 const { verifyToken, checkTenantAdmin, requireApprovedDealer } = require('../middleware/auth');
 const { verifyNviTcKimlik } = require('./auth.routes');
-const { buildEnrichedAutomotiveData, enrichProductData } = require('../services/partsCatalogService');
+const { enrichProductData } = require('../services/partsCatalogService');
 
 // Tüm bayi rotalarına JWT doğrulama ve Bayi Yöneticisi kontrolünü uygula
 // Preflight (OPTIONS) istekleri güvenlik duvarına takılmadan doğrudan geçer
@@ -311,14 +311,21 @@ const handleCreateOrUpdateProduct = async (req, res) => {
       try { diagrams = JSON.parse(diagrams); } catch (e) {}
     }
 
-    if (!crossReferences || !compatibleVehicles || !attributes) {
-      const synth = buildEnrichedAutomotiveData(oeNumber, vehicleBrand, name, partGroup, compatibleModels);
-      crossReferences = crossReferences || synth.crossReferences;
-      compatibleVehicles = compatibleVehicles || synth.compatibleVehicles;
-      attributes = attributes || synth.attributes;
-      diagramUrl = diagramUrl || synth.diagramUrl;
-      diagrams = diagrams || synth.diagrams;
+    // KURAL 3: Asla uydurma veri üretme. Gerçek veriler varsa JSON olarak sakla
+    let rootOEM = req.body.rootOEM || null;
+    let originalOEMs = req.body.originalOEMs;
+    if (typeof originalOEMs === 'object' && originalOEMs !== null) {
+      try { originalOEMs = JSON.stringify(originalOEMs); } catch (e) {}
     }
+    let referenceCodes = req.body.referenceCodes;
+    if (typeof referenceCodes === 'object' && referenceCodes !== null) {
+      try { referenceCodes = JSON.stringify(referenceCodes); } catch (e) {}
+    }
+    let technicalSpecs = req.body.technicalSpecs;
+    if (typeof technicalSpecs === 'object' && technicalSpecs !== null) {
+      try { technicalSpecs = JSON.stringify(technicalSpecs); } catch (e) {}
+    }
+    let schemaSourceCode = req.body.schemaSourceCode || null;
 
     // 4. Prisma Transaction ile Ürün ve Bayi İlişkisi (Birebir Ham Veri Kaydı)
     const tenantProduct = await prisma.$transaction(async (tx) => {
@@ -343,7 +350,12 @@ const handleCreateOrUpdateProduct = async (req, res) => {
             compatibleVehicles: compatibleVehicles,
             attributes: attributes,
             diagramUrl: diagramUrl,
-            diagrams: diagrams
+            diagrams: diagrams,
+            rootOEM: rootOEM,
+            originalOEMs: originalOEMs,
+            referenceCodes: referenceCodes,
+            technicalSpecs: technicalSpecs,
+            schemaSourceCode: schemaSourceCode
           }
         });
       } else {
@@ -361,7 +373,12 @@ const handleCreateOrUpdateProduct = async (req, res) => {
             compatibleVehicles: compatibleVehicles || product.compatibleVehicles,
             attributes: attributes || product.attributes,
             diagramUrl: diagramUrl || product.diagramUrl,
-            diagrams: diagrams || product.diagrams
+            diagrams: diagrams || product.diagrams,
+            rootOEM: rootOEM || product.rootOEM,
+            originalOEMs: originalOEMs || product.originalOEMs,
+            referenceCodes: referenceCodes || product.referenceCodes,
+            technicalSpecs: technicalSpecs || product.technicalSpecs,
+            schemaSourceCode: schemaSourceCode || product.schemaSourceCode
           }
         });
       }

@@ -229,6 +229,21 @@ const handleCreateOrUpdateProduct = async (req, res) => {
         where: { oeNumber: oeNumber }
       });
 
+      let rootOEM = req.body.rootOEM || null;
+      let originalOEMs = req.body.originalOEMs;
+      if (typeof originalOEMs === 'object' && originalOEMs !== null) {
+        try { originalOEMs = JSON.stringify(originalOEMs); } catch (e) {}
+      }
+      let referenceCodes = req.body.referenceCodes;
+      if (typeof referenceCodes === 'object' && referenceCodes !== null) {
+        try { referenceCodes = JSON.stringify(referenceCodes); } catch (e) {}
+      }
+      let technicalSpecs = req.body.technicalSpecs;
+      if (typeof technicalSpecs === 'object' && technicalSpecs !== null) {
+        try { technicalSpecs = JSON.stringify(technicalSpecs); } catch (e) {}
+      }
+      let schemaSourceCode = req.body.schemaSourceCode || null;
+
       if (!product) {
         product = await tx.product.create({
           data: {
@@ -240,7 +255,12 @@ const handleCreateOrUpdateProduct = async (req, res) => {
             partGroup: partGroup,
             defaultPrice: parsedPrice,
             imageUrl: primaryImage,
-            images: imagesJson
+            images: imagesJson,
+            rootOEM: rootOEM,
+            originalOEMs: originalOEMs,
+            referenceCodes: referenceCodes,
+            technicalSpecs: technicalSpecs,
+            schemaSourceCode: schemaSourceCode
           }
         });
       } else {
@@ -253,7 +273,12 @@ const handleCreateOrUpdateProduct = async (req, res) => {
             compatibleModels: compatibleModels,
             partGroup: partGroup,
             defaultPrice: parsedPrice,
-            ...(primaryImage ? { imageUrl: primaryImage, images: imagesJson } : {})
+            ...(primaryImage ? { imageUrl: primaryImage, images: imagesJson } : {}),
+            rootOEM: rootOEM || product.rootOEM,
+            originalOEMs: originalOEMs || product.originalOEMs,
+            referenceCodes: referenceCodes || product.referenceCodes,
+            technicalSpecs: technicalSpecs || product.technicalSpecs,
+            schemaSourceCode: schemaSourceCode || product.schemaSourceCode
           }
         });
       }

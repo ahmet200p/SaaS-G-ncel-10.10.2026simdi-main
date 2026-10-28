@@ -350,10 +350,13 @@ directTenantBridgeRoutes.forEach(({ path: routePath, alias, target }) => {
 // GET /api/store/products, POST /api/store/orders
 app.use('/api/store', storeRoutes);
 
-// E. Parts Catalogs: OE/OEM Numarası ile Parça Detayı Arama
-// GET /api/catalog/search-oe/:oeNumber
+// E. Parts Catalogs & Deep Cross-Reference Search: OE/OEM/Aftermarket Numarası ile Parça Arama
+// GET/POST /api/catalog/search, /api/catalog/search-oe/:oeNumber, /api/search, /api/parts/search
+const { searchParts } = require('./controllers/searchController');
 app.use('/api/catalog', catalogRoutes);
 app.use('/catalog', catalogRoutes);
+app.get(['/api/search', '/api/search/:query', '/search', '/search/:query', '/api/parts/search', '/api/parts/search/:query', '/parts/search', '/parts/search/:query'], searchParts);
+app.post(['/api/search', '/search', '/api/parts/search', '/parts/search'], searchParts);
 
 // ----------------------------------------------------------------------------
 // 4. BULUNAMAYAN ROTA (404) VE MERKEZİ HATA YÖNETİMİ

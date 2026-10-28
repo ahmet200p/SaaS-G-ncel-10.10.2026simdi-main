@@ -3290,11 +3290,29 @@
         const fitmentBox = document.getElementById('preview-fitment-list');
         const attrsBox = document.getElementById('preview-attributes-table');
 
-        const crosses = (data && data.crossReferences) || [];
+        // KURAL 4: Deep Cross-Reference (rootOEM, originalOEMs, referenceCodes, technicalSpecs)
+        const rootOem = data && data.rootOEM;
+        const originalOems = (data && data.originalOEMs) || [];
+        const refCodes = (data && data.referenceCodes) || [];
+        const legacyCrosses = (data && data.crossReferences) || [];
         const fitments = (data && data.compatibleVehicles) || [];
-        const attrs = (data && data.attributes) || [];
 
-        if (crosses.length === 0 && fitments.length === 0 && attrs.length === 0) {
+        // Technical specs: Object { key: val } (KURAL 4) veya Array [{ name, value }]
+        let rawAttrs = [];
+        if (data && data.technicalSpecs && typeof data.technicalSpecs === 'object') {
+          rawAttrs = Object.entries(data.technicalSpecs).map(([key, val]) => ({
+            name: key,
+            value: typeof val === 'object' ? JSON.stringify(val) : String(val)
+          }));
+        } else if (data && Array.isArray(data.attributes)) {
+          rawAttrs = data.attributes;
+        }
+
+        const hasCrosses = rootOem || originalOems.length > 0 || refCodes.length > 0 || legacyCrosses.length > 0;
+        const hasFitments = fitments.length > 0;
+        const hasAttrs = rawAttrs.length > 0;
+
+        if (!hasCrosses && !hasFitments && !hasAttrs) {
           container.style.display = 'none';
           return;
         }
@@ -3302,13 +3320,55 @@
         container.style.display = 'block';
 
         if (crossesBox) {
-          crossesBox.innerHTML = crosses.map(c => `
-            <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 8px; display: inline-flex; align-items: center; gap: 5px; font-size: 0.76rem;">
-              <span style="font-weight: 700; color: #1e293b;">${escapeHtml(c.brand || '')}</span>
-              <span style="font-family: monospace; color: #2563eb; font-weight: 600;">${escapeHtml(c.code || c.oeNumber || '')}</span>
-              <span style="background: #eff6ff; color: #1d4ed8; padding: 1px 4px; border-radius: 4px; font-size: 0.68rem; font-weight: 600;">${escapeHtml(c.quality || 'Muadil')}</span>
-            </div>
-          `).join('') || '<span style="color:#94a3b8; font-size: 0.74rem;">Muadil kaydı yok</span>';
+          const crossItemsHtml = [];
+
+          if (rootOem) {
+            crossItemsHtml.push(`
+              <div style="background: #eff6ff; border: 1.5px solid #2563eb; border-radius: 6px; padding: 4px 8px; display: inline-flex; align-items: center; gap: 5px; font-size: 0.76rem;">
+                <span style="font-weight: 800; color: #1d4ed8;">KÖK OEM:</span>
+                <span style="font-family: monospace; color: #1e3a8a; font-weight: 700;">${escapeHtml(rootOem)}</span>
+              </div>
+            `);
+          }
+
+          if (originalOems && originalOems.length > 0) {
+            originalOems.forEach(oe => {
+              if (oe !== rootOem) {
+                crossItemsHtml.push(`
+                  <div style="background: #f8fafc; border: 1px solid #94a3b8; border-radius: 6px; padding: 4px 8px; display: inline-flex; align-items: center; gap: 5px; font-size: 0.76rem;">
+                    <span style="font-weight: 700; color: #475569;">OEM Rev:</span>
+                    <span style="font-family: monospace; color: #0f172a; font-weight: 600;">${escapeHtml(oe)}</span>
+                  </div>
+                `);
+              }
+            });
+          }
+
+          if (refCodes && refCodes.length > 0) {
+            refCodes.forEach(r => {
+              crossItemsHtml.push(`
+                <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 8px; display: inline-flex; align-items: center; gap: 5px; font-size: 0.76rem;">
+                  <span style="font-weight: 700; color: #1e293b;">${escapeHtml(r.brand || 'Üretici')}</span>
+                  <span style="font-family: monospace; color: #2563eb; font-weight: 600;">${escapeHtml(r.code || '')}</span>
+                  <span style="background: #f1f5f9; color: #475569; padding: 1px 4px; border-radius: 4px; font-size: 0.68rem; font-weight: 600;">Muadil</span>
+                </div>
+              `);
+            });
+          }
+
+          if (legacyCrosses && legacyCrosses.length > 0 && refCodes.length === 0) {
+            legacyCrosses.forEach(c => {
+              crossItemsHtml.push(`
+                <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 8px; display: inline-flex; align-items: center; gap: 5px; font-size: 0.76rem;">
+                  <span style="font-weight: 700; color: #1e293b;">${escapeHtml(c.brand || '')}</span>
+                  <span style="font-family: monospace; color: #2563eb; font-weight: 600;">${escapeHtml(c.code || c.oeNumber || '')}</span>
+                  <span style="background: #eff6ff; color: #1d4ed8; padding: 1px 4px; border-radius: 4px; font-size: 0.68rem; font-weight: 600;">${escapeHtml(c.quality || 'Muadil')}</span>
+                </div>
+              `);
+            });
+          }
+
+          crossesBox.innerHTML = crossItemsHtml.join('') || '<span style="color:#94a3b8; font-size: 0.74rem;">Muadil kaydı yok</span>';
         }
 
         if (fitmentBox) {
@@ -3321,7 +3381,7 @@
         }
 
         if (attrsBox) {
-          attrsBox.innerHTML = attrs.map(a => `
+          attrsBox.innerHTML = rawAttrs.map(a => `
             <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 8px;">
               <span style="color: #64748b; font-size: 0.7rem; display: block; font-weight: 600;">${escapeHtml(a.name || a.key || '')}</span>
               <span style="color: #0f172a; font-weight: 700; font-size: 0.78rem;">${escapeHtml(a.value || '')}</span>
@@ -3394,8 +3454,8 @@
           });
           const json = await res.json();
 
-          if (res.ok && json.success && json.data) {
-            const data = json.data;
+          if (res.ok && json.success && (json.data || json.searchedQuery || json.rootOEM || json.originalOEMs)) {
+            const data = json.data || json;
 
             // 1. Parça Adı
             const nameInput = document.getElementById('prod-name');
@@ -3450,19 +3510,29 @@
               }
             }
 
-            // 5. SADECE bu OEM / OE numarasına ait kayıtlı teknik detay çizimi ve parça görselini ekle
-            // Başka sorgulardan kalan görsellerle karışmaz, şasi sorgusunda resim çıkmaz; sadece OE sorgusunda gelir.
-            const images = data.images || [];
-            const diagrams = data.diagrams || [];
-            const allItems = [...diagrams, ...images.filter(img => !diagrams.some(d => d.url === img))];
+            // 5. KURAL 2 & 4: Deep Cross-Reference ve Aggressive Fallback görselleri
+            const rawImages = Array.isArray(data.images) ? data.images : [];
+            const mappedImages = rawImages.map(item => {
+              if (typeof item === 'string') return { url: item };
+              if (item && item.url) {
+                return {
+                  url: item.url,
+                  name: item.isFallback ? `Şema (${item.sourceCode || data.schemaSourceCode || 'Kardeş Kod'})` : undefined
+                };
+              }
+              return null;
+            }).filter(Boolean);
+
+            const diagrams = Array.isArray(data.diagrams) ? data.diagrams : [];
+            const allItems = [...diagrams, ...mappedImages.filter(img => !diagrams.some(d => d.url === img.url))];
 
             if (allItems.length > 0) {
-              renderCatalogGallery(allItems, true); // replace = true: bir öncekini temizler ve sadece bunu gösterir
+              renderCatalogGallery(allItems, true);
             } else {
               clearCatalogGallery();
             }
 
-            // 6. Zengin Verileri Sakla ve Arayüzde Önizle (Uyumlu araçlar, muadiller, teknik özellikler)
+            // 6. Zengin Verileri Sakla ve Arayüzde Önizle (KURAL 1 & 4 Deep Cross-Reference)
             window.currentEnrichedData = data;
             if (typeof renderEnrichedData === 'function') {
               renderEnrichedData(data);

@@ -48,11 +48,32 @@ async function startServer() {
       ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "apiKeyHash" TEXT;
       ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'PENDING';
       ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'PENDING';
+      ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "rootOEM" TEXT;
+      ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "originalOEMs" JSONB;
+      ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "referenceCodes" JSONB;
+      ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "technicalSpecs" JSONB;
+      ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "schemaSourceCode" TEXT;
       ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "crossReferences" JSONB;
       ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "compatibleVehicles" JSONB;
       ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "attributes" JSONB;
       ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "diagramUrl" TEXT;
       ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "diagrams" JSONB;
+      CREATE INDEX IF NOT EXISTS "Product_rootOEM_idx" ON "Product"("rootOEM");
+      CREATE TABLE IF NOT EXISTS "PartCrossReference" (
+        "id" TEXT NOT NULL,
+        "code" TEXT NOT NULL,
+        "normalizedCode" TEXT NOT NULL,
+        "brand" TEXT,
+        "rootOEM" TEXT NOT NULL,
+        "isOEM" BOOLEAN NOT NULL DEFAULT false,
+        "productId" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "PartCrossReference_pkey" PRIMARY KEY ("id")
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS "PartCrossReference_normalizedCode_rootOEM_key" ON "PartCrossReference"("normalizedCode", "rootOEM");
+      CREATE INDEX IF NOT EXISTS "PartCrossReference_normalizedCode_idx" ON "PartCrossReference"("normalizedCode");
+      CREATE INDEX IF NOT EXISTS "PartCrossReference_rootOEM_idx" ON "PartCrossReference"("rootOEM");
+      CREATE INDEX IF NOT EXISTS "PartCrossReference_productId_idx" ON "PartCrossReference"("productId");
     `);
   } catch (e) {}
 

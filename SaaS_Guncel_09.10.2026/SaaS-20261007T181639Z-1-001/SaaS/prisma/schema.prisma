@@ -86,22 +86,49 @@ model Product {
   compatibleModels String?         // Uyumlu olduğu spesifik modeller (Örn: Golf 7, Passat B8)
   partGroup        String?         // Parçanın araçtaki yeri (Örn: İç Aksam, Dış Aksam/Kaporta, Motor)
 
-  // Zenginleştirilmiş Parça Verileri (prompt.md Mimarisi - Cross-references, Fitment, Attributes, Diagrams)
-  crossReferences    Json?         // Muadiller / Eşdeğer parçalar: [{ oeNumber, brand, name, quality, type }]
+  // Zenginleştirilmiş Parça Verileri & Deep Cross-Reference Örümcek Ağı (prompt.md Mimarisi)
+  rootOEM            String?       // Ana Kök OEM (Base OEM) numarası (Örn: "410601241R")
+  originalOEMs       Json?         // Tüm OEM Revizyon/Versiyon kodları dizisi: ["7701208122", "410601241R"]
+  referenceCodes     Json?         // Tüm Yan Sanayi Referans kodları: [{ brand: "TRW", code: "GDB1552" }]
+  technicalSpecs     Json?         // Gerçek Teknik Özellikler objesi: { thickness: "18mm", fittingPosition: "Front Axle" }
+  schemaSourceCode   String?       // Görsel/şemanın çekildiği kardeş OEM kodu (Aggressive Fallback metadata)
+  crossReferences    Json?         // Muadiller / Eşdeğer parçalar: [{ brand, code }]
   compatibleVehicles Json?         // Uyumlu Araçlar (Fitment): [{ make, model, years, engine, trim, kw, hp }]
   attributes         Json?         // Teknik Özellikler: [{ name, value, unit }]
   diagramUrl         String?       // Teknik Montaj / Patlatılmış Şema Görseli URL
   diagrams           Json?         // Ek şemalar ve patlatılmış montaj çizimleri listesi
 
-  tenantProducts   TenantProduct[]
+  tenantProducts       TenantProduct[]
+  partCrossReferences  PartCrossReference[]
 
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
   @@index([oeNumber])
+  @@index([rootOEM])
   @@index([category])
   @@index([vehicleBrand])
   @@index([partGroup])
+}
+
+// ----------------------------------------------------------------------------
+// 3.1 PART CROSS REFERENCE (Çift Yönlü Çapraz Referans Örümcek Ağı İndeksi)
+// ----------------------------------------------------------------------------
+model PartCrossReference {
+  id             String   @id @default(uuid())
+  code           String
+  normalizedCode String
+  brand          String?
+  rootOEM        String
+  isOEM          Boolean  @default(false)
+  productId      String?
+  product        Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+
+  @@unique([normalizedCode, rootOEM])
+  @@index([normalizedCode])
+  @@index([rootOEM])
+  @@index([productId])
 }
 
 // ----------------------------------------------------------------------------

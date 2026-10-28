@@ -1,0 +1,190 @@
+// ============================================================================
+// B2B AFS Systems - Yedek Parça Arama Denetleyicisi (controllers/searchController.js)
+// Deep Cross-Reference (Çift Yönlü Çapraz Eşleştirme Örümcek Ağı) &
+// Aggressive Schema Fetching (Tavizsiz Görsel ve Teknik Şema Taraması)
+// Statik / Sahte / Hardcoded Veriye Sıfır Tolerans (KURAL 1, 2, 3, 4)
+// ============================================================================
+
+const {
+  executeDeepCrossReferenceSearch,
+  enrichProductData
+} = require('../services/partsCatalogService');
+
+/**
+ * İstekten (params, query, body) aranan yedek parça sorgusunu çıkarır.
+ */
+function extractSearchedQuery(req) {
+  const candidates = [
+    req.params?.query,
+    req.params?.oeNumber,
+    req.params?.article,
+    req.params?.code,
+    req.params?.partNumber,
+    req.query?.q,
+    req.query?.query,
+    req.query?.searchedQuery,
+    req.query?.oeNumber,
+    req.query?.oe,
+    req.query?.oem,
+    req.query?.article,
+    req.query?.code,
+    req.query?.partNumber,
+    req.body?.q,
+    req.body?.query,
+    req.body?.searchedQuery,
+    req.body?.oeNumber,
+    req.body?.oe,
+    req.body?.oem,
+    req.body?.article,
+    req.body?.code,
+    req.body?.partNumber
+  ];
+
+  for (const val of candidates) {
+    if (typeof val === 'string' && val.trim().length > 0) {
+      return val.trim();
+    }
+  }
+  return '';
+}
+
+/**
+ * İstekten opsiyonel araç/marka bağlam parametrelerini çıkarır.
+ */
+function extractSearchContext(req) {
+  const brand = (
+    req.query?.brand ||
+    req.query?.vehicleBrand ||
+    req.query?.manufacturer ||
+    req.body?.brand ||
+    req.body?.vehicleBrand ||
+    ''
+  ).trim();
+
+  const vin = (req.query?.vin || req.body?.vin || '').trim();
+  const catalogId = (
+    req.query?.catalogId ||
+    req.body?.catalogId ||
+    (brand ? brand.toLowerCase().replace(/[^a-z0-9]/g, '') : '')
+  ).trim();
+  const carId = (req.query?.carId || req.body?.carId || '').trim();
+  const criteria = (req.query?.criteria || req.body?.criteria || '').trim();
+
+  return { brand, vin, catalogId, carId, criteria };
+}
+
+/**
+ * KURAL 4 Strict Payload oluşturucu:
+ * Sadece gerçek verileri döner. Boş/olmayan opsiyonel alanlar undefined bırakılır (KURAL 3).
+ */
+function buildStrictSearchResponse(result) {
+  const hasRealSpecs =
+    result.technicalSpecs &&
+    typeof result.technicalSpecs === 'object' &&
+    Object.keys(result.technicalSpecs).length > 0;
+
+  const payload = {
+    success: true,
+    searchedQuery: result.searchedQuery,
+    rootOEM: result.rootOEM || undefined,
+    originalOEMs: Array.isArray(result.originalOEMs) ? result.originalOEMs : [],
+    referenceCodes: Array.isArray(result.referenceCodes) ? result.referenceCodes : [],
+    technicalSpecs: hasRealSpecs ? result.technicalSpecs : undefined,
+    images: Array.isArray(result.images) ? result.images : [],
+    schemaSourceCode: result.schemaSourceCode || undefined
+  };
+
+  // Gerçek parça meta verileri varsa (DB veya API'den gelen gerçek kayıtlar) ekle; yoksa undefined bırak
+  if (result.partName) payload.partName = result.partName;
+  if (result.partGroup) payload.partGroup = result.partGroup;
+  if (result.vehicleBrand) payload.vehicleBrand = result.vehicleBrand;
+  if (result.compatibleModels) payload.compatibleModels = result.compatibleModels;
+  if (Array.isArray(result.compatibleVehicles) && result.compatibleVehicles.length > 0) {
+    payload.compatibleVehicles = result.compatibleVehicles;
+  }
+  if (Array.isArray(result.diagrams) && result.diagrams.length > 0) {
+    payload.diagrams = result.diagrams;
+  }
+
+  return payload;
+}
+
+/**
+ * @desc  Yedek Parça Arama Endpoint İşleyicisi (KURAL 1, 2, 3, 4)
+ *        GET/POST /api/catalog/search, /api/catalog/search-oe/:oeNumber, /api/search, /api/parts/search
+ */
+async function searchParts(req, res) {
+  const searchedQuery = extractSearchedQuery(req);
+
+  if (!searchedQuery) {
+    return res.status(400).json({
+      success: false,
+      message: 'Lütfen aranacak OEM veya Üretici Referans kodunu belirtiniz (Örn: trw gdb1552 veya 7701208122).'
+    });
+  }
+
+  const context = extractSearchContext(req);
+
+  try {
+    const result = await executeDeepCrossReferenceSearch(searchedQuery, context);
+    const strictPayload = buildStrictSearchResponse(result);
+    return res.status(200).json(strictPayload);
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    console.error(`[SEARCH_CONTROLLER_ERROR] Query="${searchedQuery}":`, error.message);
+    return res.status(statusCode).json({
+      success: false,
+      searchedQuery,
+      message: error.message || 'Yedek parça çapraz referans sorgulaması sırasında bir hata oluştu.'
+    });
+  }
+}
+
+/**
+ * @desc  Admin / Bayi Paneli Zenginleştirme Endpoint İşleyicisi
+ *        GET /api/catalog/enrich, /api/catalog/enrich/:oeNumber
+ *        Hem KURAL 4 strict alanlarını üst seviyede hem de data içinde döner.
+ */
+async function enrichPart(req, res) {
+  const searchedQuery = extractSearchedQuery(req);
+
+  if (!searchedQuery) {
+    return res.status(400).json({
+      success: false,
+      message: 'Lütfen geçerli bir OE / OEM veya Üretici Referans numarası giriniz.'
+    });
+  }
+
+  const context = extractSearchContext(req);
+
+  try {
+    const enriched = await enrichProductData({
+      oeNumber: searchedQuery,
+      ...context
+    });
+
+    const strictPayload = buildStrictSearchResponse(enriched);
+
+    return res.status(200).json({
+      ...strictPayload,
+      data: strictPayload
+    });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    console.error(`[ENRICH_CONTROLLER_ERROR] Query="${searchedQuery}":`, error.message);
+    return res.status(statusCode).json({
+      success: false,
+      searchedQuery,
+      message: error.message || 'Parça zenginleştirme işlemi tamamlanamadı.'
+    });
+  }
+}
+
+module.exports = {
+  searchParts,
+  enrichPart,
+  extractSearchedQuery,
+  extractSearchContext,
+  buildStrictSearchResponse
+};
+

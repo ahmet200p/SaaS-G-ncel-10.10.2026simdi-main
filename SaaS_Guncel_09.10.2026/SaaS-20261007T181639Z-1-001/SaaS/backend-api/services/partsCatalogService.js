@@ -1,34 +1,1227 @@
 // ============================================================================
-// Parts Catalogs API Entegrasyon Servisi (services/partsCatalogService.js)
-// Şasi (VIN) ve OE Numarası ile Canlı Harici Parça Kataloğu Entegrasyonu
+// B2B AFS Systems - Derin Çapraz Referans (Deep Cross-Reference) &
+// Tavizsiz Şema Tarama (Aggressive Schema Fetching) Servisi
+// Konum: backend-api/services/partsCatalogService.js
 // ============================================================================
 
 const axios = require('axios');
+const path = require('path');
+const fs = require('fs');
+const prisma = require('../lib/prisma');
 
-const BASE_URL = (process.env.PARTS_CATALOG_BASE_URL || 'https://api.parts-catalogs.com').replace(/\/+$/, '');
-const API_KEY = (process.env.PARTS_CATALOG_API_KEY || 'OEM-API-BD39DFA8-9AE9-4E7F-8B6D-3D1011BF973F').trim();
+let pgliteInstance = null;
+async function getPgliteDb() {
+  if (!pgliteInstance) {
+    try {
+      const { PGlite } = require('@electric-sql/pglite');
+      const candidates = [
+        path.join(__dirname, '..', 'prisma', 'pgdata'),
+        path.join(__dirname, 'prisma', 'pgdata'),
+        path.join(process.cwd(), 'backend-api', 'prisma', 'pgdata'),
+        path.join(process.cwd(), 'prisma', 'pgdata')
+      ];
+      for (const dir of candidates) {
+        if (fs.existsSync(dir)) {
+          pgliteInstance = new PGlite(dir);
+          await pgliteInstance.waitReady;
+          break;
+        }
+      }
+    } catch (_) {}
+  }
+  return pgliteInstance;
+}
+
+async function fetchDbCrossReferences(norms) {
+  const normList = Array.from(norms);
+  if (normList.length === 0) return [];
+
+  try {
+    return await prisma.partCrossReference.findMany({
+      where: {
+        OR: [
+          { normalizedCode: { in: normList } },
+          { rootOEM: { in: normList } }
+        ]
+      }
+    });
+  } catch (err) {
+    const db = await getPgliteDb();
+    if (db) {
+      try {
+        const placeholders = normList.map((_, i) => `$${i + 1}`).join(', ');
+        const res = await db.query(
+          `SELECT * FROM "PartCrossReference" WHERE "normalizedCode" IN (${placeholders}) OR "rootOEM" IN (${placeholders})`,
+          normList
+        );
+        return res.rows || [];
+      } catch (_) {}
+    }
+    return [];
+  }
+}
+
+async function fetchDbSiblingCrossReferences(rootOem) {
+  if (!rootOem) return [];
+  const clean = String(rootOem).trim().toUpperCase();
+  const norm = normalizeCode(clean);
+
+  try {
+    return await prisma.partCrossReference.findMany({
+      where: {
+        OR: [
+          { rootOEM: { equals: clean, mode: 'insensitive' } },
+          { normalizedCode: norm }
+        ]
+      }
+    });
+  } catch (err) {
+    const db = await getPgliteDb();
+    if (db) {
+      try {
+        const res = await db.query(
+          `SELECT * FROM "PartCrossReference" WHERE UPPER("rootOEM") = $1 OR "normalizedCode" = $2`,
+          [clean, norm]
+        );
+        return res.rows || [];
+      } catch (_) {}
+    }
+    return [];
+  }
+}
+
+async function fetchDbProducts() {
+  try {
+    return await prisma.product.findMany();
+  } catch (err) {
+    const db = await getPgliteDb();
+    if (db) {
+      try {
+        const res = await db.query(`SELECT * FROM "Product"`);
+        return (res.rows || []).map(r => {
+          let origOems = r.originalOEMs;
+          if (typeof origOems === 'string') {
+            try { origOems = JSON.parse(origOems); } catch (_) {}
+          }
+          let refCodes = r.referenceCodes;
+          if (typeof refCodes === 'string') {
+            try { refCodes = JSON.parse(refCodes); } catch (_) {}
+          }
+          let techSpecs = r.technicalSpecs;
+          if (typeof techSpecs === 'string') {
+            try { techSpecs = JSON.parse(techSpecs); } catch (_) {}
+          }
+          let crossRefs = r.crossReferences;
+          if (typeof crossRefs === 'string') {
+            try { crossRefs = JSON.parse(crossRefs); } catch (_) {}
+          }
+          let compVeh = r.compatibleVehicles;
+          if (typeof compVeh === 'string') {
+            try { compVeh = JSON.parse(compVeh); } catch (_) {}
+          }
+          let attrs = r.attributes;
+          if (typeof attrs === 'string') {
+            try { attrs = JSON.parse(attrs); } catch (_) {}
+          }
+          let diags = r.diagrams;
+          if (typeof diags === 'string') {
+            try { diags = JSON.parse(diags); } catch (_) {}
+          }
+          return {
+            ...r,
+            originalOEMs: origOems,
+            referenceCodes: refCodes,
+            technicalSpecs: techSpecs,
+            crossReferences: crossRefs,
+            compatibleVehicles: compVeh,
+            attributes: attrs,
+            diagrams: diags
+          };
+        });
+      } catch (_) {}
+    }
+    return [];
+  }
+}
+
+const DEFAULT_BASE_URL = (process.env.PARTS_CATALOG_BASE_URL || 'https://api.parts-catalogs.com').replace(/\/+$/, '');
+const DEFAULT_API_KEY = (process.env.PARTS_CATALOG_API_KEY || '').trim();
+
+// Bilinen üretici / yan sanayi ve OEM marka isimleri (Sorgu ayrıştırma için)
+const KNOWN_MANUFACTURERS = new Set([
+  'TRW', 'BOSCH', 'VALEO', 'AYD', 'BREMBO', 'FERODO', 'TEXTAR', 'ATE', 'ZIMMERMANN',
+  'MEYLE', 'FEBI', 'FEBIBILSTEIN', 'LEMFORDER', 'SACHS', 'LUK', 'INA', 'FAG', 'SKF',
+  'SNR', 'NTN', 'GATES', 'CONTITECH', 'CONTINENTAL', 'DAYCO', 'OPTIBELT', ' HUTCHINSON',
+  'MANN', 'MANNFILTER', 'MAHLE', 'KNECHT', 'PURFLUX', 'FILTRON', 'HENGST', 'UFI',
+  'WAHLER', 'BORGWARNER', 'VERNET', 'CALORSTAT', 'BEHR', 'NISSENS', 'NRF', 'DENSO',
+  'DELPHI', 'NGK', 'BERU', 'HELLA', 'MAGNETIMARELLI', 'PIERBURG', 'ELRING', 'VICTORREINZ',
+  'CORTECO', 'GOETZE', 'PAYEN', 'KYB', 'KAYABA', 'MONROE', 'BILSTEIN', 'MOOG', 'DELPHI',
+  'OPTIMAL', 'SWAG', 'TOPRAN', 'VAICO', 'SASIC', 'METALCAUCHO', 'BIRTH', 'OPAR', 'MOTOCRAFT',
+  'ACDELCO', 'MOPAR', 'RENAULT', 'DACIA', 'PEUGEOT', 'CITROEN', 'PSA', 'FIAT', 'ALFAROMEO',
+  'LANCIA', 'VW', 'VOLKSWAGEN', 'AUDI', 'SEAT', 'SKODA', 'VAG', 'BMW', 'MERCEDES', 'FORD',
+  'OPEL', 'GM', 'TOYOTA', 'HYUNDAI', 'KIA', 'NISSAN', 'HONDA', 'MAZDA', 'VOLVO', 'MITSUBISHI'
+]);
 
 /**
- * Ortak API Başlıkları Konfigürasyonu
+ * Kod normalizasyonu: boşluk, tire, nokta, eğik çizgi gibi karakterleri temizler ve büyük harfe çevirir.
+ * Örn: "11-60091AA" -> "1160091AA", "0 986 424 794" -> "0986424794"
  */
-function getRequestHeaders() {
+function normalizeCode(raw) {
+  if (!raw || typeof raw !== 'string') return '';
+  return raw.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+}
+
+/**
+ * Kullanıcının arama sorgusunu (Örn: "trw gdb1552" veya "7701208122")
+ * marka ve kod bileşenlerine ayrıştırır.
+ */
+function parseSearchInput(rawQuery, explicitBrand = '') {
+  const searchedQuery = String(rawQuery || '').trim();
+  const cleanExplicitBrand = String(explicitBrand || '').trim();
+
+  if (!searchedQuery) {
+    return {
+      searchedQuery: '',
+      brand: cleanExplicitBrand,
+      code: '',
+      normalizedCode: '',
+      fullNormalized: ''
+    };
+  }
+
+  const fullNormalized = normalizeCode(searchedQuery);
+  const tokens = searchedQuery.split(/\s+/).filter(Boolean);
+
+  if (tokens.length >= 2) {
+    const firstTokenNorm = normalizeCode(tokens[0]);
+    const restJoined = tokens.slice(1).join(' ').trim();
+    const restNorm = normalizeCode(restJoined);
+
+    // İlk kelime bilinen bir üretici markasıysa veya sadece harflerden oluşup geri kalanında rakam varsa
+    if (
+      KNOWN_MANUFACTURERS.has(firstTokenNorm) ||
+      (/^[A-Z]+$/i.test(tokens[0]) && /[0-9]/.test(restNorm))
+    ) {
+      return {
+        searchedQuery,
+        brand: cleanExplicitBrand || tokens[0].toUpperCase(),
+        code: restJoined.toUpperCase(),
+        normalizedCode: restNorm,
+        fullNormalized
+      };
+    }
+  }
+
   return {
-    'Authorization': API_KEY, // Parts-Catalogs OAS 3.0 doğrudan anahtar bekler
-    'X-API-KEY': API_KEY,
-    'Accept': 'application/json',
-    'Accept-Language': 'en',
-    'User-Agent': 'SaaS-Parts-Catalog-Client/2026'
+    searchedQuery,
+    brand: cleanExplicitBrand,
+    code: searchedQuery.toUpperCase(),
+    normalizedCode: fullNormalized,
+    fullNormalized
   };
 }
 
 /**
+ * Harici Katalog API yapılandırmasını (.env veya SystemSettings) getirir.
+ */
+async function getCatalogConfig() {
+  let baseUrl = DEFAULT_BASE_URL;
+  let apiKey = DEFAULT_API_KEY;
+
+  try {
+    let settings = null;
+    try {
+      settings = await prisma.systemSettings.findUnique({ where: { id: 1 } });
+    } catch (_) {
+      const db = await getPgliteDb();
+      if (db) {
+        try {
+          const res = await db.query(`SELECT * FROM "SystemSettings" WHERE id = 1 LIMIT 1`);
+          if (res.rows && res.rows.length > 0) settings = res.rows[0];
+        } catch (_) {}
+      }
+    }
+    if (settings) {
+      if (settings.tecdocApiKey && settings.tecdocApiKey.trim()) {
+        apiKey = settings.tecdocApiKey.trim();
+      }
+      if (
+        settings.tecdocEndpoint &&
+        settings.tecdocEndpoint.trim() &&
+        !settings.tecdocEndpoint.includes('api.tecalliance.net/v2/catalog')
+      ) {
+        baseUrl = settings.tecdocEndpoint.trim().replace(/\/+$/, '');
+      }
+    }
+  } catch (_) {}
+
+  return {
+    baseUrl: baseUrl || 'https://api.parts-catalogs.com',
+    apiKey
+  };
+}
+
+function buildRequestHeaders(apiKey) {
+  const headers = {
+    'Accept': 'application/json',
+    'Accept-Language': 'en',
+    'User-Agent': 'AFS-Systems-B2B-DeepSearch/2026'
+  };
+  if (apiKey) {
+    headers['Authorization'] = apiKey;
+    headers['X-API-KEY'] = apiKey;
+  }
+  return headers;
+}
+
+/**
+ * KURAL 3: Sadece ve sadece API'den veya veritabanından gelen GERÇEK teknik özellikleri
+ * ayrıştırır. Uydurma/varsayılan hiçbir alan eklemez. Boşsa undefined döner.
+ */
+function extractRealTechnicalSpecs(...sources) {
+  const specs = {};
+
+  for (const src of sources) {
+    if (!src) continue;
+
+    // 1. Düz obje formatı: { thickness: "18mm", fittingPosition: "Front Axle" }
+    if (typeof src === 'object' && !Array.isArray(src)) {
+      for (const [k, v] of Object.entries(src)) {
+        if (v === null || v === undefined) continue;
+        const keyStr = String(k).trim();
+        const valStr = String(v).trim();
+        if (!keyStr || !valStr || valStr === 'undefined' || valStr === 'null') continue;
+        if (specs[keyStr] === undefined) {
+          specs[keyStr] = valStr;
+        }
+      }
+    }
+
+    // 2. Dizi formatı: [{ name: "thickness", value: "18", unit: "mm" }, ...]
+    if (Array.isArray(src)) {
+      for (const item of src) {
+        if (!item || typeof item !== 'object') continue;
+        const rawKey = item.key || item.name || item.title || item.parameter || item.attribute;
+        const rawVal = item.value !== undefined ? item.value : item.val;
+        const rawUnit = item.unit ? String(item.unit).trim() : '';
+        if (!rawKey || rawVal === null || rawVal === undefined) continue;
+
+        const keyStr = String(rawKey).trim();
+        let valStr = String(rawVal).trim();
+        if (!keyStr || !valStr || valStr === 'undefined' || valStr === 'null') continue;
+        if (rawUnit && !valStr.endsWith(rawUnit)) {
+          valStr = `${valStr}${rawUnit}`;
+        }
+        if (specs[keyStr] === undefined) {
+          specs[keyStr] = valStr;
+        }
+      }
+    }
+  }
+
+  return Object.keys(specs).length > 0 ? specs : undefined;
+}
+
+/**
+ * Görsel URL dizisini temizler ve geçerli URL'leri döndürür.
+ */
+function extractValidImageUrls(rawImages, rawDiagrams, rawSingleUrl) {
+  const urls = [];
+  const seen = new Set();
+
+  const addUrl = (u) => {
+    if (!u) return;
+    let urlStr = typeof u === 'string' ? u.trim() : (u.url || u.img || u.imageUrl || '').trim();
+    if (!urlStr) return;
+    if (urlStr.startsWith('//')) {
+      urlStr = 'https:' + urlStr;
+    }
+    // Statik/sahte SVG veya geçersiz placeholder URL'lerini reddet
+    if (
+      urlStr.includes('/api/catalog/diagram?') ||
+      urlStr === 'null' ||
+      urlStr === 'undefined'
+    ) {
+      return;
+    }
+    if (!seen.has(urlStr)) {
+      seen.add(urlStr);
+      urls.push(urlStr);
+    }
+  };
+
+  if (Array.isArray(rawImages)) {
+    rawImages.forEach(addUrl);
+  } else if (typeof rawImages === 'string' && rawImages.trim()) {
+    try {
+      const parsed = JSON.parse(rawImages);
+      if (Array.isArray(parsed)) parsed.forEach(addUrl);
+      else addUrl(rawImages);
+    } catch {
+      rawImages.split(',').forEach(addUrl);
+    }
+  }
+
+  if (Array.isArray(rawDiagrams)) {
+    rawDiagrams.forEach(addUrl);
+  }
+
+  if (rawSingleUrl) {
+    addUrl(rawSingleUrl);
+  }
+
+  return urls;
+}
+
+/**
+ * Harici Parts Catalogs / TecDoc API'sinden tekil bir kod (OEM veya Referans) için
+ * ham parça, çapraz referans, teknik özellik ve görsel verilerini sorgular.
+ */
+async function queryExternalCatalogApi(code, brand = '') {
+  const cleanCode = String(code || '').trim();
+  if (!cleanCode) return null;
+
+  const { baseUrl, apiKey } = await getCatalogConfig();
+  const endpointPath = process.env.PARTS_CATALOG_OE_PATH || process.env.PARTS_CATALOG_PATH || '/v1/search/articles';
+  const targetUrl = `${baseUrl}${endpointPath}`;
+
+  const requestParams = {
+    article: cleanCode,
+    code: cleanCode,
+    number: cleanCode,
+    oe: cleanCode,
+    q: brand ? `${brand} ${cleanCode}` : cleanCode
+  };
+  if (brand && String(brand).trim()) {
+    requestParams.brand = String(brand).trim();
+    requestParams.manufacturer = String(brand).trim();
+  }
+
+  try {
+    const response = await axios.get(targetUrl, {
+      params: requestParams,
+      headers: buildRequestHeaders(apiKey),
+      timeout: 6000
+    });
+
+    const rawData = response.data?.data !== undefined ? response.data.data : response.data;
+    if (!rawData) return null;
+
+    const items = Array.isArray(rawData) ? rawData : [rawData];
+    if (items.length === 0) return null;
+
+    let rootOEM = null;
+    const originalOEMs = [];
+    const referenceCodes = [];
+    const specSources = [];
+    const imageUrls = [];
+    let partName;
+    let partGroup;
+    let vehicleBrand;
+    let compatibleModels;
+    const compatibleVehicles = [];
+
+    for (const item of items) {
+      if (!item || typeof item !== 'object') continue;
+
+      if (!partName) {
+        const candidateName = item.partName || item.name || item.productName || item.title || item.description;
+        if (candidateName && typeof candidateName === 'string' && candidateName.trim()) {
+          partName = candidateName.trim();
+        }
+      }
+      if (!partGroup) {
+        const candidateGroup = item.partGroup || item.category || item.group;
+        if (candidateGroup && typeof candidateGroup === 'string' && candidateGroup.trim()) {
+          partGroup = candidateGroup.trim();
+        }
+      }
+      if (!vehicleBrand) {
+        const candidateBrand = item.vehicleBrand || item.carBrand || item.make;
+        if (candidateBrand && typeof candidateBrand === 'string' && candidateBrand.trim()) {
+          vehicleBrand = candidateBrand.trim();
+        }
+      }
+      if (!compatibleModels && item.compatibleModels) {
+        compatibleModels = Array.isArray(item.compatibleModels)
+          ? item.compatibleModels.join(', ')
+          : String(item.compatibleModels).trim();
+      }
+      if (Array.isArray(item.compatibleVehicles)) {
+        compatibleVehicles.push(...item.compatibleVehicles);
+      }
+
+      // Root OEM tespiti
+      const itemRootOem = item.rootOEM || item.baseOEM || item.baseOem || item.oemNumber || item.oeNumber || item.oem;
+      if (itemRootOem && typeof itemRootOem === 'string' && itemRootOem.trim()) {
+        if (!rootOEM) rootOEM = itemRootOem.trim().toUpperCase();
+        originalOEMs.push(itemRootOem.trim().toUpperCase());
+      }
+
+      // OEM listesi tespiti
+      const oemArrays = [
+        item.originalOEMs,
+        item.oemNumbers,
+        item.oeNumbers,
+        item.oems,
+        item.revisions,
+        item.originalNumbers
+      ];
+      for (const arr of oemArrays) {
+        if (Array.isArray(arr)) {
+          for (const entry of arr) {
+            const c = typeof entry === 'string' ? entry : (entry?.code || entry?.oeNumber || entry?.oem || entry?.number);
+            if (c && String(c).trim()) {
+              const clean = String(c).trim().toUpperCase();
+              originalOEMs.push(clean);
+              if (!rootOEM) rootOEM = clean;
+            }
+          }
+        }
+      }
+
+      // Üretici / Yan Sanayi Referans kodları tespiti
+      const refArrays = [
+        item.referenceCodes,
+        item.crossReferences,
+        item.crosses,
+        item.replacements,
+        item.analogues,
+        item.aftermarketCodes
+      ];
+      for (const arr of refArrays) {
+        if (Array.isArray(arr)) {
+          for (const ref of arr) {
+            if (!ref || typeof ref !== 'object') continue;
+            const rBrand = (ref.brand || ref.manufacturer || ref.supplier || '').trim();
+            const rCode = (ref.code || ref.article || ref.number || ref.oeNumber || '').trim();
+            if (rCode) {
+              if (ref.isOEM || ref.type === 'OEM') {
+                originalOEMs.push(rCode.toUpperCase());
+                if (!rootOEM) rootOEM = rCode.toUpperCase();
+              } else if (rBrand) {
+                referenceCodes.push({ brand: rBrand, code: rCode.toUpperCase() });
+              }
+            }
+          }
+        }
+      }
+
+      // Eğer dönen kaydın kendisi bir yan sanayi referansıysa
+      const itemBrand = (item.brand || item.manufacturer || item.supplier || '').trim();
+      const itemCode = (item.article || item.code || item.number || '').trim();
+      if (itemBrand && itemCode && normalizeCode(itemCode) !== normalizeCode(rootOEM || '')) {
+        referenceCodes.push({ brand: itemBrand, code: itemCode.toUpperCase() });
+      }
+
+      // Gerçek Teknik Özellikler
+      if (item.technicalSpecs) specSources.push(item.technicalSpecs);
+      if (item.specifications) specSources.push(item.specifications);
+      if (item.attributes) specSources.push(item.attributes);
+      if (item.properties) specSources.push(item.properties);
+      if (item.parameters) specSources.push(item.parameters);
+      if (item.criteria && typeof item.criteria === 'object') specSources.push(item.criteria);
+
+      // Görsel ve Şemalar
+      const itemImgs = extractValidImageUrls(
+        item.images || item.schemas,
+        item.diagrams,
+        item.imageUrl || item.diagramUrl || item.img || item.photo
+      );
+      imageUrls.push(...itemImgs);
+    }
+
+    return {
+      rootOEM,
+      originalOEMs,
+      referenceCodes,
+      technicalSpecs: extractRealTechnicalSpecs(...specSources),
+      imageUrls,
+      partName,
+      partGroup,
+      vehicleBrand,
+      compatibleModels,
+      compatibleVehicles
+    };
+  } catch (err) {
+    // 404 veya bağlantı hatasında sahte veri üretmeden null dön
+    return null;
+  }
+}
+
+/**
+ * Araç bağlamı (catalogId, carId, criteria) mevcutsa Parts-Catalogs API'den
+ * YALNIZCA aranan OEM / parça koduyla doğrudan eşleşen gerçek şemaları çeker.
+ * KURAL 3: Asla rastgele ilk 4 şemayı (Karter / Yağ Filtresi vb.) döndürmez!
+ */
+async function queryExactVehicleSchemas({ catalogId, carId, criteria, targetCodes = [] }) {
+  if (!catalogId || !carId || !Array.isArray(targetCodes) || targetCodes.length === 0) {
+    return [];
+  }
+
+  const normalizedTargets = new Set(targetCodes.map(normalizeCode).filter(Boolean));
+  if (normalizedTargets.size === 0) return [];
+
+  const { baseUrl, apiKey } = await getCatalogConfig();
+  const endpoint = `${baseUrl}/v1/catalogs/${encodeURIComponent(catalogId)}/schemas`;
+  const params = { carId, page: 0 };
+  if (criteria) params.criteria = criteria;
+
+  try {
+    const res = await axios.get(endpoint, {
+      params,
+      headers: buildRequestHeaders(apiKey),
+      timeout: 6000
+    });
+
+    const rawList = res.data?.list || [];
+    const matchedUrls = [];
+
+    for (const item of rawList) {
+      if (!item || !item.img) continue;
+      let imgUrl = String(item.img).trim();
+      if (imgUrl.startsWith('//')) imgUrl = 'https:' + imgUrl;
+
+      // Sadece şema içindeki parça kodları veya parça listesi hedef OEM kodlarıyla eşleşiyorsa kabul et
+      const partEntries = Array.isArray(item.parts)
+        ? item.parts
+        : (Array.isArray(item.partNames) ? item.partNames : []);
+
+      const hasExactCodeMatch = partEntries.some((p) => {
+        const pCode = normalizeCode(p?.oe || p?.oem || p?.code || p?.number || p?.id || '');
+        return pCode && normalizedTargets.has(pCode);
+      });
+
+      if (hasExactCodeMatch) {
+        matchedUrls.push({
+          url: imgUrl,
+          sourceCode: targetCodes[0]
+        });
+      }
+    }
+
+    return matchedUrls;
+  } catch (_) {
+    return [];
+  }
+}
+
+/**
+ * Veritabanındaki Product kaydının içinden tüm OEM, Referans, Teknik Özellik ve Görsel
+ * verilerini ayrıştırır.
+ */
+function parseProductRecord(product) {
+  if (!product) return null;
+
+  const oems = new Set();
+  const refs = [];
+
+  if (product.rootOEM && String(product.rootOEM).trim()) {
+    oems.add(String(product.rootOEM).trim().toUpperCase());
+  }
+  if (product.oeNumber && String(product.oeNumber).trim()) {
+    oems.add(String(product.oeNumber).trim().toUpperCase());
+  }
+
+  const rawOriginalOems = product.originalOEMs;
+  if (Array.isArray(rawOriginalOems)) {
+    for (const o of rawOriginalOems) {
+      const str = typeof o === 'string' ? o : (o?.code || o?.oeNumber || o?.oem);
+      if (str && String(str).trim()) {
+        oems.add(String(str).trim().toUpperCase());
+      }
+    }
+  }
+
+  const rawRefLists = [product.referenceCodes, product.crossReferences];
+  for (const list of rawRefLists) {
+    if (Array.isArray(list)) {
+      for (const r of list) {
+        if (!r || typeof r !== 'object') continue;
+        const brand = String(r.brand || r.manufacturer || '').trim();
+        const code = String(r.code || r.oeNumber || r.article || '').trim().toUpperCase();
+        if (!code) continue;
+        if (r.isOEM || r.type === 'OEM' || brand.toUpperCase() === 'OEM' || brand.toUpperCase() === 'OE') {
+          oems.add(code);
+        } else if (brand) {
+          refs.push({ brand, code });
+        }
+      }
+    }
+  }
+
+  const technicalSpecs = extractRealTechnicalSpecs(product.technicalSpecs, product.attributes);
+  const imageUrls = extractValidImageUrls(product.images, product.diagrams, product.imageUrl || product.diagramUrl);
+
+  return {
+    id: product.id,
+    oeNumber: product.oeNumber ? String(product.oeNumber).trim().toUpperCase() : undefined,
+    rootOEM: product.rootOEM
+      ? String(product.rootOEM).trim().toUpperCase()
+      : (product.oeNumber ? String(product.oeNumber).trim().toUpperCase() : undefined),
+    originalOEMs: Array.from(oems),
+    referenceCodes: refs,
+    technicalSpecs,
+    imageUrls,
+    schemaSourceCode: product.schemaSourceCode || undefined,
+    partName: product.name || undefined,
+    partGroup: product.partGroup || product.category || undefined,
+    vehicleBrand: product.vehicleBrand || undefined,
+    compatibleModels: product.compatibleModels || undefined,
+    compatibleVehicles: Array.isArray(product.compatibleVehicles) ? product.compatibleVehicles : undefined
+  };
+}
+
+/**
+ * Bir Product kaydının verilen normalize edilmiş kod kümesiyle (OEM veya Yan Sanayi Referans)
+ * herhangi bir kan bağı olup olmadığını kontrol eder.
+ */
+function productMatchesNormalizedSet(parsedProd, normSet, brandFilter = '') {
+  if (!parsedProd || normSet.size === 0) return false;
+
+  if (parsedProd.rootOEM && normSet.has(normalizeCode(parsedProd.rootOEM))) {
+    return true;
+  }
+  if (parsedProd.oeNumber && normSet.has(normalizeCode(parsedProd.oeNumber))) {
+    return true;
+  }
+  for (const oem of parsedProd.originalOEMs) {
+    if (normSet.has(normalizeCode(oem))) return true;
+  }
+  for (const ref of parsedProd.referenceCodes) {
+    const refNorm = normalizeCode(ref.code);
+    const combinedNorm = normalizeCode(`${ref.brand}${ref.code}`);
+    if (normSet.has(refNorm) || normSet.has(combinedNorm)) {
+      if (!brandFilter) return true;
+      if (normalizeCode(ref.brand).includes(normalizeCode(brandFilter)) || normSet.has(combinedNorm)) {
+        return true;
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * ============================================================================
+ * ANA DERİN ÇAPRAZ REFERANS VE AGRESİF ŞEMA MOTORU (DEEP CROSS-REFERENCE ENGINE)
+ * ============================================================================
+ * KURAL 1: Çift Yönlü Çapraz Eşleştirme (Senaryo A: Referans -> Kök OEM -> Tüm OEM & Muadiller,
+ *          Senaryo B: OEM -> Kök OEM -> Tüm Versiyon OEM'ler & Tüm Üretici Referansları)
+ * KURAL 2: Tavizsiz Görsel ve Teknik Şema Taraması (Aggressive Schema Fallback)
+ * KURAL 3: Statik (Sahte) Veriye Sıfır Tolerans (Sadece gerçek veriler, eksikler undefined)
+ * KURAL 4: Kesin API JSON Çıktı Standardı (Strict Payload)
+ */
+async function executeDeepCrossReferenceSearch(arg1, arg2 = {}) {
+  let query = '';
+  let brand = '';
+  let vin = '';
+  let catalogId = '';
+  let carId = '';
+  let criteria = '';
+
+  if (typeof arg1 === 'string') {
+    query = arg1;
+    if (arg2 && typeof arg2 === 'object') {
+      brand = arg2.brand || arg2.vehicleBrand || '';
+      vin = arg2.vin || '';
+      catalogId = arg2.catalogId || '';
+      carId = arg2.carId || '';
+      criteria = arg2.criteria || '';
+    }
+  } else if (arg1 && typeof arg1 === 'object') {
+    query = arg1.query || arg1.oeNumber || arg1.code || arg1.searchedQuery || arg1.article || '';
+    brand = arg1.brand || arg1.vehicleBrand || '';
+    vin = arg1.vin || '';
+    catalogId = arg1.catalogId || '';
+    carId = arg1.carId || '';
+    criteria = arg1.criteria || '';
+  }
+
+  const parsedInput = parseSearchInput(query, brand);
+  const { searchedQuery, brand: parsedBrand, code: parsedCode, normalizedCode, fullNormalized } = parsedInput;
+
+  if (!searchedQuery || !normalizedCode) {
+    const err = new Error('Lütfen geçerli bir OEM veya Yan Sanayi Referans kodu giriniz.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // Keşfedilen tüm kodların ve verilerin toplandığı Örümcek Ağı (Spider Web) havuzları
+  let resolvedRootOEM = null;
+  const oemPool = new Map(); // normalizedOEM -> displayOEM
+  const refPool = new Map(); // `${normalizedBrand}:${normalizedCode}` -> { brand, code }
+  const specSources = [];
+  const codeImagesMap = new Map(); // normalizedCode -> { displayCode, urls: [] }
+  let resolvedPartName;
+  let resolvedPartGroup;
+  let resolvedVehicleBrand = parsedBrand || undefined;
+  let resolvedCompatibleModels;
+  let resolvedCompatibleVehicles = [];
+
+  const addOemToPool = (oemStr) => {
+    if (!oemStr || typeof oemStr !== 'string') return;
+    const clean = oemStr.trim().toUpperCase();
+    const norm = normalizeCode(clean);
+    if (!norm) return;
+    if (!oemPool.has(norm)) {
+      oemPool.set(norm, clean);
+    }
+  };
+
+  const addRefToPool = (refBrand, refCode) => {
+    if (!refBrand || !refCode) return;
+    const cleanBrand = String(refBrand).trim();
+    const cleanCode = String(refCode).trim().toUpperCase();
+    const normBrand = normalizeCode(cleanBrand);
+    const normCode = normalizeCode(cleanCode);
+    if (!normBrand || !normCode) return;
+    // Eğer bu kod zaten OEM havuzundaysa referanslara OEM olarak tekrar ekleme
+    if (normBrand === 'OEM' || normBrand === 'OE') {
+      addOemToPool(cleanCode);
+      return;
+    }
+    const key = `${normBrand}:${normCode}`;
+    if (!refPool.has(key)) {
+      refPool.set(key, { brand: cleanBrand, code: cleanCode });
+    }
+  };
+
+  const registerCodeImages = (codeStr, urls) => {
+    if (!codeStr || !Array.isArray(urls) || urls.length === 0) return;
+    const clean = String(codeStr).trim().toUpperCase();
+    const norm = normalizeCode(clean);
+    if (!norm) return;
+    const existing = codeImagesMap.get(norm) || { displayCode: clean, urls: [] };
+    for (const u of urls) {
+      if (u && !existing.urls.includes(u)) {
+        existing.urls.push(u);
+      }
+    }
+    if (existing.urls.length > 0) {
+      codeImagesMap.set(norm, existing);
+    }
+  };
+
+  const mergeNodeData = (node, sourceCodeHint) => {
+    if (!node) return;
+    if (node.rootOEM) {
+      if (!resolvedRootOEM) resolvedRootOEM = node.rootOEM.trim().toUpperCase();
+      addOemToPool(node.rootOEM);
+    }
+    if (node.oeNumber) {
+      addOemToPool(node.oeNumber);
+    }
+    if (Array.isArray(node.originalOEMs)) {
+      node.originalOEMs.forEach(addOemToPool);
+    }
+    if (Array.isArray(node.referenceCodes)) {
+      node.referenceCodes.forEach((r) => addRefToPool(r.brand, r.code));
+    }
+    if (node.technicalSpecs) {
+      specSources.push(node.technicalSpecs);
+    }
+    if (Array.isArray(node.imageUrls) && node.imageUrls.length > 0) {
+      const imgOwnerCode = node.schemaSourceCode || sourceCodeHint || node.rootOEM || node.oeNumber || parsedCode;
+      registerCodeImages(imgOwnerCode, node.imageUrls);
+    }
+    if (!resolvedPartName && node.partName) resolvedPartName = node.partName;
+    if (!resolvedPartGroup && node.partGroup) resolvedPartGroup = node.partGroup;
+    if (!resolvedVehicleBrand && node.vehicleBrand) resolvedVehicleBrand = node.vehicleBrand;
+    if (!resolvedCompatibleModels && node.compatibleModels) resolvedCompatibleModels = node.compatibleModels;
+    if (Array.isArray(node.compatibleVehicles) && node.compatibleVehicles.length > 0) {
+      resolvedCompatibleVehicles.push(...node.compatibleVehicles);
+    }
+  };
+
+  // ==========================================================================
+  // ADIM 1: VERİTABANI ÖRÜMCEK AĞI TARAMASI (BFS TRANSITIVE CLOSURE)
+  // Senaryo A (Referans -> Kök OEM -> Tüm OEM & Muadiller)
+  // Senaryo B (OEM -> Kök OEM -> Tüm Versiyon OEM & Muadiller)
+  // ==========================================================================
+  const activeSearchNorms = new Set([normalizedCode, fullNormalized].filter(Boolean));
+  const visitedProductIds = new Set();
+
+  try {
+    // 1A. PartCrossReference indeks tablosundan hızlı Kök OEM çözümlemesi
+    try {
+      const indexMatches = await fetchDbCrossReferences(activeSearchNorms);
+
+      for (const idxRow of indexMatches) {
+        if (idxRow.rootOEM) {
+          const rOem = idxRow.rootOEM.trim().toUpperCase();
+          if (!resolvedRootOEM) resolvedRootOEM = rOem;
+          addOemToPool(rOem);
+          activeSearchNorms.add(normalizeCode(rOem));
+        }
+        if (idxRow.isOEM) {
+          addOemToPool(idxRow.code);
+          activeSearchNorms.add(idxRow.normalizedCode);
+        } else if (idxRow.brand) {
+          addRefToPool(idxRow.brand, idxRow.code);
+        }
+      }
+
+      // Eğer PartCrossReference üzerinden Kök OEM bulunduysa, o Kök OEM'e bağlı TÜM kardeş kayıtları çek
+      if (resolvedRootOEM) {
+        const siblingIndexRows = await fetchDbSiblingCrossReferences(resolvedRootOEM);
+        for (const sib of siblingIndexRows) {
+          if (sib.isOEM) {
+            addOemToPool(sib.code);
+            activeSearchNorms.add(sib.normalizedCode);
+          } else if (sib.brand) {
+            addRefToPool(sib.brand, sib.code);
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 1B. Product tablosunda çok katmanlı (Multi-Hop BFS) Örümcek Ağı Taraması
+    const allProducts = await fetchDbProducts();
+    const parsedProducts = allProducts.map(parseProductRecord).filter(Boolean);
+
+    // Hop döngüsü: Yeni bir Kök OEM veya kardeş OEM keşfedildiği sürece veritabanını tekrar tarar
+    let expansionOccurred = true;
+    let hopCount = 0;
+    const maxHops = 5;
+
+    while (expansionOccurred && hopCount < maxHops) {
+      expansionOccurred = false;
+      hopCount++;
+
+      for (const prod of parsedProducts) {
+        if (visitedProductIds.has(prod.id)) continue;
+
+        if (productMatchesNormalizedSet(prod, activeSearchNorms, parsedBrand)) {
+          visitedProductIds.add(prod.id);
+          expansionOccurred = true;
+
+          // Bu ürünün kendi kodu üzerinden görsellerini kaydet
+          const primaryProdCode = prod.schemaSourceCode || prod.oeNumber || prod.rootOEM;
+          mergeNodeData(prod, primaryProdCode);
+
+          // Yeni bulunan Kök OEM ve tüm OEM revizyonlarını arama ağına ekle (2. Dalga için)
+          if (prod.rootOEM) {
+            activeSearchNorms.add(normalizeCode(prod.rootOEM));
+          }
+          if (prod.oeNumber) {
+            activeSearchNorms.add(normalizeCode(prod.oeNumber));
+          }
+          for (const oem of prod.originalOEMs) {
+            activeSearchNorms.add(normalizeCode(oem));
+          }
+          for (const ref of prod.referenceCodes) {
+            activeSearchNorms.add(normalizeCode(ref.code));
+          }
+        }
+      }
+    }
+  } catch (dbErr) {
+    console.warn('[DEEP_SEARCH_DB_NOTICE]:', dbErr.message);
+  }
+
+  // ==========================================================================
+  // ADIM 2: HARİCİ KATALOG API SORGUSU (1. DALGA VE KÖK OEM ÜZERİNDEN 2. DALGA)
+  // ==========================================================================
+  const queriedExternalNorms = new Set();
+
+  // 2A. 1. Dalga: Kullanıcının girdiği kod ile harici API sorgusu
+  queriedExternalNorms.add(normalizedCode);
+  const firstHopExternal = await queryExternalCatalogApi(parsedCode, parsedBrand);
+  if (firstHopExternal) {
+    mergeNodeData(firstHopExternal, parsedCode);
+  }
+
+  // Eğer kullanıcı marka + kod girdiyse ve ilk sorgu sonuç dönmediyse tam sorguyla da dene
+  if (!firstHopExternal && parsedBrand && searchedQuery !== parsedCode) {
+    const rawExternal = await queryExternalCatalogApi(searchedQuery, '');
+    if (rawExternal) {
+      mergeNodeData(rawExternal, parsedCode);
+    }
+  }
+
+  // 2B. 2. Dalga: Keşfedilen Kök OEM (rootOEM) ve diğer OEM revizyonları üzerinden
+  // harici API'yi ve veritabanını TEKRAR tarayarak tüm revizyonları ve yan sanayi muadillerini topla
+  const oemsToExpand = [];
+  if (resolvedRootOEM && !queriedExternalNorms.has(normalizeCode(resolvedRootOEM))) {
+    oemsToExpand.push(resolvedRootOEM);
+  }
+  for (const [normOem, displayOem] of oemPool.entries()) {
+    if (!queriedExternalNorms.has(normOem) && oemsToExpand.length < 4) {
+      oemsToExpand.push(displayOem);
+    }
+  }
+
+  for (const oemCode of oemsToExpand) {
+    const normOem = normalizeCode(oemCode);
+    if (queriedExternalNorms.has(normOem)) continue;
+    queriedExternalNorms.add(normOem);
+
+    const secondHopExternal = await queryExternalCatalogApi(oemCode, resolvedVehicleBrand || parsedBrand);
+    if (secondHopExternal) {
+      mergeNodeData(secondHopExternal, oemCode);
+      // Harici API'den yeni OEM kodları geldiyse veritabanında bu OEM'lere bağlı ürünleri de ağa kat
+      activeSearchNorms.add(normOem);
+      if (secondHopExternal.rootOEM) activeSearchNorms.add(normalizeCode(secondHopExternal.rootOEM));
+      (secondHopExternal.originalOEMs || []).forEach((o) => activeSearchNorms.add(normalizeCode(o)));
+    }
+  }
+
+  // Harici API 2. dalgasından yeni OEM'ler geldiyse veritabanını son bir kez daha tara
+  if (oemsToExpand.length > 0) {
+    try {
+      const allProducts = await fetchDbProducts();
+      const parsedProducts = allProducts.map(parseProductRecord).filter(Boolean);
+      for (const prod of parsedProducts) {
+        if (visitedProductIds.has(prod.id)) continue;
+        if (productMatchesNormalizedSet(prod, activeSearchNorms, '')) {
+          visitedProductIds.add(prod.id);
+          mergeNodeData(prod, prod.schemaSourceCode || prod.oeNumber || prod.rootOEM);
+        }
+      }
+    } catch (_) {}
+  }
+
+  // Kök OEM hala belirlenmediyse ve OEM havuzunda eleman varsa ilkini Kök OEM ata
+  if (!resolvedRootOEM && oemPool.size > 0) {
+    resolvedRootOEM = Array.from(oemPool.values())[0];
+  }
+
+  // Kök OEM'in originalOEMs havuzunda olduğundan emin ol
+  if (resolvedRootOEM) {
+    addOemToPool(resolvedRootOEM);
+  }
+
+  // ==========================================================================
+  // ADIM 3: KURAL 2 - TAVİZSİZ GÖRSEL VE TEKNİK ŞEMA TARAMASI (AGGRESSIVE SCHEMA FETCHING)
+  // Aranan kodda görsel/şema çıkmadıysa Eşdeğer OEM ve Referans Kodları dizisine gir,
+  // sırayla sorgula ve şeması olan İLK kardeş kodun görselini isFallback: true, sourceCode ile çek!
+  // ==========================================================================
+  const finalImages = [];
+  let schemaSourceCode;
+
+  // 3A. Önce kullanıcının doğrudan arattığı kodda (parsedCode / fullNormalized) görsel var mı bak
+  const directImageEntry = codeImagesMap.get(normalizedCode) || codeImagesMap.get(fullNormalized);
+  if (directImageEntry && directImageEntry.urls.length > 0) {
+    schemaSourceCode = directImageEntry.displayCode;
+    for (const url of directImageEntry.urls) {
+      finalImages.push({
+        url,
+        isFallback: false,
+        sourceCode: directImageEntry.displayCode
+      });
+    }
+  }
+
+  // 3B. Aranan kodda görsel çıkmadıysa: Eşdeğer OEM ve Referans Kodları dizisini sırayla tara (Aggressive Fallback)
+  if (finalImages.length === 0) {
+    const fallbackCandidates = [];
+    const seenCandidateNorms = new Set([normalizedCode, fullNormalized]);
+
+    // Öncelik 1: Ana Kök OEM (rootOEM)
+    if (resolvedRootOEM) {
+      const rootNorm = normalizeCode(resolvedRootOEM);
+      if (!seenCandidateNorms.has(rootNorm)) {
+        seenCandidateNorms.add(rootNorm);
+        fallbackCandidates.push({ code: resolvedRootOEM, brand: resolvedVehicleBrand || '', isOEM: true });
+      }
+    }
+
+    // Öncelik 2: Diğer tüm Orijinal OEM Revizyon kodları (originalOEMs)
+    for (const [normOem, displayOem] of oemPool.entries()) {
+      if (!seenCandidateNorms.has(normOem)) {
+        seenCandidateNorms.add(normOem);
+        fallbackCandidates.push({ code: displayOem, brand: resolvedVehicleBrand || '', isOEM: true });
+      }
+    }
+
+    // Öncelik 3: Yan Sanayi Referans kodları (referenceCodes)
+    for (const ref of refPool.values()) {
+      const refNorm = normalizeCode(ref.code);
+      if (!seenCandidateNorms.has(refNorm)) {
+        seenCandidateNorms.add(refNorm);
+        fallbackCandidates.push({ code: ref.code, brand: ref.brand, isOEM: false });
+      }
+    }
+
+    for (const candidate of fallbackCandidates) {
+      const candNorm = normalizeCode(candidate.code);
+
+      // 1) Hafızadaki (DB veya önceki API dalgasından gelen) görselleri kontrol et
+      const cachedImg = codeImagesMap.get(candNorm);
+      if (cachedImg && cachedImg.urls.length > 0) {
+        schemaSourceCode = candidate.code;
+        for (const url of cachedImg.urls) {
+          finalImages.push({
+            url,
+            isFallback: true,
+            sourceCode: candidate.code
+          });
+        }
+        break;
+      }
+
+      // 2) Harici Katalog API'sine bu kardeş kod için görsel/şema sorgusu at
+      if (!queriedExternalNorms.has(candNorm)) {
+        queriedExternalNorms.add(candNorm);
+        const siblingExternal = await queryExternalCatalogApi(candidate.code, candidate.brand);
+        if (siblingExternal) {
+          // Kardeş koddan gelen ek teknik özellik veya muadil varsa onları da havuza kat
+          mergeNodeData(siblingExternal, candidate.code);
+
+          if (Array.isArray(siblingExternal.imageUrls) && siblingExternal.imageUrls.length > 0) {
+            schemaSourceCode = candidate.code;
+            for (const url of siblingExternal.imageUrls) {
+              finalImages.push({
+                url,
+                isFallback: true,
+                sourceCode: candidate.code
+              });
+            }
+            break;
+          }
+        }
+      }
+    }
+
+    // 3) Eğer araç şasi bağlamı (catalogId & carId) verilmişse, Kök OEM ve kardeş OEM'ler için
+    //    doğrudan parça kodu eşleşmeli şema kontrolü yap
+    if (finalImages.length === 0 && catalogId && carId) {
+      const targetOemList = Array.from(oemPool.values());
+      const exactSchemas = await queryExactVehicleSchemas({
+        catalogId,
+        carId,
+        criteria,
+        targetCodes: targetOemList.length > 0 ? targetOemList : [parsedCode]
+      });
+      if (exactSchemas.length > 0) {
+        schemaSourceCode = exactSchemas[0].sourceCode;
+        for (const s of exactSchemas) {
+          finalImages.push({
+            url: s.url,
+            isFallback: normalizeCode(s.sourceCode) !== normalizedCode,
+            sourceCode: s.sourceCode
+          });
+        }
+      }
+    }
+  }
+
+  // ==========================================================================
+  // ADIM 4: KURAL 3 & KURAL 4 - KESİN API JSON ÇIKTI STANDARDI (STRICT PAYLOAD)
+  // Sahte/varsayılan veri kesinlikle üretilmez. API'den/DB'den gelmeyen alanlar undefined bırakılır.
+  // ==========================================================================
+  const originalOEMs = Array.from(oemPool.values());
+  const referenceCodes = Array.from(refPool.values());
+  const technicalSpecs = extractRealTechnicalSpecs(...specSources);
+
+  // Arka planda keşfedilen çapraz referans bağlarını PartCrossReference indeksine kaydet
+  if (resolvedRootOEM && (originalOEMs.length > 0 || referenceCodes.length > 0)) {
+    persistCrossReferenceGraph(resolvedRootOEM, originalOEMs, referenceCodes).catch(() => {});
+  }
+
+  const strictPayload = {
+    success: true,
+    searchedQuery,
+    ...(resolvedRootOEM ? { rootOEM: resolvedRootOEM } : {}),
+    originalOEMs,
+    referenceCodes,
+    ...(technicalSpecs ? { technicalSpecs } : {}),
+    images: finalImages,
+    ...(schemaSourceCode ? { schemaSourceCode } : {}),
+    ...(resolvedPartName ? { partName: resolvedPartName } : {}),
+    ...(resolvedPartGroup ? { partGroup: resolvedPartGroup } : {}),
+    ...(resolvedVehicleBrand ? { vehicleBrand: resolvedVehicleBrand } : {}),
+    ...(resolvedCompatibleModels ? { compatibleModels: resolvedCompatibleModels } : {}),
+    ...(resolvedCompatibleVehicles.length > 0 ? { compatibleVehicles: resolvedCompatibleVehicles } : {})
+  };
+
+  return strictPayload;
+}
+
+/**
+ * Keşfedilen Çapraz Referans Örümcek Ağı düğümlerini veritabanındaki PartCrossReference
+ * tablosuna asenkron olarak indeksler.
+ */
+async function persistCrossReferenceGraph(rootOEM, originalOEMs = [], referenceCodes = []) {
+  if (!rootOEM) return;
+  const cleanRoot = String(rootOEM).trim().toUpperCase();
+
+  for (const oem of originalOEMs) {
+    const norm = normalizeCode(oem);
+    if (!norm) continue;
+    try {
+      await prisma.partCrossReference.upsert({
+        where: {
+          normalizedCode_rootOEM: {
+            normalizedCode: norm,
+            rootOEM: cleanRoot
+          }
+        },
+        update: { code: oem, isOEM: true },
+        create: {
+          code: oem,
+          normalizedCode: norm,
+          brand: 'OEM',
+          rootOEM: cleanRoot,
+          isOEM: true
+        }
+      });
+    } catch (_) {
+      const db = await getPgliteDb();
+      if (db) {
+        try {
+          await db.query(
+            `INSERT INTO "PartCrossReference" ("id", "code", "normalizedCode", "brand", "rootOEM", "isOEM", "updatedAt")
+             VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
+             ON CONFLICT ("normalizedCode", "rootOEM") DO UPDATE SET "code" = EXCLUDED."code", "isOEM" = EXCLUDED."isOEM"`,
+            [`pcr-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`, oem, norm, 'OEM', cleanRoot, true]
+          );
+        } catch (_) {}
+      }
+    }
+  }
+
+  for (const ref of referenceCodes) {
+    if (!ref || !ref.code) continue;
+    const norm = normalizeCode(ref.code);
+    if (!norm) continue;
+    try {
+      await prisma.partCrossReference.upsert({
+        where: {
+          normalizedCode_rootOEM: {
+            normalizedCode: norm,
+            rootOEM: cleanRoot
+          }
+        },
+        update: { code: ref.code, brand: ref.brand || null, isOEM: false },
+        create: {
+          code: ref.code,
+          normalizedCode: norm,
+          brand: ref.brand || null,
+          rootOEM: cleanRoot,
+          isOEM: false
+        }
+      });
+    } catch (_) {
+      const db = await getPgliteDb();
+      if (db) {
+        try {
+          await db.query(
+            `INSERT INTO "PartCrossReference" ("id", "code", "normalizedCode", "brand", "rootOEM", "isOEM", "updatedAt")
+             VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
+             ON CONFLICT ("normalizedCode", "rootOEM") DO UPDATE SET "code" = EXCLUDED."code", "brand" = EXCLUDED."brand", "isOEM" = EXCLUDED."isOEM"`,
+            [`pcr-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`, ref.code, norm, ref.brand || null, cleanRoot, false]
+          );
+        } catch (_) {}
+      }
+    }
+  }
+}
+
+/**
  * 1. ŞASİ (VIN) NUMARASI İLE SORGULAMA FONKSİYONU
- * Parts Catalogs API üzerinden /v1/car/info ve şemaları çeker.
- * Dönen verilerden 'Araç Markası', 'Uyumlu Modeller' ve varsa teknik şemaları/görselleri döner.
- * Fiyat ve Stok ASLA dönülmez!
- * 
- * @param {string} vinNumber - 17 Karakter Şasi / VIN Numarası
- * @returns {Promise<Object>} Araç bilgileri ve şema görselleri
+ * Parts Catalogs API üzerinden /v1/car/info çeker.
  */
 async function searchVinNumber(vinNumber) {
   if (!vinNumber || typeof vinNumber !== 'string') {
@@ -37,7 +1230,6 @@ async function searchVinNumber(vinNumber) {
     throw err;
   }
 
-  // VIN Güvenlik Sanitization (17 karakter alfanümerik, I, O, Q hariç)
   const cleanVin = vinNumber.trim().toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, '');
   if (!cleanVin || cleanVin.length < 5) {
     const err = new Error('Girilen Şasi (VIN) numarası geçersiz.');
@@ -45,13 +1237,12 @@ async function searchVinNumber(vinNumber) {
     throw err;
   }
 
-  // 1. Bölge (Market/Region/Country) Parametresi: Avrupa (EU / Europe) varsayılan olarak eklenir
-  const targetUrl = `${BASE_URL}/v1/car/info?q=${encodeURIComponent(cleanVin)}&market=Europe&region=EU`;
-  console.log(`[PARTS_CATALOG_VIN_REQUEST] URL: ${targetUrl}`);
+  const { baseUrl, apiKey } = await getCatalogConfig();
+  const targetUrl = `${baseUrl}/v1/car/info?q=${encodeURIComponent(cleanVin)}&market=Europe&region=EU`;
 
   try {
     const response = await axios.get(targetUrl, {
-      headers: getRequestHeaders(),
+      headers: buildRequestHeaders(apiKey),
       timeout: 8000
     });
 
@@ -66,52 +1257,37 @@ async function searchVinNumber(vinNumber) {
 
     const primaryCar = carList[0];
     const vehicleBrand = primaryCar.brand || primaryCar.catalogId || '';
-
-    // 2. Ham Şasi JSON Yanıtını Terminale Yazdır (Kullanıcının talimatı doğrultusunda)
-    console.log('======================================================');
-    console.log('[PARTS_CATALOG_RAW_VIN_CAR_INFO]:');
-    console.log(JSON.stringify(primaryCar, null, 2));
-    console.log('======================================================');
-
-    // 3. Çoklu İsim (Array) Yönetimi:
-    // API'den model isimleri dizi (array) veya zengin platform isimleri olarak geliyorsa
-    // bunları virgülle birleştirip kutuya yazdırmak için topla
     const modelCandidates = [];
 
-    // A) primaryCar.parameters içindeki 'car_name' veya 'model' parametresi (Örn: "Clio II / Thalia / Symbol / Lutecia")
     if (Array.isArray(primaryCar.parameters)) {
-      const carNameParam = primaryCar.parameters.find(p => p.key === 'car_name' || p.key === 'model');
+      const carNameParam = primaryCar.parameters.find((p) => p.key === 'car_name' || p.key === 'model');
       if (carNameParam && carNameParam.value) {
-        const parts = String(carNameParam.value).split(/\s*[\/,]\s*/).map(p => p.trim()).filter(Boolean);
+        const parts = String(carNameParam.value).split(/\s*[\/,]\s*/).map((p) => p.trim()).filter(Boolean);
         modelCandidates.push(...parts);
       }
     }
 
-    // B) primaryCar.title alanı (Örn: "Clio II (Lutecia)" -> "Clio II", "Lutecia")
     if (primaryCar.title && typeof primaryCar.title === 'string') {
       const match = primaryCar.title.match(/^([^()]+)\s*(?:\(([^()]+)\))?$/);
       if (match) {
         if (match[1] && match[1].trim()) modelCandidates.push(match[1].trim());
         if (match[2] && match[2].trim()) modelCandidates.push(match[2].trim());
       } else {
-        const titleParts = primaryCar.title.split(/\s*[\/,]\s*/).map(p => p.trim()).filter(Boolean);
+        const titleParts = primaryCar.title.split(/\s*[\/,]\s*/).map((p) => p.trim()).filter(Boolean);
         modelCandidates.push(...titleParts);
       }
     }
 
-    // C) primaryCar.modelName (Dizi veya String)
     if (Array.isArray(primaryCar.modelName)) {
       modelCandidates.push(...primaryCar.modelName);
     } else if (typeof primaryCar.modelName === 'string' && primaryCar.modelName.trim()) {
       modelCandidates.push(primaryCar.modelName.trim());
     }
 
-    // D) primaryCar.models (Dizi ise)
     if (Array.isArray(primaryCar.models)) {
       modelCandidates.push(...primaryCar.models);
     }
 
-    // Benzersiz ve temiz model listesi oluştur (Marka adını filtrele, boşlukları temizle)
     const uniqueModelList = [];
     const seenLower = new Set();
 
@@ -125,26 +1301,19 @@ async function searchVinNumber(vinNumber) {
       uniqueModelList.push(str);
     }
 
-    // Çoklu isimleri virgülle birleştir (Örn: "Clio II, Thalia, Symbol, Lutecia")
     const compatibleModels = uniqueModelList.length > 0
       ? uniqueModelList.join(', ')
-      : (primaryCar.title || primaryCar.modelName || '');
-
-    // Kural: Şasi (VIN) sorgusundan görüntü/şema gelmez; sadece araç markası, modelleri ve bağlam döner.
-    console.log(`[PARTS_CATALOG_VIN_SUCCESS] ${cleanVin} -> ${vehicleBrand} [${compatibleModels}]`);
+      : (primaryCar.title || primaryCar.modelName || undefined);
 
     return {
       vin: cleanVin,
-      vehicleBrand: vehicleBrand,
-      compatibleModels: compatibleModels,
+      vehicleBrand: vehicleBrand || undefined,
+      compatibleModels,
       modelList: uniqueModelList,
-      catalogId: primaryCar.catalogId || '',
-      carId: primaryCar.carId || '',
-      criteria: primaryCar.criteria || '',
-      diagrams: [],
-      images: []
+      catalogId: primaryCar.catalogId || undefined,
+      carId: primaryCar.carId || undefined,
+      criteria: primaryCar.criteria || undefined
     };
-
   } catch (err) {
     if (err.statusCode === 404 || err.response?.status === 404) {
       const e = new Error(`"${cleanVin}" Şasi (VIN) numarası katalogda bulunamadı.`);
@@ -170,685 +1339,32 @@ async function searchVinNumber(vinNumber) {
 }
 
 /**
- * 2. OE NUMARASI VE ARAÇ MARKASI İLE SORGULAMA FONKSİYONU
- * Parts Catalogs API üzerinden OE ve Araç Markası (brand) ile sorgu atar.
- * Dönen verilerden 'Parça Adı', 'Parça Grubu' ve varsa görselleri döner.
- * Fiyat ve Stok ASLA dönülmez!
- * 
- * @param {string} oeNumber - OE / OEM Numarası
- * @param {string} [brand] - Araç Markası (Örn: Renault, Volkswagen, BMW)
- * @returns {Promise<Object>} Parça bilgileri ve görseller
+ * Geriye dönük servis çağrıları için searchOeNumber & enrichProductData köprüleri
+ * (Tamamen Deep Cross-Reference motoru üzerinden çalışır, asla sahte veri dönmez)
  */
 async function searchOeNumber(oeNumber, brand = '') {
-  if (!oeNumber || typeof oeNumber !== 'string') {
-    const err = new Error('Lütfen geçerli bir OE numarası belirtiniz.');
-    err.statusCode = 400;
-    throw err;
-  }
-
-  // OE Güvenlik Sanitization
-  const cleanOe = oeNumber.trim().replace(/[^a-zA-Z0-9\-_]/g, '');
-  if (!cleanOe) {
-    const err = new Error('OE numarası geçersiz karakterler içeriyor.');
-    err.statusCode = 400;
-    throw err;
-  }
-
-  // Araç Markası (Brand) Sanitization
-  let cleanBrand = '';
-  if (brand && typeof brand === 'string') {
-    const rawBrand = brand.trim();
-    if (!rawBrand.toLowerCase().includes('universal') && !rawBrand.toLowerCase().includes('seçiniz')) {
-      cleanBrand = rawBrand.replace(/[^a-zA-Z0-9\-_ ]/g, '').trim();
-    }
-  }
-
-  const endpointPath = process.env.PARTS_CATALOG_OE_PATH || process.env.PARTS_CATALOG_PATH || '/v1/search/articles';
-  const targetUrl = `${BASE_URL}${endpointPath}`;
-
-  // TradeSoft & Parts Catalog API standart parametre eşlemesi
-  // Dokümantasyondaki resmi terimler: 'article' ve 'code' (OE/OEM yerine 'article' geçer)
-  const requestParams = {
-    article: cleanOe,
-    code: cleanOe,
-    number: cleanOe,
-    oe: cleanOe,
-    q: cleanOe
-  };
-  if (cleanBrand) {
-    requestParams.brand = cleanBrand;
-    requestParams.manufacturer = cleanBrand;
-    requestParams.catalogId = cleanBrand.toLowerCase().replace(/[^a-z0-9]/g, '');
-  }
-
-  console.log(`[PARTS_CATALOG_ARTICLE_REQUEST] URL: ${targetUrl} (Article/OE: "${cleanOe}", Marka: "${cleanBrand || 'Belirtilmedi'}")`);
-
-  try {
-    const response = await axios.get(targetUrl, {
-      params: requestParams,
-      headers: getRequestHeaders(),
-      timeout: 8000
-    });
-
-    const item = response.data?.data || response.data;
-    if (!item || (Array.isArray(item) && item.length === 0)) {
-      const emptyErr = new Error(`"${cleanOe}" OE numarasına ait parça katalogda bulunamadı.`);
-      emptyErr.statusCode = 404;
-      emptyErr.targetUrl = targetUrl;
-      emptyErr.apiResponse = response.data;
-      throw emptyErr;
-    }
-
-    const primaryItem = Array.isArray(item) ? item[0] : item;
-
-    const images = Array.isArray(primaryItem.images)
-      ? primaryItem.images
-      : (primaryItem.imageUrl ? [primaryItem.imageUrl] : []);
-
-    const diagrams = Array.isArray(primaryItem.diagrams)
-      ? primaryItem.diagrams
-      : [];
-
-    return {
-      oeNumber: cleanOe,
-      brand: cleanBrand,
-      partName: primaryItem.partName || primaryItem.name || primaryItem.productName || primaryItem.title || '',
-      partGroup: primaryItem.partGroup || primaryItem.category || primaryItem.group || '',
-      images: images,
-      diagrams: diagrams
-    };
-
-  } catch (err) {
-    // 1. Hata Ayıklama (Debug) Logları (prompt.md direktifi)
-    console.log("GİDEN İSTEK URL:", err.config?.url);
-    console.log("GÖNDERİLEN PARAMETRELER:", err.config?.params);
-    console.log("API GERÇEK YANITI:", err.response?.data);
-
-    if (err.statusCode === 404 || err.response?.status === 404) {
-      const e = new Error(`"${cleanOe}" OE numarasına ait parça katalogda bulunamadı.`);
-      e.statusCode = 404;
-      e.targetUrl = err.config?.url || targetUrl;
-      e.apiResponse = err.response?.data;
-      throw e;
-    }
-
-    if (err.response) {
-      const apiErr = new Error(err.response.data?.message || `Harici API Hatası: HTTP ${err.response.status}`);
-      apiErr.statusCode = err.response.status;
-      apiErr.targetUrl = err.config?.url || targetUrl;
-      apiErr.apiResponse = err.response.data;
-      throw apiErr;
-    }
-
-    const netErr = new Error(`Parts Catalogs API bağlantı hatası: ${err.message}`);
-    netErr.statusCode = 502;
-    netErr.targetUrl = err.config?.url || targetUrl;
-    throw netErr;
-  }
+  return executeDeepCrossReferenceSearch({ query: oeNumber, brand });
 }
 
-/**
- * Otomotiv Parça Ailesi ve Zenginleştirme Bilgi Motoru
- * Harici Parts Catalogs / TradeSoft API'si ile tam entegre çalışır.
- * Harici uç noktalardan (crosses, fitment, attributes) gelen verileri önceliklendirir,
- * eksik alanları yüksek hassasiyetli OE referans standartlarıyla tamamlar.
- */
-function buildEnrichedAutomotiveData(oeNumber, brand = '', partName = '', partGroup = '', models = '') {
-  const cleanOe = String(oeNumber || '').trim().toUpperCase();
-  const cleanBrand = String(brand || '').trim();
-  const lowerName = String(partName || '').toLowerCase();
-  const lowerGroup = String(partGroup || '').toLowerCase();
-  const lowerOe = cleanOe.toLowerCase();
-
-  // 1. Parça Türü Tespiti
-  let partType = 'general';
-  if (lowerName.includes('triger') || lowerName.includes('timing') || lowerName.includes('kayış') || lowerName.includes('belt') || lowerOe.includes('7701473327') || lowerOe.includes('7701045724')) {
-    partType = 'timing_belt';
-  } else if (lowerName.includes('balata') || lowerName.includes('brake pad') || lowerName.includes('fren balata') || lowerOe.startsWith('41060') || lowerOe.startsWith('44060')) {
-    partType = 'brake_pad';
-  } else if (lowerName.includes('disk') || lowerName.includes('brake disc') || lowerName.includes('fren disk') || lowerOe.startsWith('40206') || lowerOe.startsWith('43206')) {
-    partType = 'brake_disc';
-  } else if (lowerName.includes('yağ filtre') || lowerName.includes('oil filter') || lowerOe.includes('8200768913') || lowerOe.startsWith('15208')) {
-    partType = 'oil_filter';
-  } else if (lowerName.includes('hava filtre') || lowerName.includes('air filter') || lowerOe.startsWith('16546')) {
-    partType = 'air_filter';
-  } else if (lowerName.includes('termostat') || lowerName.includes('thermostat') || lowerOe.includes('55266858') || lowerOe.startsWith('8200561')) {
-    partType = 'thermostat';
-  } else if (lowerName.includes('debriyaj') || lowerName.includes('clutch') || lowerName.includes('baskı balata') || lowerOe.includes('7701478505')) {
-    partType = 'clutch_kit';
-  } else if (lowerName.includes('turbo') || lowerName.includes('hortum') || lowerName.includes('boru') || lowerOe.includes('8200296421')) {
-    partType = 'turbo_hose';
-  } else if (lowerName.includes('amortisör') || lowerName.includes('shock') || lowerOe.startsWith('54302') || lowerOe.startsWith('56210')) {
-    partType = 'shock_absorber';
-  }
-
-  // 2. Muadiller (Cross-References / Eşdeğer Parçalar)
-  let crossReferences = [];
-  switch (partType) {
-    case 'timing_belt':
-      crossReferences = [
-        { brand: 'Gates', code: `K01${cleanOe.slice(-5) || '5671XS'}`, name: 'Triger Kayış & Gergi Kiti', type: 'Eşdeğer Parça', quality: 'Orijinal Ekipman (OEM/OES)', matchScore: 99 },
-        { brand: 'Continental / Contitech', code: `CT${cleanOe.slice(-4) || '1044'}K1`, name: 'Triger Kayış Seti', type: 'Muadil', quality: 'Premium Muadil', matchScore: 98 },
-        { brand: 'Dayco', code: `KTB${cleanOe.slice(-3) || '296'}`, name: 'Eksantrik Kayış Kiti', type: 'Muadil', quality: 'A Kalite Muadil', matchScore: 96 },
-        { brand: 'INA (Schaeffler)', code: `530 0${cleanOe.slice(-4) || '197'} 10`, name: 'Triger Seti & Rulman', type: 'Eşdeğer Parça', quality: 'Orijinal Kalite (OEM)', matchScore: 97 },
-        { brand: 'Bosch', code: `1 987 948 ${cleanOe.slice(-3) || '198'}`, name: 'Triger Kayışı ve Rulman Seti', type: 'Muadil', quality: 'Alman Kalite Standartı', matchScore: 95 }
-      ];
-      break;
-
-    case 'brake_pad':
-      crossReferences = [
-        { brand: 'Bosch', code: `0 986 424 ${cleanOe.slice(-3) || '797'}`, name: 'Ön Fren Balata Takımı', type: 'Eşdeğer Parça', quality: 'Orijinal Kalite (OEM/OES)', matchScore: 99 },
-        { brand: 'TRW / Lucas', code: `GDB${cleanOe.slice(-4) || '1789'}`, name: 'Düşük Metalik Fren Balatası', type: 'Eşdeğer Parça', quality: 'Orijinal Ekipman (OEM)', matchScore: 98 },
-        { brand: 'Brembo', code: `P 68 ${cleanOe.slice(-3) || '033'}`, name: 'Premium Fren Balata Seti', type: 'Muadil', quality: 'Premium Performans', matchScore: 97 },
-        { brand: 'Ferodo', code: `FDB${cleanOe.slice(-4) || '1789'}`, name: 'Eco-Friction Fren Balatası', type: 'Muadil', quality: 'A Kalite Muadil', matchScore: 96 },
-        { brand: 'Valeo', code: `598${cleanOe.slice(-3) || '700'}`, name: 'First Line Fren Balatası', type: 'Muadil', quality: 'Fransız OEM Standartı', matchScore: 95 }
-      ];
-      break;
-
-    case 'brake_disc':
-      crossReferences = [
-        { brand: 'Brembo', code: `09.A${cleanOe.slice(-4) || '727.11'}`, name: 'Hava Kanallı Ön Fren Diski', type: 'Eşdeğer Parça', quality: 'Yüksek Karbonlu OEM', matchScore: 99 },
-        { brand: 'TRW', code: `DF${cleanOe.slice(-4) || '4110'}`, name: 'Boyalı Fren Diski Takımı', type: 'Eşdeğer Parça', quality: 'Orijinal Kalite (OEM)', matchScore: 98 },
-        { brand: 'Bosch', code: `0 986 479 ${cleanOe.slice(-3) || '211'}`, name: 'Kaplamalı Havalı Fren Diski', type: 'Muadil', quality: 'Alman Kalite Standartı', matchScore: 97 },
-        { brand: 'Meyle', code: `16-15 521 ${cleanOe.slice(-4) || '0021'}`, name: 'Meyle-PD Fren Diski', type: 'Muadil', quality: 'Premium Muadil', matchScore: 95 }
-      ];
-      break;
-
-    case 'oil_filter':
-      crossReferences = [
-        { brand: 'Mann-Filter', code: `W 75/${cleanOe.slice(-1) || '3'}`, name: 'Vidalı Motor Yağ Filtresi', type: 'Eşdeğer Parça', quality: 'Orijinal Ekipman (OEM/OES)', matchScore: 99 },
-        { brand: 'Bosch', code: `F 026 407 ${cleanOe.slice(-3) || '022'}`, name: 'Yüksek Filtrasyonlu Yağ Filtresi', type: 'Eşdeğer Parça', quality: 'Alman OEM Kalite', matchScore: 98 },
-        { brand: 'Purflux', code: `LS${cleanOe.slice(-3) || '932'}`, name: 'Kıvrımlı Yağ Filtresi', type: 'Eşdeğer Parça', quality: 'Orijinal Ekipman (OEM)', matchScore: 98 },
-        { brand: 'Mahle / Knecht', code: `OC ${cleanOe.slice(-3) || '475'}`, name: 'Mikrofiltre Yağ Elemanı', type: 'Muadil', quality: 'Premium Kalite', matchScore: 96 },
-        { brand: 'Filtron', code: `OP 643/${cleanOe.slice(-1) || '3'}`, name: 'Spin-On Yağ Filtresi', type: 'Muadil', quality: 'A Kalite Muadil', matchScore: 94 }
-      ];
-      break;
-
-    case 'air_filter':
-      crossReferences = [
-        { brand: 'Mann-Filter', code: `C 25 ${cleanOe.slice(-3) || '115'}`, name: 'Panel Hava Filtresi Elemanı', type: 'Eşdeğer Parça', quality: 'Orijinal Ekipman (OEM)', matchScore: 99 },
-        { brand: 'Bosch', code: `1 457 433 ${cleanOe.slice(-3) || '529'}`, name: 'Motor Hava Emiş Filtresi', type: 'Muadil', quality: 'Alman Kalite', matchScore: 97 },
-        { brand: 'Filtron', code: `AP 134/${cleanOe.slice(-1) || '10'}`, name: 'Hava Filtresi', type: 'Muadil', quality: 'A Kalite Muadil', matchScore: 95 }
-      ];
-      break;
-
-    case 'thermostat':
-      crossReferences = [
-        { brand: 'Wahler (BorgWarner)', code: `410${cleanOe.slice(-3) || '241'}.88D`, name: 'Gövdelı Termostat', type: 'Eşdeğer Parça', quality: 'Orijinal Ekipman (OEM)', matchScore: 99 },
-        { brand: 'Gates', code: `TH${cleanOe.slice(-3) || '375'}88G1`, name: 'Entegre Müşürlü Termostat', type: 'Muadil', quality: 'Premium Muadil', matchScore: 97 },
-        { brand: 'Verneth (Calorstat)', code: `TH${cleanOe.slice(-4) || '6858'}`, name: 'Termostat Ünitesi', type: 'Muadil', quality: 'A Kalite Muadil', matchScore: 95 }
-      ];
-      break;
-
-    case 'clutch_kit':
-      crossReferences = [
-        { brand: 'Valeo', code: `826${cleanOe.slice(-3) || '550'}`, name: '3 Parça Debriyaj Seti (Rulmanlı)', type: 'Eşdeğer Parça', quality: 'Orijinal Ekipman (OEM)', matchScore: 99 },
-        { brand: 'Sachs', code: `3000 951 ${cleanOe.slice(-3) || '402'}`, name: 'XTend Debriyaj Baskı Balata Kiti', type: 'Eşdeğer Parça', quality: 'Alman OEM Kalite', matchScore: 98 },
-        { brand: 'LuK (Schaeffler)', code: `620 3${cleanOe.slice(-3) || '241'} 00`, name: 'RepSet Debriyaj Kiti', type: 'Eşdeğer Parça', quality: 'Orijinal Kalite (OEM)', matchScore: 98 }
-      ];
-      break;
-
-    default:
-      crossReferences = [
-        { brand: 'Bosch', code: `B-${cleanOe}`, name: `${partName || 'Yedek Parça'} (Bosch Eşdeğeri)`, type: 'Eşdeğer Parça', quality: 'Orijinal Kalite (OEM/OES)', matchScore: 98 },
-        { brand: 'Valeo', code: `V-${cleanOe}`, name: `${partName || 'Yedek Parça'} (Valeo Alternatifi)`, type: 'Muadil', quality: 'Premium Muadil', matchScore: 96 },
-        { brand: 'Febi Bilstein', code: `FE-${cleanOe.slice(-5) || '32011'}`, name: `${partName || 'Yedek Parça'} (Febi)`, type: 'Muadil', quality: 'A Kalite Muadil', matchScore: 95 }
-      ];
-  }
-
-  // 3. Uyumlu Araçlar (Vehicle Fitment)
-  const defaultBrand = cleanBrand || 'Renault';
-  let compatibleVehicles = [];
-
-  if (defaultBrand.toLowerCase().includes('renault') || lowerName.includes('renault') || lowerOe.startsWith('8200') || lowerOe.startsWith('7701')) {
-    compatibleVehicles = [
-      { make: 'Renault', model: 'Clio IV (BH/KH)', years: '2012 - 2020', engine: '1.5 dCi 75/90 HP (K9K)', trim: 'Touch / Icon / Joy', power: '66 kW / 90 HP' },
-      { make: 'Renault', model: 'Megane III (BZ0/1)', years: '2008 - 2016', engine: '1.5 dCi 110 HP (K9K 836/837)', trim: 'Touch Plus / GT-Line', power: '81 kW / 110 HP' },
-      { make: 'Renault', model: 'Captur I (J5/H5)', years: '2013 - 2019', engine: '1.5 dCi 90 HP', trim: 'Icon / Outdoor', power: '66 kW / 90 HP' },
-      { make: 'Dacia', model: 'Duster (HS/HM)', years: '2010 - 2023', engine: '1.5 dCi 4x2 / 4x4 (K9K 858)', trim: 'Ambiance / Laureate / Prestige', power: '80 kW / 110 HP' },
-      { make: 'Dacia', model: 'Sandero II / Stepway', years: '2012 - 2021', engine: '1.5 dCi 90 HP (K9K)', trim: 'Stepway / Laureate', power: '66 kW / 90 HP' }
-    ];
-  } else if (defaultBrand.toLowerCase().includes('fiat') || lowerOe.startsWith('552') || lowerName.includes('fiat')) {
-    compatibleVehicles = [
-      { make: 'Fiat', model: 'Egea / Tipo (356)', years: '2015 - 2024', engine: '1.3 MultiJet II 95 HP (199 B1.000)', trim: 'Easy / Urban / Lounge', power: '70 kW / 95 HP' },
-      { make: 'Fiat', model: 'Egea / Tipo (356)', years: '2016 - 2024', engine: '1.6 MultiJet II 120 HP (552 60 384)', trim: 'Lounge Plus / Mirror', power: '88 kW / 120 HP' },
-      { make: 'Fiat', model: 'Doblo Cargo / Kombi (263)', years: '2010 - 2022', engine: '1.3 MultiJet 90/95 HP', trim: 'Premio / Safeline', power: '66 kW / 90 HP' },
-      { make: 'Fiat', model: 'Fiorino (225)', years: '2008 - 2024', engine: '1.3 MultiJet 75/95 HP', trim: 'Pop / Premio', power: '55 kW / 75 HP' }
-    ];
-  } else if (defaultBrand.toLowerCase().includes('volkswagen') || defaultBrand.toLowerCase().includes('vw')) {
-    compatibleVehicles = [
-      { make: 'Volkswagen', model: 'Golf VII (5G1/BA5)', years: '2012 - 2020', engine: '1.6 TDI 105/110/115 HP (CLHA/CRKB)', trim: 'Comfortline / Highline', power: '81 kW / 110 HP' },
-      { make: 'Volkswagen', model: 'Passat B8 (3G2/CB2)', years: '2014 - 2023', engine: '1.6 TDI / 2.0 TDI', trim: 'Elegance / Business', power: '88 kW / 120 HP' },
-      { make: 'Volkswagen', model: 'Polo VI (AW1/BZ1)', years: '2017 - 2024', engine: '1.0 TSI / 1.6 TDI', trim: 'Comfortline / Style', power: '70 kW / 95 HP' }
-    ];
-  } else {
-    compatibleVehicles = [
-      { make: defaultBrand, model: models || 'Tüm Standart Modeller', years: '2014 - 2024', engine: 'Orijinal Fabrika Motor Serisi', trim: 'Tüm Donanım Paketleri', power: 'Standart OEM Spesifikasyonu' }
-    ];
-  }
-
-  // 4. Teknik Özellikler (Attributes)
-  let attributes = [];
-  switch (partType) {
-    case 'timing_belt':
-      attributes = [
-        { name: 'Diş Sayısı', value: '123' },
-        { name: 'Kayış Genişliği', value: '27.0 mm' },
-        { name: 'Diş Profili', value: 'Yuvarlak / Kavisli Yüksek Mukavemetli Diş' },
-        { name: 'Set Bileşenleri', value: '1x Triger Kayışı, 1x Otomatik Gergi Rulmanı, 1x Krank Civatası' },
-        { name: 'Malzeme', value: 'HNBR (Hidrojene Nitril Bütadien Kauçuk - Yüksek Isı Dayanımı)' },
-        { name: 'Değişim Periyodu', value: '60.000 - 80.000 km veya 4-5 Yıl' },
-        { name: 'Kalite Onayı', value: 'OEM / ISO 9001:2015 / IATF 16949' }
-      ];
-      break;
-
-    case 'brake_pad':
-      attributes = [
-        { name: 'Montaj Tarafı', value: 'Ön Aks (Sağ ve Sol Takım)' },
-        { name: 'Fren Sistemi', value: 'Lucas / TRW Tip Kaliper Sistemi' },
-        { name: 'Genişlik / Uzunluk', value: '137.0 mm' },
-        { name: 'Yükseklik', value: '57.4 mm' },
-        { name: 'Kalınlık (Aşınma Pleyti Dahil)', value: '18.5 mm' },
-        { name: 'Aşınma İkazı', value: 'Akustik Aşınma Uyarılı Şim Plakası' },
-        { name: 'Sürtünme Katsayısı', value: 'ECE R90 Homologasyon Onaylı' }
-      ];
-      break;
-
-    case 'brake_disc':
-      attributes = [
-        { name: 'Montaj Yeri', value: 'Ön Aks (Sağ / Sol)' },
-        { name: 'Disk Türü', value: 'İçten Havalandırmalı (Hava Kanallı)' },
-        { name: 'Dış Çap', value: '280 mm' },
-        { name: 'Fren Diski Kalınlığı', value: '24.0 mm' },
-        { name: 'Minimum Aşınma Kalınlığı', value: '21.8 mm' },
-        { name: 'Bijon / Delik Sayısı', value: '4 veya 5 Bijon' },
-        { name: 'Yüzey İşlemi', value: 'Anti-Korozyon Boyalı & Taşlanmış' }
-      ];
-      break;
-
-    case 'oil_filter':
-      attributes = [
-        { name: 'Filtre Tipi', value: 'Vidalı / Spin-on Tip Metal Muhafazalı' },
-        { name: 'Dış Çap', value: '76 mm' },
-        { name: 'Yükseklik', value: '54 mm' },
-        { name: 'Bağlantı Vida Dişi', value: 'M 20 x 1.5' },
-        { name: 'Baypas Valfi Açılma Basıncı', value: '1.2 bar' },
-        { name: 'Geri Dönüş Engelleyici Valf', value: 'Silikon Diyaframlı Çekvalf' },
-        { name: 'Süzme Kapasitesi', value: '15 Mikron Yüksek Verimlilik' }
-      ];
-      break;
-
-    case 'air_filter':
-      attributes = [
-        { name: 'Filtre Tipi', value: 'Panel Tip Kuru Hava Filtresi Elemanı' },
-        { name: 'Uzunluk', value: '244 mm' },
-        { name: 'Genişlik', value: '141 mm' },
-        { name: 'Yükseklik', value: '55 mm' },
-        { name: 'Conta Tipi', value: 'Poliüretan Köpük Sızdırmazlık Fitili' }
-      ];
-      break;
-
-    case 'thermostat':
-      attributes = [
-        { name: 'Açılma Sıcaklığı', value: '88 °C' },
-        { name: 'Kasa / Gövde Türü', value: 'Entegre Müşürlü Alüminyum / Poliamid Gövde' },
-        { name: 'Müşür Pin Sayısı', value: '2 Pinli Sıcaklık Sensörü' },
-        { name: 'Conta Durumu', value: 'EPDM Yüksek Sıcaklık Contası Dahil' }
-      ];
-      break;
-
-    case 'clutch_kit':
-      attributes = [
-        { name: 'Çap', value: '220 mm' },
-        { name: 'Diş Sayısı', value: '26 Diş / Şaft Profili' },
-        { name: 'Set İçeriği', value: '1x Debriyaj Baskısı, 1x Balata, 1x Hidrolik Rulman (CSC)' },
-        { name: 'Volan Tipi', value: 'Sabit veya Çift Kütleli (DMF) Volan Uyumlu' }
-      ];
-      break;
-
-    default:
-      attributes = [
-        { name: 'Ürün Kodu / OE', value: cleanOe },
-        { name: 'Araç Markası', value: cleanBrand || 'Universal' },
-        { name: 'Kategori / Grup', value: partGroup || 'Yedek Parça' },
-        { name: 'Kalite Sertifikası', value: 'TSE / CE / ISO 9001 Standartı' },
-        { name: 'Garanti Süresi', value: '12 Ay / 20.000 KM Üretici Garantisi' }
-      ];
-  }
-
-  // 5. Teknik Montaj ve Patlatılmış Şema (Exploded Diagram)
-  const diagramUrl = `/api/catalog/diagram?oe=${encodeURIComponent(cleanOe)}&brand=${encodeURIComponent(cleanBrand || 'OEM')}&type=${encodeURIComponent(partType)}`;
-  const diagrams = [
-    {
-      id: `diag-${cleanOe}-1`,
-      name: `${partName || cleanOe} (Montaj Pozisyonu & Bağlantı Şeması)`,
-      url: diagramUrl,
-      description: 'Araca ait montaj civataları, tork değerleri ve patlatılmış montaj yerleşimi.'
-    }
-  ];
-
-  return {
-    crossReferences,
-    compatibleVehicles,
-    attributes,
-    diagramUrl,
-    diagrams
-  };
-}
-
-const vehicleSchemasCache = new Map();
-
-// Bilinen marka katalog referansları (VIN girilmeden sadece OE sorgulayan kullanıcılar için yedek bağlam)
-const KNOWN_BRAND_CONTEXTS = {
-  renault: {
-    catalogId: 'renault',
-    carId: '099e0afa71f140e94ab1e50481bab91d',
-    criteria: '0c*VF1LB17C536060366!f07857e6'
-  },
-  volkswagen: {
-    catalogId: 'vw',
-    carId: '3526049e8540e1cdb8bf29dab0049321',
-    criteria: 'f6*WVWZZZ1KZ8W000001(1978!31a3cee7'
-  },
-  vw: {
-    catalogId: 'vw',
-    carId: '3526049e8540e1cdb8bf29dab0049321',
-    criteria: 'f6*WVWZZZ1KZ8W000001(1978!31a3cee7'
-  }
-};
-
-const TURKISH_SCHEMA_TITLES = {
-  'Brake calipers': 'Fren Kaliperi & Balata Montaj Şeması',
-  'Drum brakes 2': 'Arka Kampana & Fren Sistemi',
-  'Stub axle - hubs (brake drum)': 'Porya & Fren Diski Şeması',
-  'Valve timing 2': 'Eksantrik & Triger Kayışı Sente Şeması',
-  'Tensioner - belt 2': 'Triger Gergi Rulmanı & Kayış Yolu',
-  'Water pump 2': 'Devirdaim Su Pompası Montajı',
-  'Oil filter': 'Yağ Filtresi & Filtre Yuvası',
-  'Oil sump': 'Motor Karteri & Yağ Boşaltma Tapası',
-  'Clutch 1': 'Debriyaj Baskısı & Rulman Şeması',
-  'Clutch 2': 'Debriyaj Balatası & Volan Montajı',
-  'Shock ABSorber 2': 'Ön & Arka Amortisör Montaj Şeması',
-  'Coolant radiator 1': 'Soğutma Radyatörü & Hortumlar',
-  'Headlamp 2': 'Far & Ön Aydınlatma Grubu',
-  'Alternator - starter motor 1': 'Şarj Dinamosu & Marş Motoru'
-};
-
-/**
- * Parts-Catalogs API /v1/catalogs/{catalogId}/schemas uç noktasından
- * araca ait gerçek OEM teknik montaj çizimlerini (exploded diagrams) çeker.
- */
-async function fetchVehicleSchemas({ catalogId, carId, criteria, page = 0 }) {
-  if (!catalogId || !carId) return [];
-  const cacheKey = `${catalogId}_${carId}_${criteria || ''}_${page}`;
-  if (vehicleSchemasCache.has(cacheKey)) {
-    return vehicleSchemasCache.get(cacheKey);
-  }
-
-  const endpoint = `${BASE_URL}/v1/catalogs/${encodeURIComponent(catalogId)}/schemas`;
-  const params = { carId, page };
-  if (criteria) params.criteria = criteria;
-
-  try {
-    const res = await axios.get(endpoint, {
-      params,
-      headers: getRequestHeaders(),
-      timeout: 10000
-    });
-
-    const rawList = res.data?.list || [];
-    const schemas = rawList.map(item => {
-      let imgUrl = item.img || '';
-      if (imgUrl.startsWith('//')) {
-        imgUrl = 'https:' + imgUrl;
-      }
-      const rawName = item.name || 'OEM Montaj Şeması';
-      const trName = TURKISH_SCHEMA_TITLES[rawName] ? ` (${TURKISH_SCHEMA_TITLES[rawName]})` : '';
-      return {
-        id: item.groupId || item.id,
-        name: `${rawName}${trName}`,
-        url: imgUrl,
-        description: item.description || '',
-        partNames: Array.isArray(item.partNames) ? item.partNames : []
-      };
-    }).filter(s => !!s.url);
-
-    vehicleSchemasCache.set(cacheKey, schemas);
-    return schemas;
-  } catch (err) {
-    console.warn('[FETCH_VEHICLE_SCHEMAS_NOTICE]:', err.message);
-    return [];
-  }
-}
-
-/**
- * Şemalar arasından parça grubu, adı veya OE türüne göre en uygun OEM çizimlerini filtreler
- */
-function matchSchemasForPart(schemas, { cleanOe = '', cleanBrand = '', cleanName = '', partType = '', partGroup = '' }) {
-  if (!schemas || schemas.length === 0) return [];
-
-  const keywordMap = {
-    timing_belt: ['timing', 'belt', 'tensioner', 'water pump', 'valve timing', 'triger', 'kayış', 'gergi', 'sente', 'kasnak'],
-    brake_pad: ['brake', 'caliper', 'pad', 'drum', 'lining', 'fren', 'balata', 'kaliper', 'disk'],
-    brake_disc: ['brake', 'disc', 'rotor', 'caliper', 'fren diski', 'disk', 'porya', 'hub'],
-    oil_filter: ['oil filter', 'oil sump', 'oil pump', 'filter', 'yağ filtresi', 'karter', 'filtre', 'pompa'],
-    air_filter: ['air filter', 'air cleaner', 'manifold', 'intake', 'hava filtresi', 'emme', 'filtre'],
-    thermostat: ['thermostat', 'water pump', 'cooling', 'radiator', 'termostat', 'soğutma', 'radyatör'],
-    clutch_kit: ['clutch', 'flywheel', 'pressure plate', 'debriyaj', 'baskı', 'volan', 'rulman'],
-    turbo_hose: ['turbo', 'intercooler', 'hose', 'charger', 'hortum', 'manifold', 'boru'],
-    shock_absorber: ['shock', 'absorber', 'strut', 'spring', 'suspension', 'amortisör', 'yay', 'süspansiyon']
-  };
-
-  const targets = (keywordMap[partType] || []).concat([
-    cleanOe.toLowerCase(),
-    (cleanName || '').toLowerCase(),
-    (partGroup || '').toLowerCase()
-  ]).filter(Boolean);
-
-  const matched = schemas.filter(s => {
-    const sName = (s.name || '').toLowerCase();
-    const sDesc = (s.description || '').toLowerCase();
-    const pNames = (s.partNames || []).map(p => (p.name || '').toLowerCase()).join(' ');
-    const fullText = `${sName} ${sDesc} ${pNames}`;
-
-    return targets.some(kw => kw.length > 2 && fullText.includes(kw));
+async function enrichProductData({ oeNumber, query, brand = '', vin = '', catalogId = '', carId = '', criteria = '' }) {
+  const targetQuery = query || oeNumber;
+  return executeDeepCrossReferenceSearch({
+    query: targetQuery,
+    brand,
+    vin,
+    catalogId,
+    carId,
+    criteria
   });
-
-  if (matched.length > 0) return matched;
-  return schemas.slice(0, 4);
-}
-
-/**
- * 3. PARÇA VERİSİ ZENGİNLEŞTİRME (ENRICHMENT) FONKSİYONU
- * (prompt.md Gereksinimi - Data Fetch & Save)
- * Bayi, panelden bir Şasi veya OE numarası yazıp 'Sorgula' dediğinde;
- * API'den parça bilgilerini, canlı Parts-Catalogs API şemalarını,
- * Muadil (Cross-reference), Uyumlu Araçlar (Fitment)
- * ve Teknik Özellikler (Attributes) verilerini çeker, birleştirir ve döner.
- *
- * @param {Object} params - { oeNumber, brand, vin, catalogId, carId, criteria }
- * @returns {Promise<Object>} Zenginleştirilmiş ürün nesnesi
- */
-async function enrichProductData({ oeNumber, brand = '', vin = '', catalogId = '', carId = '', criteria = '' }) {
-  if (!oeNumber && !vin) {
-    const err = new Error('Zenginleştirme için lütfen geçerli bir OE numarası veya Şasi (VIN) belirtiniz.');
-    err.statusCode = 400;
-    throw err;
-  }
-
-  let basePart = null;
-  let vehicleInfo = null;
-
-  // 1. Şasi (VIN) Numarası varsa önce araç bilgilerini çek
-  if (vin && String(vin).trim()) {
-    try {
-      vehicleInfo = await searchVinNumber(vin);
-      if (!brand && vehicleInfo && vehicleInfo.vehicleBrand) {
-        brand = vehicleInfo.vehicleBrand;
-      }
-      if (!catalogId && vehicleInfo?.catalogId) catalogId = vehicleInfo.catalogId;
-      if (!carId && vehicleInfo?.carId) carId = vehicleInfo.carId;
-      if (!criteria && vehicleInfo?.criteria) criteria = vehicleInfo.criteria;
-    } catch (vinErr) {
-      console.warn('[ENRICH_VIN_LOOKUP_NOTICE]:', vinErr.message);
-    }
-  }
-
-  // 2. OE Numarası varsa temel parça bilgilerini çek
-  if (oeNumber && String(oeNumber).trim()) {
-    if (!brand) {
-      const oeUpper = String(oeNumber).toUpperCase().trim();
-      if (oeUpper.startsWith('77') || oeUpper.startsWith('82') || oeUpper.startsWith('1102') || oeUpper.startsWith('16546') || oeUpper.startsWith('21481') || oeUpper.startsWith('15208')) {
-        brand = 'Renault';
-      } else if (oeUpper.startsWith('VAG') || oeUpper.startsWith('03L') || oeUpper.startsWith('06A') || oeUpper.startsWith('04L') || oeUpper.startsWith('1K0') || oeUpper.startsWith('5Q0') || oeUpper.startsWith('038') || oeUpper.startsWith('WHT')) {
-        brand = 'Volkswagen';
-      } else if (oeUpper.startsWith('552') || oeUpper.startsWith('518') || oeUpper.startsWith('717') || oeUpper.startsWith('464') || oeUpper.startsWith('551')) {
-        brand = 'Fiat';
-      } else if (oeUpper.startsWith('A000') || oeUpper.startsWith('A204') || oeUpper.startsWith('A651') || oeUpper.startsWith('A166')) {
-        brand = 'Mercedes-Benz';
-      } else if (oeUpper.startsWith('1112') || oeUpper.startsWith('3135') || oeUpper.startsWith('3411') || oeUpper.startsWith('6411')) {
-        brand = 'BMW';
-      } else if (oeUpper.startsWith('137') || oeUpper.startsWith('143') || oeUpper.startsWith('172') || oeUpper.startsWith('96') || oeUpper.startsWith('98')) {
-        brand = 'Ford';
-      }
-    }
-
-    try {
-      basePart = await searchOeNumber(oeNumber, brand);
-    } catch (oeErr) {
-      console.warn('[ENRICH_OE_LOOKUP_NOTICE]:', oeErr.message);
-      basePart = {
-        oeNumber: String(oeNumber).trim(),
-        brand: brand || '',
-        partName: '',
-        partGroup: '',
-        images: [],
-        diagrams: []
-      };
-    }
-  } else if (vehicleInfo) {
-    // Sadece VIN ile sorgulandıysa
-    basePart = {
-      oeNumber: 'OE-' + (vehicleInfo.vin ? vehicleInfo.vin.slice(-6) : 'PARCA'),
-      brand: vehicleInfo.vehicleBrand,
-      partName: `${vehicleInfo.vehicleBrand} ${vehicleInfo.compatibleModels || ''} Orijinal Parça`,
-      partGroup: 'Motor ve Mekanik',
-      images: [],
-      diagrams: []
-    };
-  }
-
-  const finalOe = basePart?.oeNumber || String(oeNumber || '').trim();
-  const finalBrand = basePart?.brand || brand || vehicleInfo?.vehicleBrand || '';
-  const finalName = basePart?.partName || '';
-  const finalGroup = basePart?.partGroup || '';
-  const finalModels = vehicleInfo?.compatibleModels || '';
-
-  // 3. Çoklu Uç Noktaları Eşzamanlı Sorgulama ve Otomotiv Zenginleştirme Motoru
-  const enriched = buildEnrichedAutomotiveData(finalOe, finalBrand, finalName, finalGroup, finalModels);
-
-  // Parça Tipini Belirle
-  const normalized = `${finalOe} ${finalName} ${finalGroup}`.toLowerCase();
-  let partType = 'general';
-  if (/triger|timing|kayış|gergi|7701473327|7701045724/i.test(normalized)) partType = 'timing_belt';
-  else if (/balata|fren balat|41060|44060/i.test(normalized)) partType = 'brake_pad';
-  else if (/fren disk|rotor|40206|43206/i.test(normalized)) partType = 'brake_disc';
-  else if (/yağ filtre|oil filter|8200768913|15208/i.test(normalized)) partType = 'oil_filter';
-  else if (/hava filtre|air filter|16546/i.test(normalized)) partType = 'air_filter';
-  else if (/termostat|thermostat|55266858/i.test(normalized)) partType = 'thermostat';
-  else if (/debriyaj|baskı balata|clutch|7701478505/i.test(normalized)) partType = 'clutch_kit';
-  else if (/turbo|hortum|8200296421/i.test(normalized)) partType = 'turbo_hose';
-  else if (/amortisör|shock|54302|56210/i.test(normalized)) partType = 'shock_absorber';
-
-  // 4. Canlı Parts-Catalogs API Schemas Uç Noktasından Gerçek OEM Çizimlerini Çek
-  let liveOemSchemas = [];
-  const brandKey = finalBrand.toLowerCase().replace(/[^a-z]/g, '');
-  const activeCatalogId = catalogId || KNOWN_BRAND_CONTEXTS[brandKey]?.catalogId || '';
-  const activeCarId = carId || KNOWN_BRAND_CONTEXTS[brandKey]?.carId || '';
-  const activeCriteria = criteria || KNOWN_BRAND_CONTEXTS[brandKey]?.criteria || '';
-
-  if (activeCatalogId && activeCarId) {
-    try {
-      const allSchemas = await fetchVehicleSchemas({
-        catalogId: activeCatalogId,
-        carId: activeCarId,
-        criteria: activeCriteria
-      });
-
-      if (allSchemas && allSchemas.length > 0) {
-        liveOemSchemas = matchSchemasForPart(allSchemas, {
-          cleanOe: finalOe,
-          cleanBrand: finalBrand,
-          cleanName: finalName,
-          partType,
-          partGroup: finalGroup
-        });
-        console.log(`[PARTS_CATALOG_LIVE_SCHEMAS] "${finalOe}" (${finalBrand}) için ${liveOemSchemas.length} canlı OEM teknik şema bulundu.`);
-      }
-    } catch (schemaErr) {
-      console.warn('[FETCH_SCHEMAS_ERROR]:', schemaErr.message);
-    }
-  }
-
-  // 5. Şema ve Görselleri Birleştir (SADECE Canlı API Şemalarını Kullan)
-  let combinedDiagrams = [];
-  if (liveOemSchemas.length > 0) {
-    combinedDiagrams = liveOemSchemas;
-  } else if (basePart?.diagrams && basePart.diagrams.length > 0) {
-    combinedDiagrams = basePart.diagrams;
-  }
-
-  let combinedImages = [];
-  if (liveOemSchemas.length > 0) {
-    combinedImages = liveOemSchemas.map(s => s.url);
-  } else if (basePart?.images && basePart.images.length > 0) {
-    combinedImages = basePart.images;
-  }
-
-  const computedPartName = finalName || (partType === 'timing_belt' ? `${finalBrand ? finalBrand + ' ' : ''}Triger Kayış Seti & Devirdaim (${finalOe})` :
-                                       partType === 'brake_pad' ? `${finalBrand ? finalBrand + ' ' : ''}Ön Fren Balata Takımı (${finalOe})` :
-                                       partType === 'brake_disc' ? `${finalBrand ? finalBrand + ' ' : ''}Ön Fren Diski (${finalOe})` :
-                                       partType === 'oil_filter' ? `${finalBrand ? finalBrand + ' ' : ''}Yağ Filtresi (${finalOe})` :
-                                       partType === 'air_filter' ? `${finalBrand ? finalBrand + ' ' : ''}Hava Filtresi (${finalOe})` :
-                                       partType === 'thermostat' ? `${finalBrand ? finalBrand + ' ' : ''}Termostat Ünitesi (${finalOe})` :
-                                       partType === 'clutch_kit' ? `${finalBrand ? finalBrand + ' ' : ''}Debriyaj Baskı Balata Kiti (${finalOe})` :
-                                       partType === 'shock_absorber' ? `${finalBrand ? finalBrand + ' ' : ''}Amortisör (${finalOe})` :
-                                       `${finalBrand ? finalBrand + ' ' : ''}Orijinal Parça (${finalOe})`).trim();
-
-  const computedPartGroup = finalGroup || (partType === 'timing_belt' ? 'Motor' :
-                                         partType === 'brake_pad' || partType === 'brake_disc' ? 'Fren Sistemi' :
-                                         partType === 'oil_filter' || partType === 'air_filter' ? 'Filtre' :
-                                         partType === 'thermostat' ? 'Soğutma' :
-                                         partType === 'clutch_kit' ? 'Debriyaj & Şanzıman' :
-                                         partType === 'shock_absorber' ? 'Süspansiyon' : 'Genel Mekanik');
-
-  const primaryDiagramUrl = (combinedDiagrams && combinedDiagrams.length > 0 && combinedDiagrams[0].url)
-    ? combinedDiagrams[0].url
-    : (combinedImages && combinedImages.length > 0 ? combinedImages[0] : null);
-
-  return {
-    oeNumber: finalOe,
-    brand: finalBrand,
-    partName: computedPartName,
-    partGroup: computedPartGroup,
-    vehicleBrand: finalBrand,
-    compatibleModels: finalModels || (enriched.compatibleVehicles.map(v => `${v.make} ${v.model}`).join(', ')),
-    images: combinedImages,
-    diagrams: combinedDiagrams,
-    diagramUrl: primaryDiagramUrl,
-    crossReferences: enriched.crossReferences,
-    compatibleVehicles: enriched.compatibleVehicles,
-    attributes: enriched.attributes,
-    enrichedAt: new Date().toISOString()
-  };
 }
 
 module.exports = {
+  normalizeCode,
+  parseSearchInput,
+  extractRealTechnicalSpecs,
+  executeDeepCrossReferenceSearch,
+  persistCrossReferenceGraph,
   searchVinNumber,
   searchOeNumber,
-  fetchVehicleSchemas,
-  matchSchemasForPart,
-  enrichProductData,
-  buildEnrichedAutomotiveData
+  enrichProductData
 };
-
