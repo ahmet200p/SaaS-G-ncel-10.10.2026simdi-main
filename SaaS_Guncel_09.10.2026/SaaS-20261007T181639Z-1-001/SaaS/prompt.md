@@ -1,7 +1,7 @@
-"Projeyi canlı ortama (production) taşıdığımız için varsayılan test hesaplarını (Super Admin, Bayi Yöneticisi vb.) güncelleyeceğiz. Lütfen veritabanı tohumlama (seeding) dosyasını (örneğin prisma/seed.js veya başlangıç verilerini oluşturan ilgili dosyayı) bul.
+Canlı (production) veritabanındaki yönetici şifresini '123456' olarak güncellemem gerekiyor. Lütfen ana dizinde update_prod_password.js adında tek seferlik bir Node.js betiği oluştur.
 
-admin@sistem.com olan Super  şifresini [Kim_!Lik9304.] yap.
+Betik, Prisma Client'ı başlatsın ve ahmet@ahmetoto.com (veya mevcut admin e-postası) kullanıcısını veritabanında bulsun.
 
-ahmet@ahmetoto.com olan Bayi Yöneticisi  şifresini [Denemehesabı..12] yap.
+bcrypt (10 salt round) kullanarak '123456' şifresini hashlesin ve kullanıcının şifresini bu yeni hash ile güncellesin.
 
-Yeni şifreleri veritabanına kaydederken bcrypt kullanarak hash'leme işleminin doğru çalıştığından emin ol, şifreleri asla düz metin (plain text) olarak bırakma."
+Bu işlemi yaparken Prisma'nın ortam değişkenlerinden (process.env.DATABASE_URL) gelen bağlantıyı kullandığından emin ol.
