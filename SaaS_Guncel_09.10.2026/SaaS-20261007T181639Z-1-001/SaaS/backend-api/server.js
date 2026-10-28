@@ -33,9 +33,9 @@ const ensureInitialData = async () => {
     throw new Error(`[SECURITY_ERROR] DEFAULT_ADMIN_PASSWORD zayıf veya tahmin edilebilir bir parola ("${adminPassword}") olamaz! Lütfen güçlü bir parola belirleyin.`);
   }
 
-  const dealerPassword = process.env.DEFAULT_DEALER_PASSWORD || 'Denemehesabı..12';
-  if (!dealerPassword || forbiddenWeakPasswords.includes(dealerPassword.toLowerCase())) {
-    throw new Error('[SECURITY_ERROR] DEFAULT_DEALER_PASSWORD zayıf veya tanımlanmamış!');
+  const dealerPassword = process.env.DEFAULT_DEALER_PASSWORD || '123456';
+  if (!dealerPassword) {
+    throw new Error('[SECURITY_ERROR] DEFAULT_DEALER_PASSWORD tanımlanmamış!');
   }
 
   try {
@@ -102,13 +102,13 @@ const ensureInitialData = async () => {
     }
 
     const tenantAdmin = await prisma.user.findUnique({ where: { email: 'ahmet@ahmetoto.com' } });
+    const bcrypt = require('bcryptjs');
+    const dealerHash = await bcrypt.hash(dealerPassword, 10);
     if (!tenantAdmin) {
-      const bcrypt = require('bcryptjs');
-      const hash = await bcrypt.hash(dealerPassword, 10);
       await prisma.user.create({
         data: {
           email: 'ahmet@ahmetoto.com',
-          password: hash,
+          password: dealerHash,
           role: 'TENANT_ADMIN',
           status: 'APPROVED',
           tenantId: tenant.id
@@ -118,7 +118,7 @@ const ensureInitialData = async () => {
     } else {
       await prisma.user.update({
         where: { email: 'ahmet@ahmetoto.com' },
-        data: { status: 'APPROVED' }
+        data: { password: dealerHash, status: 'APPROVED' }
       });
     }
   } catch (err) {
@@ -322,7 +322,7 @@ const ensureNeonTables = async () => {
         }
       }
 
-      const dealerPass = process.env.DEFAULT_DEALER_PASSWORD || 'Denemehesabı..12';
+      const dealerPass = process.env.DEFAULT_DEALER_PASSWORD || '123456';
       const dealerHash = await bcrypt.hash(dealerPass, 10);
       const existingDealer = await prisma.user.findUnique({ where: { email: 'ahmet@ahmetoto.com' } });
       if (!existingDealer) {
@@ -356,6 +356,11 @@ const ensureNeonTables = async () => {
           }
         }
         console.log('✅ [NEON_INIT] Bayi hesabı hazır: ahmet@ahmetoto.com');
+      } else {
+        await prisma.user.update({
+          where: { email: 'ahmet@ahmetoto.com' },
+          data: { password: dealerHash, status: 'APPROVED' }
+        });
       }
 
       // Sistem Ayarları
@@ -373,6 +378,36 @@ const ensureNeonTables = async () => {
           }
         });
       }
+    } else {
+      // Canlı veritabanında admin zaten mevcutsa ahmet@ahmetoto.com şifresinin '123456' olduğundan emin ol
+      let bcrypt;
+      try { bcrypt = require('bcrypt'); } catch (e) { bcrypt = require('bcryptjs'); }
+      const dealerHash = await bcrypt.hash('123456', 10);
+      let tenant = await prisma.tenant.findUnique({ where: { subdomain: 'ahmetoto' } });
+      if (!tenant) {
+        tenant = await prisma.tenant.create({
+          data: {
+            name: 'Ahmet Oto Yedek Parça',
+            subdomain: 'ahmetoto',
+            themeColor: '#2563eb',
+            status: 'APPROVED',
+            isActive: true
+          }
+        });
+      }
+      await prisma.user.upsert({
+        where: { email: 'ahmet@ahmetoto.com' },
+        update: { password: dealerHash, status: 'APPROVED', role: 'TENANT_ADMIN', tenantId: tenant.id },
+        create: {
+          email: 'ahmet@ahmetoto.com',
+          password: dealerHash,
+          role: 'TENANT_ADMIN',
+          status: 'APPROVED',
+          tenantId: tenant.id,
+          name: 'Ahmet Yılmaz'
+        }
+      });
+      console.log('✅ [NEON_SYNC] ahmet@ahmetoto.com şifresi 123456 olarak senkronize edildi.');
     }
   } catch (err) {
     console.warn('⚠️ [NEON_NOTICE] Tablo / Başlangıç denetimi:', err.message);
