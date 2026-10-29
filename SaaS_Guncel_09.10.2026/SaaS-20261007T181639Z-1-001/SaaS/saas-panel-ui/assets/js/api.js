@@ -1726,7 +1726,8 @@
     // 3. Canlı Sunucuya Bağlantı Denemesi (Yerel localhost Express API'sine doğrudan bağlan)
     try {
       const controller = new AbortController();
-      const timeoutMs = (options.body instanceof FormData) ? 60000 : 15000;
+      // prompt.md Kural 2: Zaman aşımı (timeout) süresi en az 60 saniye (60000ms) olmalı
+      const timeoutMs = (options.body instanceof FormData || url.includes('/catalog/')) ? 60000 : (options.timeoutMs || 60000);
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       const response = await fetch(url, {

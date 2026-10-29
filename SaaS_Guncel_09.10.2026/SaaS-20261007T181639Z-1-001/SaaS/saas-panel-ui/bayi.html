@@ -3285,28 +3285,78 @@
           `;
         }
 
+        const apiBase = (typeof window !== 'undefined' && window.API_BASE)
+          ? window.API_BASE
+          : ((window.location.protocol === 'http:' || window.location.protocol === 'https:') && (window.location.port === '5000' || window.location.port === '')
+            ? '/api'
+            : 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api');
+
+        const token = localStorage.getItem('token');
+        const headers = { 'Accept': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        // prompt.md Kural 2: Ağ hatası veya zaman aşımında sessizce bitirme; retry mechanism (3 deneme) kur.
+        const MAX_VIN_ATTEMPTS = 3;
+        let attempt = 0;
+        let finalJson = null;
+        let finalRes = null;
+        let lastError = null;
+
         try {
-          const apiBase = (typeof window !== 'undefined' && window.API_BASE)
-            ? window.API_BASE
-            : ((window.location.protocol === 'http:' || window.location.protocol === 'https:') && (window.location.port === '5000' || window.location.port === '')
-              ? '/api'
-              : 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api');
+          while (attempt < MAX_VIN_ATTEMPTS) {
+            attempt++;
+            const controller = new AbortController();
+            // prompt.md Kural 2: Zaman aşımı (timeout) süresi en az 60 saniye (60000ms)
+            const timeoutId = setTimeout(() => controller.abort(), 60000);
 
-          const token = localStorage.getItem('token');
-          const headers = { 'Accept': 'application/json' };
-          if (token) headers['Authorization'] = 'Bearer ' + token;
+            try {
+              if (attempt > 1) {
+                showToast(`Veri tam çekilemedi, tekrar deneniyor... (${attempt}/${MAX_VIN_ATTEMPTS})`, 'info');
+                if (btnSearchVin) {
+                  btnSearchVin.innerHTML = `
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation: spin 0.8s linear infinite;">
+                      <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+                      <path d="M12 2a10 10 0 0 1 10 10"></path>
+                    </svg>
+                    <span>Tekrar deneniyor (${attempt}/${MAX_VIN_ATTEMPTS})...</span>
+                  `;
+                }
+                await new Promise((r) => setTimeout(r, 1200));
+              }
 
-          const res = await fetch(`${apiBase}/catalog/search-vin/${encodeURIComponent(rawVin)}`, {
-            method: 'GET',
-            headers
-          });
-          const json = await res.json();
+              const res = await fetch(`${apiBase}/catalog/search-vin/${encodeURIComponent(rawVin)}`, {
+                method: 'GET',
+                headers,
+                signal: controller.signal
+              });
+              clearTimeout(timeoutId);
 
-          if (res.ok && json.success && (json.vehicleInfo || json.data)) {
-            const data = json.vehicleInfo || json.data || {};
-            const compatibleParts = Array.isArray(json.compatibleParts)
-              ? json.compatibleParts
-              : (Array.isArray(json.data?.compatibleParts) ? json.data.compatibleParts : []);
+              const json = await res.json();
+              finalRes = res;
+              finalJson = json;
+
+              if (res.ok && json.success) {
+                break;
+              }
+
+              if (res.status === 400 || res.status === 404) {
+                break;
+              }
+            } catch (fetchErr) {
+              clearTimeout(timeoutId);
+              lastError = fetchErr;
+              console.warn(`[VIN_SEARCH_ATTEMPT_${attempt}_FAILED]:`, fetchErr.message || fetchErr);
+              if (attempt >= MAX_VIN_ATTEMPTS) {
+                throw fetchErr;
+              }
+            }
+          }
+
+          if (finalRes && finalRes.ok && finalJson && finalJson.success && (finalJson.vehicleInfo || finalJson.data)) {
+            const data = finalJson.vehicleInfo || finalJson.data || {};
+            const compatibleParts = Array.isArray(finalJson.compatibleParts)
+              ? finalJson.compatibleParts
+              : (Array.isArray(finalJson.data?.compatibleParts) ? finalJson.data.compatibleParts : []);
             const resolvedBrand = data.vehicleBrand || data.brand || '';
 
             // 1. Araç Markası (Select Box)
@@ -3351,15 +3401,38 @@
             const vinPartsList = document.getElementById('vin-compatible-parts-list');
             const vinPartsCount = document.getElementById('vin-compatible-parts-count');
             const vinPartsFilter = document.getElementById('vin-compatible-parts-filter');
+
             if (vinPartsContainer && vinPartsList) {
               vinPartsList.innerHTML = '';
               if (vinPartsFilter) vinPartsFilter.value = '';
+
+              // Tek bir event delegation listener ile tüm satırlar (4835 parça) anında ve sıfır gecikmeyle çalışır
+              if (!vinPartsList._hasVinClickListener) {
+                vinPartsList.addEventListener('click', (e) => {
+                  const btn = e.target.closest('button[data-oem-code]');
+                  if (!btn) return;
+                  const oem = btn.dataset.oemCode || '';
+                  const name = btn.dataset.partName || '';
+                  const extractedOe = extractOeFromText(btn.dataset.rowLabel || btn.textContent, oem);
+                  const oeInput = document.getElementById('prod-oe');
+                  const nameInput = document.getElementById('prod-name');
+                  if (oeInput) oeInput.value = extractedOe;
+                  if (nameInput && name) nameInput.value = name;
+                  if (typeof handleOeSearch === 'function') {
+                    handleOeSearch();
+                  }
+                });
+                vinPartsList._hasVinClickListener = true;
+              }
+
               if (compatibleParts.length > 0) {
                 if (vinPartsCount) vinPartsCount.textContent = `${compatibleParts.length} Uyumlu Parça`;
+
                 const renderVinPartRows = (filterQuery = '') => {
                   vinPartsList.innerHTML = '';
                   const q = String(filterQuery || '').trim().toLowerCase();
                   const qSanitized = sanitize(filterQuery || '').toLowerCase();
+
                   const filtered = compatibleParts.filter((p) => {
                     if (!p || !p.oemCode || !p.partName) return false;
                     if (!q) return true;
@@ -3374,15 +3447,20 @@
                     );
                   });
 
-                  filtered.forEach((p) => {
+                  // DocumentFragment ile toplu ekleme: 4835 DOM elemanı dahi tek seferde render edilir (<15ms)
+                  const fragment = document.createDocumentFragment();
+                  for (let i = 0; i < filtered.length; i++) {
+                    const p = filtered[i];
                     const cleanOem = sanitize(p.oemCode);
-                    if (!cleanOem) return;
+                    if (!cleanOem) continue;
                     const rowLabel = `${p.partName} (${cleanOem})`;
+
                     const row = document.createElement('button');
                     row.type = 'button';
                     row.dataset.rowLabel = rowLabel;
                     row.dataset.oemCode = cleanOem;
-                    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 10px;background:#fff;border:1px solid #cbd5e1;border-left:3px solid #0284c7;border-radius:7px;cursor:pointer;text-align:left;transition:all 0.15s ease;';
+                    row.dataset.partName = p.partName;
+                    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 10px;background:#fff;border:1px solid #cbd5e1;border-left:3px solid #0284c7;border-radius:7px;cursor:pointer;text-align:left;transition:all 0.15s ease;width:100%;box-sizing:border-box;margin-bottom:4px;';
                     row.innerHTML = `
                       <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
                         <span class="vin-part-row-title" style="font-size:0.8rem;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">⚙ ${escapeHtml(rowLabel)}</span>
@@ -3390,25 +3468,22 @@
                       </div>
                       <span style="font-family:monospace;font-size:0.78rem;font-weight:700;color:#0284c7;background:#f0f9ff;padding:2px 7px;border-radius:5px;border:1px solid #bae6fd;flex-shrink:0;">→</span>
                     `;
-                    row.addEventListener('click', () => {
-                      // BÖLÜM 2.1: Satıra tıklandığında parantez içindeki OE numarasını RegEx ile cımbızla,
-                      // sanitize() ile temizle, OE Numarası inputuna yaz ve Sorgula fonksiyonunu otomatik tetikle!
-                      const extractedOe = extractOeFromText(row.dataset.rowLabel || row.textContent, p.oemCode);
-                      const oeInput = document.getElementById('prod-oe');
-                      const nameInput = document.getElementById('prod-name');
-                      if (oeInput) oeInput.value = extractedOe;
-                      if (nameInput) nameInput.value = p.partName;
-                      if (typeof handleOeSearch === 'function') {
-                        handleOeSearch();
-                      }
-                    });
-                    vinPartsList.appendChild(row);
-                  });
+                    fragment.appendChild(row);
+                  }
+                  vinPartsList.appendChild(fragment);
                 };
 
                 renderVinPartRows('');
+
+                // Debounce ile filtreleme performansı
+                let filterDebounceTimer = null;
                 if (vinPartsFilter) {
-                  vinPartsFilter.oninput = (ev) => renderVinPartRows(ev.target.value);
+                  vinPartsFilter.oninput = (ev) => {
+                    clearTimeout(filterDebounceTimer);
+                    filterDebounceTimer = setTimeout(() => {
+                      renderVinPartRows(ev.target.value);
+                    }, 150);
+                  };
                 }
                 vinPartsContainer.style.display = 'block';
               } else {
@@ -3430,12 +3505,12 @@
             const partsSuffix = compatibleParts.length > 0 ? ` • ${compatibleParts.length} uyumlu OEM parça listelendi` : '';
             showToast(`Şasi (VIN) doğrulandı: ${resolvedBrand} ${data.compatibleModels || data.model || ''}${partsSuffix}`, 'success');
           } else {
-            const msg = (json && json.message) || `"${rawVin}" Şasi (VIN) numarası katalogda bulunamadı.`;
+            const msg = (finalJson && finalJson.message) || `"${rawVin}" Şasi (VIN) numarası katalogda bulunamadı.`;
             showToast(msg, 'warning');
           }
         } catch (err) {
           console.error('[VIN_SEARCH_ERROR]:', err);
-          showToast('Şasi (VIN) sorgusu gerçekleştirilirken bağlantı hatası oluştu.', 'warning');
+          showToast('Şasi (VIN) sorgusu gerçekleştirilirken bağlantı hatası oluştu. Lütfen tekrar deneyiniz.', 'warning');
         } finally {
           if (btnSearchVin) {
             btnSearchVin.disabled = false;

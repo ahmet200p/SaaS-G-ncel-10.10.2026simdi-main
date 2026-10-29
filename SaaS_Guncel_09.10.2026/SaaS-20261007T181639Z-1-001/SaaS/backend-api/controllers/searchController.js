@@ -218,6 +218,10 @@ function extractVinFromRequest(req) {
  *        - Katalog API'si şasi için parça ağacı sunmuyorsa [] döner; asla sahte/mock veri üretilmez.
  */
 async function searchVin(req, res) {
+  // prompt.md Kural 2: Zaman aşımı (timeout) süresini Node seviyesinde güvenceye al (120 sn)
+  if (typeof req.setTimeout === 'function') req.setTimeout(120000);
+  if (typeof res.setTimeout === 'function') res.setTimeout(120000);
+
   const rawVin = extractVinFromRequest(req);
 
   if (!rawVin) {
@@ -258,10 +262,12 @@ async function searchVin(req, res) {
       message: 'Araç bilgileri ve OEM parça ağacı Şasi (VIN) kataloğundan başarıyla getirildi.',
       vehicleInfo,
       compatibleParts,
+      totalCount: compatibleParts.length,
       data: {
         ...vehicleInfo,
         vehicleInfo,
         compatibleParts,
+        totalCount: compatibleParts.length,
         diagrams: [],
         images: []
       }

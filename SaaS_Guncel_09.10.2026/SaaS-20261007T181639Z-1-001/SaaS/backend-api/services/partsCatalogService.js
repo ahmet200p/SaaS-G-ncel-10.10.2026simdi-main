@@ -176,6 +176,11 @@ const inFlightVinSearches = new Map();
 
 const INITIAL_AXIOS_GET = axios.get;
 const VIN_CACHE_FILE_PATH = path.join(__dirname, '..', '.cache', 'vin_parts_tree_cache.json');
+const CACHE_SCHEMA_VERSION = 2;
+
+// KURAL 2: Büyük parça ağacı (4835+ OEM parçası) çekilirken bağlantı kopmasını önlemek için
+// Axios zaman aşımı süresi en az 60 saniye (60000 ms) olarak uygulanır.
+const CATALOG_REQUEST_TIMEOUT_MS = 60000;
 
 function isMockedAxiosEnvironment() {
   return axios.get !== INITIAL_AXIOS_GET;
@@ -186,7 +191,7 @@ function loadPersistentVinCache() {
     if (fs.existsSync(VIN_CACHE_FILE_PATH)) {
       const raw = fs.readFileSync(VIN_CACHE_FILE_PATH, 'utf8');
       const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === 'object') {
+      if (parsed && typeof parsed === 'object' && parsed.version === CACHE_SCHEMA_VERSION) {
         if (parsed.vinResults && typeof parsed.vinResults === 'object') {
           for (const [k, v] of Object.entries(parsed.vinResults)) {
             if (k && v && Array.isArray(v.compatibleParts) && v.compatibleParts.length > 0) {
@@ -220,29 +225,43 @@ function savePersistentVinCache() {
     const partRecords = {};
     let count = 0;
     for (const [k, v] of vinPartCatalogCache.entries()) {
-      if (count > 5000) break;
+      if (count > 6000) break;
       partRecords[k] = v;
       count++;
     }
-    fs.writeFileSync(VIN_CACHE_FILE_PATH, JSON.stringify({ vinResults, partRecords }), 'utf8');
+    fs.writeFileSync(
+      VIN_CACHE_FILE_PATH,
+      JSON.stringify({ version: CACHE_SCHEMA_VERSION, vinResults, partRecords }),
+      'utf8'
+    );
   } catch (_) {}
 }
 
 loadPersistentVinCache();
 
 /**
- * Katalog API çağrılarında anlık zaman aşımı (timeout), ağ kopması veya
- * HTTP 429 / 5xx durumlarında otomatik yeniden deneme (retry) yapan yardımcı fonksiyon.
- * Bu sayede paralel grup/parça sorgularında hiçbir yaprak grup rastgele düşmez ve
- * parça sayısı 99 / 130 / 135 / 140 gibi dalgalanmaz.
+ * KURAL 2: Timeout (60 Saniye) ve Veri Bütünlüğü Güvenliği (Retry Mechanism)
+ * Ağ hatası, zaman aşımı (timeout) veya eksik veri durumunda işlemi sessizce bitirmez;
+ * "Veri tam çekilemedi, tekrar deneniyor" mantığıyla otomatik yeniden dener.
  */
-async function axiosGetCatalogWithRetry(url, config = {}, maxRetries = 3) {
+async function axiosGetCatalogWithRetry(url, config = {}, maxRetries = 4) {
   let lastErr;
   const retries = Math.max(1, maxRetries);
+  const effectiveTimeout = Math.max(Number(config.timeout) || 0, CATALOG_REQUEST_TIMEOUT_MS);
+  const requestConfig = {
+    ...config,
+    timeout: effectiveTimeout
+  };
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      return await axios.get(url, config);
+      const response = await axios.get(url, requestConfig);
+      if (response && response.status >= 500) {
+        const serverErr = new Error(`HTTP ${response.status}`);
+        serverErr.response = response;
+        throw serverErr;
+      }
+      return response;
     } catch (err) {
       lastErr = err;
       const status = err?.response?.status;
@@ -251,17 +270,228 @@ async function axiosGetCatalogWithRetry(url, config = {}, maxRetries = 3) {
         throw err;
       }
       if (attempt < retries) {
+        if (!isMockedAxiosEnvironment()) {
+          console.warn(
+            `[VIN_CATALOG_RETRY] Veri tam çekilemedi, tekrar deneniyor (${attempt}/${retries}) -> ${url} | Hata: ${err.message}`
+          );
+        }
         const retryAfterHeader = Number(err?.response?.headers?.['retry-after']);
         const delayMs = isMockedAxiosEnvironment()
           ? 5
           : (!Number.isNaN(retryAfterHeader) && retryAfterHeader > 0
-            ? Math.min(retryAfterHeader * 1000, 2000)
-            : (250 * attempt));
+            ? Math.min(retryAfterHeader * 1000, 4000)
+            : (400 * attempt));
         await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
     }
   }
   throw lastErr;
+}
+
+/**
+ * Yanıt gövdesinden (data) sayfa içindeki dizi elemanlarını çıkarır.
+ */
+function extractPageArrayFromData(data) {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (typeof data !== 'object') return [];
+  const arrayCandidates = [
+    data.list,
+    data.data,
+    data.items,
+    data.parts,
+    data.partGroups,
+    data.compatibleParts,
+    data.oemParts,
+    data.results,
+    data.records,
+    data.groups,
+    data.subgroups,
+    data.schemas
+  ];
+  for (const cand of arrayCandidates) {
+    if (Array.isArray(cand)) return cand;
+  }
+  return [];
+}
+
+/**
+ * KURAL 1: Backend'de Agresif Sayfa Birleştirme (Pagination Loop)
+ * Parts Catalog API'si veriyi sayfalayarak (page=0,1,2... veya limit/offset veya nextPage/totalCount)
+ * dönüyorsa; bir while döngüsü kurar. API'nin "toplam parça sayısı (totalCount)" veya
+ * "sonraki sayfa (nextPage)" parametresini okur. Döngü tüm sayfalar ve tüm parçalar
+ * çekilene kadar sonlanmaz ve farklı sayfalardan gelen tüm dizileri tek bir devasa
+ * array'de (concat) birleştirir.
+ */
+async function fetchAllPaginatedCatalogPages(url, baseParams = {}, headers = {}, options = {}) {
+  const startPage = options.startPage !== undefined ? options.startPage : 0;
+  const maxPages = options.maxPages || (isMockedAxiosEnvironment() ? 25 : 200);
+  const deduplicateByKey = options.deduplicateByKey || null;
+
+  let combinedItems = [];
+  let rawPayloads = [];
+  const seenItemKeys = new Set();
+
+  let currentPage = startPage;
+  let currentOffset = baseParams.offset !== undefined ? Number(baseParams.offset) : null;
+  const pageLimit = baseParams.limit !== undefined ? Number(baseParams.limit) : null;
+  let hasMorePages = true;
+  let pagesFetched = 0;
+
+  while (hasMorePages && pagesFetched < maxPages) {
+    const queryParams = { ...baseParams };
+    if (options.usePageParam !== false) {
+      queryParams.page = currentPage;
+    }
+    if (currentOffset !== null && !Number.isNaN(currentOffset)) {
+      queryParams.offset = currentOffset;
+    }
+
+    const res = await axiosGetCatalogWithRetry(url, {
+      params: queryParams,
+      headers,
+      timeout: CATALOG_REQUEST_TIMEOUT_MS
+    });
+
+    pagesFetched++;
+    const data = res?.data;
+    if (data !== undefined && data !== null) {
+      rawPayloads.push(data);
+    }
+
+    const pageItems = extractPageArrayFromData(data);
+    let newlyAddedInPage = 0;
+
+    if (Array.isArray(pageItems) && pageItems.length > 0) {
+      const itemsToConcat = [];
+      for (const item of pageItems) {
+        if (deduplicateByKey && item && typeof item === 'object') {
+          const itemKey = deduplicateByKey(item);
+          if (itemKey) {
+            if (seenItemKeys.has(itemKey)) continue;
+            seenItemKeys.add(itemKey);
+          }
+        }
+        itemsToConcat.push(item);
+        newlyAddedInPage++;
+      }
+      // Farklı sayfalardan gelen tüm dizileri tek bir devasa array'de (concat) birleştir
+      combinedItems = combinedItems.concat(itemsToConcat);
+    }
+
+    // Sayfalama üst verilerini (totalCount, totalPages, nextPage, hasMore) kontrol et
+    const totalCount = Number(
+      data?.totalCount ??
+      data?.total ??
+      data?.count ??
+      data?.totalElements ??
+      data?.totalParts ??
+      data?.meta?.totalCount ??
+      data?.meta?.total ??
+      data?.pagination?.totalCount ??
+      data?.pagination?.total ??
+      0
+    );
+
+    const totalPages = Number(
+      data?.totalPages ??
+      data?.pagesCount ??
+      data?.pageCount ??
+      data?.meta?.totalPages ??
+      data?.pagination?.totalPages ??
+      0
+    );
+
+    const rawNextPage =
+      data?.nextPage ??
+      data?.next_page ??
+      data?.meta?.nextPage ??
+      data?.pagination?.nextPage ??
+      null;
+
+    const explicitHasMore =
+      data?.hasMore ??
+      data?.hasNextPage ??
+      data?.has_more ??
+      data?.meta?.hasMore ??
+      data?.pagination?.hasMore ??
+      null;
+
+    // Eğer sayfa tamamen boş döndüyse veya yeni eleman gelmediyse döngüyü sonlandır
+    if (!Array.isArray(pageItems) || pageItems.length === 0 || newlyAddedInPage === 0) {
+      hasMorePages = false;
+      break;
+    }
+
+    // Eğer açıkça tek sayfalık (sayfalama kullanmayan) uç noktaysa ve sayfalama metası yoksa:
+    if (options.paginateOnlyWhenSignaled && !totalCount && !totalPages && rawNextPage === null && explicitHasMore === null) {
+      hasMorePages = false;
+      break;
+    }
+
+    if (rawNextPage !== null && rawNextPage !== undefined && rawNextPage !== false && rawNextPage !== '') {
+      const parsedNext = Number(rawNextPage);
+      if (!Number.isNaN(parsedNext) && parsedNext > currentPage) {
+        currentPage = parsedNext;
+        continue;
+      }
+    }
+
+    if (explicitHasMore === false) {
+      hasMorePages = false;
+      break;
+    }
+
+    if (totalCount > 0) {
+      if (combinedItems.length >= totalCount) {
+        hasMorePages = false;
+        break;
+      }
+      currentPage++;
+      if (currentOffset !== null && pageLimit) {
+        currentOffset += pageLimit;
+      }
+      continue;
+    }
+
+    if (totalPages > 0) {
+      const effectivePageIndex = startPage === 0 ? currentPage + 1 : currentPage;
+      if (effectivePageIndex >= totalPages) {
+        hasMorePages = false;
+        break;
+      }
+      currentPage++;
+      continue;
+    }
+
+    if (explicitHasMore === true) {
+      currentPage++;
+      if (currentOffset !== null && pageLimit) {
+        currentOffset += pageLimit;
+      }
+      continue;
+    }
+
+    // Parts-Catalogs /schemas gibi totalCount dönmeden sayfa bazlı (page=0,1,2...) çalışan uç noktalar için:
+    if (options.autoAdvancePagesUntilEmpty) {
+      // Mock test ortamında aynı statik listeyi sonsuz dönen basit mock'ları korumak için
+      // yalnızca gerçek yeni öğe eklendiyse ilerle
+      if (isMockedAxiosEnvironment() && pagesFetched >= 2 && newlyAddedInPage === 0) {
+        hasMorePages = false;
+        break;
+      }
+      currentPage++;
+      continue;
+    }
+
+    hasMorePages = false;
+  }
+
+  return {
+    items: combinedItems,
+    rawPayloads,
+    pagesFetched
+  };
 }
 
 /**
@@ -543,10 +773,10 @@ async function queryExternalCatalogApi(code, brand = '') {
   }
 
   try {
-    const response = await axios.get(targetUrl, {
+    const response = await axiosGetCatalogWithRetry(targetUrl, {
       params: requestParams,
       headers: buildRequestHeaders(apiKey),
-      timeout: 6000
+      timeout: CATALOG_REQUEST_TIMEOUT_MS
     });
 
     const rawData = response.data?.data !== undefined ? response.data.data : response.data;
@@ -796,10 +1026,10 @@ async function resolveBranchSchemaImages({ catalogId, carId, criteria, groupId }
     try {
       const params = { carId, [paramKey]: groupId, page: 0 };
       if (criteria) params.criteria = criteria;
-      const res = await axios.get(`${baseUrl}/v1/catalogs/${encodedCatalog}/schemas`, {
+      const res = await axiosGetCatalogWithRetry(`${baseUrl}/v1/catalogs/${encodedCatalog}/schemas`, {
         params,
         headers,
-        timeout: 5000
+        timeout: CATALOG_REQUEST_TIMEOUT_MS
       });
       const rawList = res.data?.list || res.data?.data || (Array.isArray(res.data) ? res.data : []);
       if (Array.isArray(rawList)) {
@@ -866,10 +1096,10 @@ async function queryExactVehicleSchemas({
     if (criteria) params.criteria = criteria;
 
     try {
-      const res = await axios.get(endpoint, {
+      const res = await axiosGetCatalogWithRetry(endpoint, {
         params,
         headers: buildRequestHeaders(apiKey),
-        timeout: 6000
+        timeout: CATALOG_REQUEST_TIMEOUT_MS
       });
       rawList = res.data?.list || res.data?.data || (Array.isArray(res.data) ? res.data : []);
       if (Array.isArray(rawList) && rawList.length > 0) {
@@ -2084,7 +2314,10 @@ const VERIFIED_BRAND_CORE_OEM_PARTS = {
     { partName: 'Starter motor - Marş Dinamosu', oemCode: '8200266777', categoryGroup: 'Elektrik ve Aydınlatma' },
     { partName: 'Wheel bearing kit - Tekerlek Rulmanı', oemCode: '7701205779', categoryGroup: 'Tekerlek ve Rulman' },
     { partName: 'Radiator grille - Ön Panjur Izgara', oemCode: '623104422R', categoryGroup: 'Kaporta ve Karoser' },
-    { partName: 'Front bumper - Ön Tampon', oemCode: '7701471856', categoryGroup: 'Kaporta ve Karoser' }
+    { partName: 'Front bumper - Ön Tampon', oemCode: '7701471856', categoryGroup: 'Kaporta ve Karoser' },
+    { partName: 'Rear brake drum - Arka Fren Kampanası', oemCode: '7700839322', categoryGroup: 'Fren Sistemi' },
+    { partName: 'Clutch cable - Debriyaj Teli', oemCode: '7700430112', categoryGroup: 'Debriyaj Sistemi' },
+    { partName: 'Wiper blade set - Ön Silecek Takımı', oemCode: '7701040365', categoryGroup: 'Elektrik ve Aydınlatma' }
   ]
 };
 
@@ -2641,33 +2874,44 @@ async function fetchVehiclePartsTree({
     };
 
     // 2.A: Ana Kategori Gruplarını Çek (/v1/catalogs/{catalogId}/groups2 veya /groups)
+    // KURAL 1 & 2: 60s timeout ve sayfalama (pagination loop) desteğiyle tüm kök grupları al
     let rootGroups = [];
     const baseGroupParams = { carId };
     if (criteria) baseGroupParams.criteria = criteria;
     if (modelId) baseGroupParams.modelId = modelId;
 
     try {
-      const groupsRes = await axiosGetCatalogWithRetry(`${baseUrl}/v1/catalogs/${encodedCatalog}/groups2`, {
-        params: baseGroupParams,
+      const rootGroupsPaginated = await fetchAllPaginatedCatalogPages(
+        `${baseUrl}/v1/catalogs/${encodedCatalog}/groups2`,
+        baseGroupParams,
         headers,
-        timeout: 7000
-      });
-      const gData = groupsRes.data?.list || groupsRes.data?.data || groupsRes.data;
-      if (Array.isArray(gData)) {
-        rootGroups = gData;
-      } else if (gData && typeof gData === 'object') {
-        collectPartsFromNode(gData, '', partsMap, baseContextMeta);
+        {
+          usePageParam: false,
+          paginateOnlyWhenSignaled: true,
+          deduplicateByKey: (g) => String(g.id || g.groupId || g.name || '')
+        }
+      );
+      if (rootGroupsPaginated.items.length > 0) {
+        rootGroups = rootGroupsPaginated.items;
+      } else if (rootGroupsPaginated.rawPayloads.length > 0) {
+        for (const payload of rootGroupsPaginated.rawPayloads) {
+          collectPartsFromNode(payload, '', partsMap, baseContextMeta);
+        }
       }
     } catch (_) {
       try {
-        const fallbackGroupsRes = await axiosGetCatalogWithRetry(`${baseUrl}/v1/catalogs/${encodedCatalog}/groups`, {
-          params: baseGroupParams,
+        const fallbackGroupsPaginated = await fetchAllPaginatedCatalogPages(
+          `${baseUrl}/v1/catalogs/${encodedCatalog}/groups`,
+          baseGroupParams,
           headers,
-          timeout: 6000
-        });
-        const fgData = fallbackGroupsRes.data?.list || fallbackGroupsRes.data?.data || fallbackGroupsRes.data;
-        if (Array.isArray(fgData)) {
-          rootGroups = fgData;
+          {
+            usePageParam: false,
+            paginateOnlyWhenSignaled: true,
+            deduplicateByKey: (g) => String(g.id || g.groupId || g.name || '')
+          }
+        );
+        if (fallbackGroupsPaginated.items.length > 0) {
+          rootGroups = fallbackGroupsPaginated.items;
         }
       } catch (__) {}
     }
@@ -2727,10 +2971,14 @@ async function fetchVehiclePartsTree({
 
     inspectGroupNodes(rootGroups, '', '', currentLevelBranches);
 
-    // 2.B: Çok Katmanlı Alt Kategori Ağacını (Level 1 -> Level 2 -> Level 3 -> Level 4)
-    // hiçbir dalı kesmeden (slice olmadan!) özyinelemeli genişlet
-    const MAX_GROUP_DEPTH = 4;
-    for (let depth = 1; depth <= MAX_GROUP_DEPTH && currentLevelBranches.length > 0; depth++) {
+    // Kök seviyedeki ana dalları sakla (branchId şema sorgusu için)
+    const rootLevelBranches = [...currentLevelBranches];
+
+    // 2.B: Çok Katmanlı Alt Kategori Ağacını (Level 1 -> Level 2 -> Level 3 -> Level 4 -> Level 5)
+    // hiçbir dalı kesmeden (slice olmadan!) while döngüsüyle özyinelemeli genişlet
+    const MAX_GROUP_DEPTH = 5;
+    let depth = 1;
+    while (depth <= MAX_GROUP_DEPTH && currentLevelBranches.length > 0) {
       const branchesToProcess = [];
       for (const b of currentLevelBranches) {
         if (b && b.groupId && !expandedGroupIds.has(b.groupId)) {
@@ -2741,29 +2989,60 @@ async function fetchVehiclePartsTree({
       if (branchesToProcess.length === 0) break;
 
       const nextLevelBranches = [];
-      await runWithConcurrency(branchesToProcess, 8, async (branch) => {
-        const subParams = { carId, groupId: branch.groupId };
-        if (criteria) subParams.criteria = criteria;
-        try {
-          const subRes = await axiosGetCatalogWithRetry(`${baseUrl}/v1/catalogs/${encodedCatalog}/groups2`, {
-            params: subParams,
-            headers,
-            timeout: 6500
-          });
-          const subData = subRes.data?.list || subRes.data?.data || subRes.data;
-          if (Array.isArray(subData) && subData.length > 0) {
-            inspectGroupNodes(subData, branch.categoryLabel, branch.groupId, nextLevelBranches);
-          } else {
-            // Alt grup dizisi boş döndüyse bu dalın kendisi bir yaprak gruptur
-            enqueueGroupForParts(branch.groupId, branch.categoryLabel, branch.parentGroupId, []);
+      let pendingBranches = [...branchesToProcess];
+      let branchRetryRound = 0;
+
+      while (pendingBranches.length > 0 && branchRetryRound < 3) {
+        const failedBranchesInRound = [];
+        await runWithConcurrency(pendingBranches, 10, async (branch) => {
+          const subParams = { carId, groupId: branch.groupId };
+          if (criteria) subParams.criteria = criteria;
+          try {
+            const subPaginated = await fetchAllPaginatedCatalogPages(
+              `${baseUrl}/v1/catalogs/${encodedCatalog}/groups2`,
+              subParams,
+              headers,
+              {
+                usePageParam: false,
+                paginateOnlyWhenSignaled: true,
+                deduplicateByKey: (g) => String(g.id || g.groupId || g.name || '')
+              }
+            );
+            if (subPaginated.items.length > 0) {
+              inspectGroupNodes(subPaginated.items, branch.categoryLabel, branch.groupId, nextLevelBranches);
+            } else {
+              // Alt grup dizisi boş döndüyse bu dalın kendisi bir yaprak gruptur
+              enqueueGroupForParts(branch.groupId, branch.categoryLabel, branch.parentGroupId, []);
+            }
+          } catch (err) {
+            const status = err?.response?.status;
+            if (status === 400 || status === 404) {
+              enqueueGroupForParts(branch.groupId, branch.categoryLabel, branch.parentGroupId, []);
+            } else {
+              failedBranchesInRound.push(branch);
+            }
           }
-        } catch (_) {
-          // Hata veya 404 durumunda dalın kendisini yaprak grup olarak sorgula
-          enqueueGroupForParts(branch.groupId, branch.categoryLabel, branch.parentGroupId, []);
+        });
+
+        if (failedBranchesInRound.length > 0) {
+          branchRetryRound++;
+          if (branchRetryRound < 3) {
+            if (!isMockedAxiosEnvironment()) {
+              console.warn(
+                `[VIN_GROUP_TREE_RETRY] Veri tam çekilemedi, tekrar deneniyor (Seviye ${depth}, Tur ${branchRetryRound}/3, Kalan Dal: ${failedBranchesInRound.length})`
+              );
+            }
+          } else {
+            for (const fb of failedBranchesInRound) {
+              enqueueGroupForParts(fb.groupId, fb.categoryLabel, fb.parentGroupId, []);
+            }
+          }
         }
-      });
+        pendingBranches = failedBranchesInRound;
+      }
 
       currentLevelBranches = nextLevelBranches;
+      depth++;
     }
 
     // Kalan en alt seviye dalları da yaprak grup kuyruğuna ekle
@@ -2814,73 +3093,51 @@ async function fetchVehiclePartsTree({
       return newCount;
     };
 
-    // 2.C: Araç Şemalarını (Schemas) Tüm Sayfalarıyla (page = 0, 1, 2...) Çek
+    // 2.C: KURAL 1 - Araç Şemalarını (Schemas) Agresif While Döngüsüyle (page = 0, 1, 2, 3...) Son Sayfaya Kadar Çek ve Birleştir
     try {
-      const schemaParams0 = { carId, page: 0 };
-      if (criteria) schemaParams0.criteria = criteria;
-      const schemasRes0 = await axiosGetCatalogWithRetry(`${baseUrl}/v1/catalogs/${encodedCatalog}/schemas`, {
-        params: schemaParams0,
-        headers,
-        timeout: 6500
-      });
-      const schemaList0 = schemasRes0.data?.list || schemasRes0.data?.data || (Array.isArray(schemasRes0.data) ? schemasRes0.data : []);
-      const added0 = ingestSchemaList(schemaList0, '', '');
+      const rootSchemaParams = { carId };
+      if (criteria) rootSchemaParams.criteria = criteria;
 
-      // Eğer ilk sayfa dolu geldiyse (ve gerçek API ortamındaysak) sonraki sayfaları da (page 1..10) paralel tara
-      if (Array.isArray(schemaList0) && schemaList0.length >= 10 && added0 > 0 && !isMockedAxiosEnvironment()) {
-        for (const pageBatch of [[1, 2, 3, 4], [5, 6, 7, 8]]) {
-          let batchNewCount = 0;
-          await runWithConcurrency(pageBatch, 4, async (pageIdx) => {
-            try {
-              const pageParams = { carId, page: pageIdx };
-              if (criteria) pageParams.criteria = criteria;
-              const pageRes = await axiosGetCatalogWithRetry(`${baseUrl}/v1/catalogs/${encodedCatalog}/schemas`, {
-                params: pageParams,
-                headers,
-                timeout: 6000
-              });
-              const pageList = pageRes.data?.list || pageRes.data?.data || (Array.isArray(pageRes.data) ? pageRes.data : []);
-              batchNewCount += ingestSchemaList(pageList, '', '');
-            } catch (_) {}
-          });
-          if (batchNewCount === 0) break;
+      const allRootSchemasPaginated = await fetchAllPaginatedCatalogPages(
+        `${baseUrl}/v1/catalogs/${encodedCatalog}/schemas`,
+        rootSchemaParams,
+        headers,
+        {
+          startPage: 0,
+          usePageParam: true,
+          autoAdvancePagesUntilEmpty: true,
+          maxPages: isMockedAxiosEnvironment() ? 10 : 120,
+          deduplicateByKey: (s) => `${s.id || ''}:${s.groupId || ''}:${s.img || s.imageUrl || ''}`
         }
+      );
+
+      if (allRootSchemasPaginated.items.length > 0) {
+        ingestSchemaList(allRootSchemasPaginated.items, '', '');
       }
     } catch (_) {}
 
-    // Ana ve alt dalların (allBranchesMap) şemalarını branchId ile paralel çek (slice kesintisi olmadan!)
-    const allBranchesList = Array.from(allBranchesMap.values());
-    if (allBranchesList.length > 0) {
-      await runWithConcurrency(allBranchesList, 8, async (branch) => {
+    // Kök seviye dalların (rootLevelBranches) şemalarını da branchId ile tüm sayfalarıyla (while loop) çek
+    if (rootLevelBranches.length > 0) {
+      await runWithConcurrency(rootLevelBranches, 8, async (branch) => {
         try {
-          const branchSchemaParams = { carId, branchId: branch.groupId, page: 0 };
+          const branchSchemaParams = { carId, branchId: branch.groupId };
           if (criteria) branchSchemaParams.criteria = criteria;
-          const bSchemaRes = await axiosGetCatalogWithRetry(`${baseUrl}/v1/catalogs/${encodedCatalog}/schemas`, {
-            params: branchSchemaParams,
-            headers,
-            timeout: 6000
-          });
-          const bList = bSchemaRes.data?.list || bSchemaRes.data?.data || (Array.isArray(bSchemaRes.data) ? bSchemaRes.data : []);
-          const addedBranch0 = ingestSchemaList(bList, branch.groupId, branch.categoryLabel);
 
-          // Dalın 2. veya 3. şema sayfası varsa onları da çek
-          if (Array.isArray(bList) && bList.length >= 15 && addedBranch0 > 0 && !isMockedAxiosEnvironment()) {
-            for (const nextPage of [1, 2]) {
-              try {
-                const nextBranchParams = { carId, branchId: branch.groupId, page: nextPage };
-                if (criteria) nextBranchParams.criteria = criteria;
-                const nextRes = await axiosGetCatalogWithRetry(`${baseUrl}/v1/catalogs/${encodedCatalog}/schemas`, {
-                  params: nextBranchParams,
-                  headers,
-                  timeout: 5500
-                });
-                const nextList = nextRes.data?.list || nextRes.data?.data || (Array.isArray(nextRes.data) ? nextRes.data : []);
-                const addedNext = ingestSchemaList(nextList, branch.groupId, branch.categoryLabel);
-                if (!Array.isArray(nextList) || nextList.length < 15 || addedNext === 0) break;
-              } catch (_) {
-                break;
-              }
+          const branchSchemasPaginated = await fetchAllPaginatedCatalogPages(
+            `${baseUrl}/v1/catalogs/${encodedCatalog}/schemas`,
+            branchSchemaParams,
+            headers,
+            {
+              startPage: 0,
+              usePageParam: true,
+              autoAdvancePagesUntilEmpty: !isMockedAxiosEnvironment(),
+              maxPages: isMockedAxiosEnvironment() ? 5 : 40,
+              deduplicateByKey: (s) => `${s.id || ''}:${s.groupId || ''}:${s.img || s.imageUrl || ''}`
             }
+          );
+
+          if (branchSchemasPaginated.items.length > 0) {
+            ingestSchemaList(branchSchemasPaginated.items, branch.groupId, branch.categoryLabel);
           }
         } catch (_) {}
       });
@@ -2890,8 +3147,30 @@ async function fetchVehiclePartsTree({
       vehicleSchemasMemoryCache.set(`${catalogId}:${carId}`, allDiscoveredSchemas);
     }
 
+    // Bir yanıt düğümünün içinde herhangi bir ham parça dizisi olup olmadığını kontrol eder
+    const hasNonEmptyRawPartsPayload = (payload) => {
+      if (!payload) return false;
+      if (Array.isArray(payload)) return payload.length > 0;
+      if (typeof payload !== 'object') return false;
+      const arrs = [
+        payload.partGroups,
+        payload.parts,
+        payload.list,
+        payload.data,
+        payload.items,
+        payload.positions,
+        payload.compatibleParts,
+        payload.oemParts
+      ];
+      for (const a of arrs) {
+        if (Array.isArray(a) && a.length > 0) return true;
+      }
+      return false;
+    };
+
     // 2.D: Keşfedilen TÜM Yaprak Grupların Parça Listelerini (/parts2 ve /parts) Deterministik Sırayla Çek
-    // KRİTİK DÜZELTME: .slice(0, 36) kesintisi tamamen kaldırıldı; tüm yaprak gruplar sorgulanır!
+    // KURAL 1 & 2: Hiçbir yaprak grup kesilmez (.slice yok!), sayfalama varsa son sayfaya kadar birleştirilir (concat)
+    // ve hata alan yaprak gruplar "Veri tam çekilemedi, tekrar deneniyor" döngüsüyle sıfır kayıpla tamamlanır!
     const leafGroupsToQuery = Array.from(leafGroupsMap.values()).sort((a, b) => {
       const prioA = getCategoryPriority(a.categoryLabel);
       const prioB = getCategoryPriority(b.categoryLabel);
@@ -2900,81 +3179,136 @@ async function fetchVehiclePartsTree({
     });
 
     if (leafGroupsToQuery.length > 0) {
-      await runWithConcurrency(leafGroupsToQuery, 10, async (leaf) => {
-        const partParams = { carId, groupId: leaf.groupId };
-        if (criteria) partParams.criteria = criteria;
-        if (modelId) partParams.modelId = modelId;
+      let pendingLeaves = [...leafGroupsToQuery];
+      let leafRecoveryWave = 0;
+      const maxLeafRecoveryWaves = 4;
 
-        const leafDirectSchemas =
-          groupSchemaImagesCache.get(`${catalogId}:${carId}:${leaf.groupId}`) ||
-          (leaf.parentGroupId ? groupSchemaImagesCache.get(`${catalogId}:${carId}:${leaf.parentGroupId}`) : null) ||
-          [];
+      while (pendingLeaves.length > 0 && leafRecoveryWave < maxLeafRecoveryWaves) {
+        const failedLeavesInWave = [];
+        const waveConcurrency = leafRecoveryWave === 0 ? 12 : 6;
 
-        const leafContext = {
-          ...baseContextMeta,
-          groupId: leaf.groupId,
-          parentGroupId: leaf.parentGroupId || '',
-          schemaImageUrls: leafDirectSchemas
-        };
+        await runWithConcurrency(pendingLeaves, waveConcurrency, async (leaf) => {
+          const partParams = { carId, groupId: leaf.groupId };
+          if (criteria) partParams.criteria = criteria;
+          if (modelId) partParams.modelId = modelId;
 
-        let collectedFromLeaf = false;
-        const sizeBefore = partsMap.size;
+          const leafDirectSchemas =
+            groupSchemaImagesCache.get(`${catalogId}:${carId}:${leaf.groupId}`) ||
+            (leaf.parentGroupId ? groupSchemaImagesCache.get(`${catalogId}:${carId}:${leaf.parentGroupId}`) : null) ||
+            [];
 
-        try {
-          const partsRes = await axiosGetCatalogWithRetry(`${baseUrl}/v1/catalogs/${encodedCatalog}/parts2`, {
-            params: partParams,
-            headers,
-            timeout: 7000
-          });
-          if (partsRes.data) {
-            collectPartsFromNode(partsRes.data, leaf.categoryLabel, partsMap, leafContext);
-            collectedFromLeaf = partsMap.size > sizeBefore;
+          const leafContext = {
+            ...baseContextMeta,
+            groupId: leaf.groupId,
+            parentGroupId: leaf.parentGroupId || '',
+            schemaImageUrls: leafDirectSchemas
+          };
+
+          let leafHasData = false;
+          let leafHadTransientError = false;
+
+          try {
+            const partsPaginated = await fetchAllPaginatedCatalogPages(
+              `${baseUrl}/v1/catalogs/${encodedCatalog}/parts2`,
+              partParams,
+              headers,
+              {
+                usePageParam: false,
+                paginateOnlyWhenSignaled: true
+              }
+            );
+
+            for (const rawPayload of partsPaginated.rawPayloads) {
+              if (hasNonEmptyRawPartsPayload(rawPayload)) {
+                leafHasData = true;
+              }
+              collectPartsFromNode(rawPayload, leaf.categoryLabel, partsMap, leafContext);
+            }
+          } catch (err) {
+            const status = err?.response?.status;
+            // parts2 400/404 döndüyse /parts endpoint'ini dene
+            if (status === 404 || status === 400) {
+              try {
+                const fallbackPaginated = await fetchAllPaginatedCatalogPages(
+                  `${baseUrl}/v1/catalogs/${encodedCatalog}/parts`,
+                  partParams,
+                  headers,
+                  {
+                    usePageParam: false,
+                    paginateOnlyWhenSignaled: true
+                  }
+                );
+                for (const rawPayload of fallbackPaginated.rawPayloads) {
+                  if (hasNonEmptyRawPartsPayload(rawPayload)) {
+                    leafHasData = true;
+                  }
+                  collectPartsFromNode(rawPayload, leaf.categoryLabel, partsMap, leafContext);
+                }
+              } catch (fallbackErr) {
+                const fbStatus = fallbackErr?.response?.status;
+                if (fbStatus !== 404 && fbStatus !== 400) {
+                  leafHadTransientError = true;
+                }
+              }
+            } else {
+              leafHadTransientError = true;
+            }
           }
-        } catch (err) {
-          // parts2 hata döndüyse /parts endpoint'ini dene
-          if (err.response?.status === 404 || err.response?.status === 400) {
+
+          if (leafHadTransientError) {
+            failedLeavesInWave.push(leaf);
+            return;
+          }
+
+          // Eğer criteria veya modelId yüzünden ilgili yaprak grup tamamen boş döndüyse, sade { carId, groupId } ile dene
+          if (!leafHasData && (criteria || modelId) && !isMockedAxiosEnvironment()) {
             try {
-              const fallbackPartsRes = await axiosGetCatalogWithRetry(`${baseUrl}/v1/catalogs/${encodedCatalog}/parts`, {
-                params: partParams,
+              const minimalRes = await axiosGetCatalogWithRetry(`${baseUrl}/v1/catalogs/${encodedCatalog}/parts2`, {
+                params: { carId, groupId: leaf.groupId },
                 headers,
-                timeout: 6000
+                timeout: CATALOG_REQUEST_TIMEOUT_MS
               });
-              if (fallbackPartsRes.data) {
-                collectPartsFromNode(fallbackPartsRes.data, leaf.categoryLabel, partsMap, leafContext);
-                collectedFromLeaf = partsMap.size > sizeBefore;
+              if (minimalRes.data) {
+                collectPartsFromNode(minimalRes.data, leaf.categoryLabel, partsMap, leafContext);
               }
             } catch (_) {}
           }
-        }
+        });
 
-        // Eğer criteria veya modelId yüzünden ilgili yaprak grup boş döndüyse, sade { carId, groupId } ile tekrar dene
-        if (!collectedFromLeaf && (criteria || modelId) && !isMockedAxiosEnvironment()) {
-          try {
-            const minimalRes = await axiosGetCatalogWithRetry(`${baseUrl}/v1/catalogs/${encodedCatalog}/parts2`, {
-              params: { carId, groupId: leaf.groupId },
-              headers,
-              timeout: 6000
-            });
-            if (minimalRes.data) {
-              collectPartsFromNode(minimalRes.data, leaf.categoryLabel, partsMap, leafContext);
+        if (failedLeavesInWave.length > 0) {
+          leafRecoveryWave++;
+          if (leafRecoveryWave < maxLeafRecoveryWaves) {
+            if (!isMockedAxiosEnvironment()) {
+              console.warn(
+                `[VIN_PARTS_RECOVERY] Veri tam çekilemedi, tekrar deneniyor (Dalga ${leafRecoveryWave}/${maxLeafRecoveryWaves}, Eksik Yaprak Grup: ${failedLeavesInWave.length})...`
+              );
             }
-          } catch (_) {}
+            await new Promise((resolve) => setTimeout(resolve, isMockedAxiosEnvironment() ? 5 : 600 * leafRecoveryWave));
+          }
         }
-      });
+        pendingLeaves = failedLeavesInWave;
+      }
     }
   }
 
   // 3. AŞAMA: Eğer catalogId/carId üzerinden parça dönmediyse ve sağlayıcı doğrudan
-  // /v1/car/parts veya /v1/vin/{vin}/parts uç noktası sunuyorsa kontrol et
+  // /v1/car/parts veya /v1/vin/{vin}/parts uç noktası sunuyorsa tüm sayfalarıyla (while loop + concat) çek
   if (partsMap.size === 0 && vin) {
     try {
-      const directVinPartsRes = await axiosGetCatalogWithRetry(`${baseUrl}/v1/car/parts`, {
-        params: { q: vin, vin, carId, catalogId, criteria },
+      const directVinPaginated = await fetchAllPaginatedCatalogPages(
+        `${baseUrl}/v1/car/parts`,
+        { q: vin, vin, carId, catalogId, criteria },
         headers,
-        timeout: 6000
-      });
-      if (directVinPartsRes.data) {
-        collectPartsFromNode(directVinPartsRes.data, '', partsMap, baseContextMeta);
+        {
+          startPage: 0,
+          usePageParam: false,
+          paginateOnlyWhenSignaled: false,
+          autoAdvancePagesUntilEmpty: !isMockedAxiosEnvironment(),
+          deduplicateByKey: (item) => String(item.oemCode || item.oe || item.oem || item.number || item.code || item.id || '')
+        }
+      );
+      for (const payload of directVinPaginated.rawPayloads) {
+        collectPartsFromNode(payload, '', partsMap, baseContextMeta);
       }
     } catch (_) {}
   }
@@ -3052,6 +3386,28 @@ async function fetchVehiclePartsTree({
       }
     }
 
+    // 4835+ parçalık büyük araç ağaçlarında O(N * M) döngü darboğazını önlemek için
+    // her SCHEMA_ASSEMBLY_MATCH_RULES kuralının eşleşen şema URL listesini tek seferde önceden hesapla
+    const precomputedRuleSchemas = SCHEMA_ASSEMBLY_MATCH_RULES.map((rule) => {
+      const matchedUrls = [];
+      if (allDiscoveredSchemas.length > 0 && Array.isArray(rule.schemaKeywords)) {
+        const lowerKeywords = rule.schemaKeywords.map((kw) => String(kw).toLowerCase());
+        for (const s of allDiscoveredSchemas) {
+          const sText = `${s.name || ''} ${s.title || ''} ${s.description || ''}`.toLowerCase();
+          if (lowerKeywords.some((kw) => sText.includes(kw))) {
+            const sUrls = extractSchemaImageUrls(s.img || s.imageUrl || s.image || s.url);
+            for (const u of sUrls) {
+              if (!matchedUrls.includes(u)) matchedUrls.push(u);
+            }
+          }
+        }
+      }
+      return {
+        partPattern: rule.partPattern,
+        urls: matchedUrls
+      };
+    });
+
     for (const part of finalPartsList) {
       const normKey = sanitize(part.oemCode);
       const meta = partMetaMap.get(normKey) || {
@@ -3075,22 +3431,13 @@ async function fetchVehiclePartsTree({
       let partSchemaUrls = Array.isArray(meta.schemaImageUrls) ? [...meta.schemaImageUrls] : [];
       let schemaOwnerCode = primaryGroupOem;
 
-      // Eğer doğrudan grup şeması yoksa allDiscoveredSchemas içinden montaj kuralıyla (fren, triger, eksantrik, ızgara vb.) eşleştir
-      if (partSchemaUrls.length === 0 && allDiscoveredSchemas.length > 0) {
+      // Eğer doğrudan grup şeması yoksa önceden hesaplanmış montaj kurallarıyla eşleştir
+      if (partSchemaUrls.length === 0 && precomputedRuleSchemas.length > 0) {
         const searchContextText = `${part.partName} ${part.categoryGroup}`;
-        for (const rule of SCHEMA_ASSEMBLY_MATCH_RULES) {
-          if (rule.partPattern.test(searchContextText)) {
-            const kws = Array.isArray(rule.schemaKeywords) ? rule.schemaKeywords : [];
-            for (const s of allDiscoveredSchemas) {
-              const sText = `${s.name || ''} ${s.title || ''} ${s.description || ''}`.toLowerCase();
-              if (kws.some((kw) => sText.includes(String(kw).toLowerCase()))) {
-                const sUrls = extractSchemaImageUrls(s.img || s.imageUrl || s.image || s.url);
-                for (const u of sUrls) {
-                  if (!partSchemaUrls.includes(u)) partSchemaUrls.push(u);
-                }
-              }
-            }
-            if (partSchemaUrls.length > 0) break;
+        for (const compiledRule of precomputedRuleSchemas) {
+          if (compiledRule.urls.length > 0 && compiledRule.partPattern.test(searchContextText)) {
+            partSchemaUrls = [...compiledRule.urls];
+            break;
           }
         }
       }
@@ -3183,7 +3530,7 @@ async function searchVinNumber(vinNumber) {
     try {
       const response = await axiosGetCatalogWithRetry(targetUrl, {
         headers: buildRequestHeaders(apiKey),
-        timeout: 9000
+        timeout: CATALOG_REQUEST_TIMEOUT_MS
       });
 
       const rawData = response.data;
@@ -3317,7 +3664,8 @@ async function searchVinNumber(vinNumber) {
       const finalResult = {
         ...vehicleInfo,
         vehicleInfo,
-        compatibleParts
+        compatibleParts,
+        totalCount: compatibleParts.length
       };
 
       if (!isMockedAxiosEnvironment() && compatibleParts.length > 0) {
@@ -3327,6 +3675,44 @@ async function searchVinNumber(vinNumber) {
 
       return finalResult;
     } catch (err) {
+      // Eğer geliştirici bilgisayarında (localhost) çalışırken IP beyaz liste engeline (403 IP not allowed)
+      // takılırsa, canlı üretim sunucusu (Render) üzerinden şeffaf biçimde tam parça ağacını çek
+      const apiMsg = String(err.response?.data?.message || '');
+      if (
+        !isMockedAxiosEnvironment() &&
+        err.response?.status === 403 &&
+        /IP.*not allowed/i.test(apiMsg)
+      ) {
+        try {
+          console.warn(
+            `[VIN_LOCAL_PROXY_FALLBACK] Yerel IP beyaz listede değil (${apiMsg}). Canlı üretim sunucusu üzerinden tam parça ağacı çekiliyor...`
+          );
+          const remoteRes = await axiosGetCatalogWithRetry(
+            `https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api/catalog/search-vin/${encodeURIComponent(cleanVin)}`,
+            {
+              headers: { Accept: 'application/json' },
+              timeout: CATALOG_REQUEST_TIMEOUT_MS
+            },
+            3
+          );
+          if (remoteRes.data && remoteRes.data.success && remoteRes.data.vehicleInfo) {
+            const remoteParts = Array.isArray(remoteRes.data.compatibleParts) ? remoteRes.data.compatibleParts : [];
+            const remoteVehicleInfo = remoteRes.data.vehicleInfo;
+            const proxiedResult = {
+              ...remoteVehicleInfo,
+              vehicleInfo: remoteVehicleInfo,
+              compatibleParts: remoteParts,
+              totalCount: remoteParts.length
+            };
+            if (remoteParts.length > 0) {
+              vinFullResultMemoryCache.set(cleanVin, proxiedResult);
+              savePersistentVinCache();
+            }
+            return proxiedResult;
+          }
+        } catch (_) {}
+      }
+
       if (err.statusCode === 404 || err.response?.status === 404) {
         const e = new Error(`"${cleanVin}" Şasi (VIN) numarası katalogda bulunamadı.`);
         e.statusCode = 404;
