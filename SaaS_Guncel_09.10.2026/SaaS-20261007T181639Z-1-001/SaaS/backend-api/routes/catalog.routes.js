@@ -8,8 +8,7 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
-const { searchVinNumber } = require('../services/partsCatalogService');
-const { searchParts, enrichPart } = require('../controllers/searchController');
+const { searchParts, enrichPart, searchVin } = require('../controllers/searchController');
 const { generateTechnicalDiagramSvg } = require('../services/automotiveDiagramGenerator');
 
 /**
@@ -79,54 +78,18 @@ router.get('/image-proxy', async (req, res) => {
 });
 
 /**
- * @route   GET /api/catalog/search-vin/:vin
- * @desc    Şasi (VIN) Numarası ile Araç Markası ve Uyumlu Modelleri sorgular.
- *          Fiyat ve Stok ASLA dönülmez!
+ * @route   GET/POST /api/catalog/search-vin/:vin, /api/catalog/search-vin, /api/catalog/vin/:vin
+ * @desc    Şasi (VIN) Numarası ile Araç Künyesi (vehicleInfo) ve Komple OEM Parça Ağacı (compatibleParts) sorgular.
+ *          Katalog API'si parça ağacı sunmuyorsa compatibleParts: [] döner; asla sahte veri üretilmez!
  */
-router.get('/search-vin/:vin', async (req, res) => {
-  const rawVin = req.params.vin;
-
-  if (!rawVin || typeof rawVin !== 'string' || rawVin.trim() === '') {
-    return res.status(400).json({
-      success: false,
-      message: 'Lütfen geçerli bir Şasi (VIN) numarası belirtiniz.'
-    });
-  }
-
-  const cleanVin = rawVin.trim();
-
-  try {
-    const result = await searchVinNumber(cleanVin);
-
-    return res.status(200).json({
-      success: true,
-      message: 'Araç bilgileri Şasi (VIN) kataloğundan başarıyla getirildi.',
-      data: {
-        vin: result.vin,
-        vehicleBrand: result.vehicleBrand,
-        compatibleModels: result.compatibleModels,
-        modelList: result.modelList || [],
-        catalogId: result.catalogId,
-        carId: result.carId,
-        criteria: result.criteria,
-        diagrams: [],
-        images: []
-      }
-    });
-  } catch (error) {
-    const statusCode = error.statusCode || 500;
-    console.error(`[ROUTE_SEARCH_VIN_ERROR] HTTP ${statusCode}:`, error.message);
-
-    return res.status(statusCode).json({
-      success: false,
-      statusCode: statusCode,
-      statusText: error.statusText || 'Error',
-      message: error.message || 'Şasi (VIN) sorgulaması gerçekleştirilemedi.',
-      targetUrl: error.targetUrl,
-      rawApiResponse: error.apiResponse || null
-    });
-  }
-});
+const vinSearchAliases = [
+  '/search-vin/:vin',
+  '/search-vin',
+  '/vin/:vin',
+  '/vin'
+];
+router.get(vinSearchAliases, searchVin);
+router.post(vinSearchAliases, searchVin);
 
 // Marka ve Model Önbelleği (Kota ve Hız Koruması)
 let cachedBrands = null;

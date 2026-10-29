@@ -7,7 +7,8 @@
 
 const {
   executeDeepCrossReferenceSearch,
-  enrichProductData
+  enrichProductData,
+  searchVinNumber
 } = require('../services/partsCatalogService');
 
 /**
@@ -180,9 +181,108 @@ async function enrichPart(req, res) {
   }
 }
 
+/**
+ * İstekten (params, query, body) Şasi (VIN) numarasını çıkarır.
+ */
+function extractVinFromRequest(req) {
+  const candidates = [
+    req.params?.vin,
+    req.params?.query,
+    req.query?.vin,
+    req.query?.q,
+    req.query?.query,
+    req.body?.vin,
+    req.body?.q,
+    req.body?.query
+  ];
+
+  for (const val of candidates) {
+    if (typeof val === 'string' && val.trim().length > 0) {
+      return val.trim();
+    }
+  }
+  return '';
+}
+
+/**
+ * @desc  Şasi (VIN) -> Araç Künyesi (vehicleInfo) ve Komple OEM Parça Ağacı (compatibleParts) Denetleyicisi
+ *        GET/POST /api/catalog/search-vin/:vin, /api/catalog/search-vin, /api/catalog/vin/:vin
+ *        KATI KURALLAR:
+ *        - Yanıtta vehicleInfo objesinin yanında kesinlikle compatibleParts dizisi dönülür.
+ *        - compatibleParts içindeki her obje: { "partName": "...", "oemCode": "...", "categoryGroup": "..." }
+ *        - Katalog API'si şasi için parça ağacı sunmuyorsa [] döner; asla sahte/mock veri üretilmez.
+ */
+async function searchVin(req, res) {
+  const rawVin = extractVinFromRequest(req);
+
+  if (!rawVin) {
+    return res.status(400).json({
+      success: false,
+      message: 'Lütfen geçerli bir Şasi (VIN) numarası belirtiniz.'
+    });
+  }
+
+  try {
+    const result = await searchVinNumber(rawVin);
+
+    const vehicleInfo = result.vehicleInfo || {
+      vin: result.vin,
+      brand: result.brand || result.vehicleBrand,
+      vehicleBrand: result.vehicleBrand || result.brand,
+      model: result.model || result.compatibleModels,
+      compatibleModels: result.compatibleModels,
+      modelList: Array.isArray(result.modelList) ? result.modelList : [],
+      catalogId: result.catalogId,
+      carId: result.carId,
+      modelId: result.modelId,
+      criteria: result.criteria,
+      year: result.year,
+      engine: result.engine
+    };
+
+    const compatibleParts = Array.isArray(result.compatibleParts)
+      ? result.compatibleParts.map((part) => ({
+          partName: String(part.partName || '').trim(),
+          oemCode: String(part.oemCode || '').trim(),
+          categoryGroup: String(part.categoryGroup || '').trim()
+        })).filter((p) => p.partName && p.oemCode && p.categoryGroup)
+      : [];
+
+    return res.status(200).json({
+      success: true,
+      message: 'Araç bilgileri ve OEM parça ağacı Şasi (VIN) kataloğundan başarıyla getirildi.',
+      vehicleInfo,
+      compatibleParts,
+      data: {
+        ...vehicleInfo,
+        vehicleInfo,
+        compatibleParts,
+        diagrams: [],
+        images: []
+      }
+    });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    console.error(`[VIN_CONTROLLER_ERROR] HTTP ${statusCode}:`, error.message);
+
+    return res.status(statusCode).json({
+      success: false,
+      statusCode,
+      statusText: error.statusText || 'Error',
+      message: error.message || 'Şasi (VIN) sorgulaması gerçekleştirilemedi.',
+      vehicleInfo: null,
+      compatibleParts: [],
+      targetUrl: error.targetUrl,
+      rawApiResponse: error.apiResponse || null
+    });
+  }
+}
+
 module.exports = {
   searchParts,
   enrichPart,
+  searchVin,
+  extractVinFromRequest,
   extractSearchedQuery,
   extractSearchContext,
   buildStrictSearchResponse

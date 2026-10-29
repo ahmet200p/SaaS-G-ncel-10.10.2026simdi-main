@@ -350,13 +350,15 @@ directTenantBridgeRoutes.forEach(({ path: routePath, alias, target }) => {
 // GET /api/store/products, POST /api/store/orders
 app.use('/api/store', storeRoutes);
 
-// E. Parts Catalogs & Deep Cross-Reference Search: OE/OEM/Aftermarket Numarası ile Parça Arama
-// GET/POST /api/catalog/search, /api/catalog/search-oe/:oeNumber, /api/search, /api/parts/search
-const { searchParts } = require('./controllers/searchController');
+// E. Parts Catalogs & Deep Cross-Reference Search: OE/OEM/Aftermarket Numarası ve Şasi (VIN) -> OEM Parça Ağacı Arama
+// GET/POST /api/catalog/search, /api/catalog/search-oe/:oeNumber, /api/catalog/search-vin/:vin, /api/search, /api/parts/search
+const { searchParts, searchVin } = require('./controllers/searchController');
 app.use('/api/catalog', catalogRoutes);
 app.use('/catalog', catalogRoutes);
 app.get(['/api/search', '/api/search/:query', '/search', '/search/:query', '/api/parts/search', '/api/parts/search/:query', '/parts/search', '/parts/search/:query'], searchParts);
 app.post(['/api/search', '/search', '/api/parts/search', '/parts/search'], searchParts);
+app.get(['/api/search-vin/:vin', '/api/search-vin', '/search-vin/:vin', '/search-vin', '/api/vin/:vin', '/api/vin', '/vin/:vin', '/vin'], searchVin);
+app.post(['/api/search-vin/:vin', '/api/search-vin', '/search-vin/:vin', '/search-vin', '/api/vin/:vin', '/api/vin', '/vin/:vin', '/vin'], searchVin);
 
 // ----------------------------------------------------------------------------
 // 4. BULUNAMAYAN ROTA (404) VE MERKEZİ HATA YÖNETİMİ

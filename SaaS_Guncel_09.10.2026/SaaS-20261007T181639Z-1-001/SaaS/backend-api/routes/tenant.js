@@ -612,6 +612,46 @@ const handleUpdateTenantProduct = async (req, res) => {
     if (partGroup !== undefined) productUpdates.partGroup = partGroup ? String(partGroup).trim() : null;
     if (updateData.customPrice !== undefined) productUpdates.defaultPrice = updateData.customPrice;
 
+    // Deep Cross-Reference ve Zenginleştirilmiş Veri Alanları Güncellemesi
+    if (req.body.rootOEM !== undefined) productUpdates.rootOEM = req.body.rootOEM || null;
+    if (req.body.originalOEMs !== undefined) {
+      productUpdates.originalOEMs = typeof req.body.originalOEMs === 'object' && req.body.originalOEMs !== null
+        ? JSON.stringify(req.body.originalOEMs)
+        : req.body.originalOEMs;
+    }
+    if (req.body.referenceCodes !== undefined) {
+      productUpdates.referenceCodes = typeof req.body.referenceCodes === 'object' && req.body.referenceCodes !== null
+        ? JSON.stringify(req.body.referenceCodes)
+        : req.body.referenceCodes;
+    }
+    if (req.body.technicalSpecs !== undefined) {
+      productUpdates.technicalSpecs = typeof req.body.technicalSpecs === 'object' && req.body.technicalSpecs !== null
+        ? JSON.stringify(req.body.technicalSpecs)
+        : req.body.technicalSpecs;
+    }
+    if (req.body.schemaSourceCode !== undefined) productUpdates.schemaSourceCode = req.body.schemaSourceCode || null;
+    if (req.body.crossReferences !== undefined) {
+      productUpdates.crossReferences = typeof req.body.crossReferences === 'object' && req.body.crossReferences !== null
+        ? JSON.stringify(req.body.crossReferences)
+        : req.body.crossReferences;
+    }
+    if (req.body.compatibleVehicles !== undefined) {
+      productUpdates.compatibleVehicles = typeof req.body.compatibleVehicles === 'object' && req.body.compatibleVehicles !== null
+        ? JSON.stringify(req.body.compatibleVehicles)
+        : req.body.compatibleVehicles;
+    }
+    if (req.body.attributes !== undefined) {
+      productUpdates.attributes = typeof req.body.attributes === 'object' && req.body.attributes !== null
+        ? JSON.stringify(req.body.attributes)
+        : req.body.attributes;
+    }
+    if (req.body.diagramUrl !== undefined) productUpdates.diagramUrl = req.body.diagramUrl || null;
+    if (req.body.diagrams !== undefined) {
+      productUpdates.diagrams = typeof req.body.diagrams === 'object' && req.body.diagrams !== null
+        ? JSON.stringify(req.body.diagrams)
+        : req.body.diagrams;
+    }
+
     // Güncelleme için yeni görsel yüklendiyse uygula
     let updateImages = [];
     if (req.files && Array.isArray(req.files) && req.files.length > 0) {
