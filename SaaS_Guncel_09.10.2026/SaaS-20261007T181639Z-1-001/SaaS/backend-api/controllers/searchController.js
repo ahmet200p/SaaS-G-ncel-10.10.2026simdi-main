@@ -189,11 +189,14 @@ async function enrichPart(req, res) {
 function extractVinFromRequest(req) {
   const candidates = [
     req.params?.vin,
+    req.params?.vinNumber,
     req.params?.query,
     req.query?.vin,
+    req.query?.vinNumber,
     req.query?.q,
     req.query?.query,
     req.body?.vin,
+    req.body?.vinNumber,
     req.body?.q,
     req.body?.query
   ];

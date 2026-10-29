@@ -297,8 +297,256 @@ async function runTests() {
     assert.strictEqual(reverseRes.body.images[0].isFallback, true, 'isFallback: true olmalı');
     console.log(`  ✔ Tersine Yan Sanayi Sorgusu (${sampleAftermarket.brand} ${sampleAftermarket.code}) -> Kök OEM: ${reverseRes.body.rootOEM}, isFallback: ${reverseRes.body.images[0].isFallback}`);
 
+    // ------------------------------------------------------------------------
+    // TEST 5: VF1LB17C536060366 (Clio II / Thalia / Symbol) Çok Katmanlı Ağaç,
+    //         "Front pad" (parameters dizili parça), >50 Yaprak Grup ve %100 Sabit Sayı (Determinism)
+    // ------------------------------------------------------------------------
+    console.log('\n▶ TEST 5: VF1LB17C536060366 -> "Front pad" Dahil Tüm Yaprak Gruplar & %100 Sabit Sonuç (Determinism)');
+
+    let transientFailureInjected = false;
+    axios.get = async (url, config = {}) => {
+      const params = config.params || {};
+
+      if (url.includes('/v1/car/info')) {
+        return {
+          status: 200,
+          data: [
+            {
+              catalogId: 'renault',
+              carId: 'car_clio_ii_symbol',
+              modelId: 'mod_clio_ii',
+              brand: 'Renault',
+              title: 'Clio II, Thalia, Symbol, Lutecia',
+              criteria: 'CRIT_VF1LB17'
+            }
+          ]
+        };
+      }
+
+      // 3 katmanlı grup ağacı (Root -> Level 2 -> 45 adet Level 3 yaprak grup)
+      if (url.includes('/v1/catalogs/renault/groups2')) {
+        if (!params.groupId) {
+          return {
+            status: 200,
+            data: [
+              { id: 'cat_acc', name: 'Accessories', hasSubgroups: true, hasParts: false },
+              { id: 'cat_mech', name: 'Mechanical & Chassis', hasSubgroups: true, hasParts: false }
+            ]
+          };
+        }
+        if (params.groupId === 'cat_acc') {
+          return {
+            status: 200,
+            data: [
+              { id: 'sub_acc_trim', name: 'Interior Trim & Sunblind', hasSubgroups: true, hasParts: false }
+            ]
+          };
+        }
+        if (params.groupId === 'sub_acc_trim') {
+          return {
+            status: 200,
+            data: [
+              { id: 'leaf_sunblind', name: 'Sunblind & Warning Triangle', hasSubgroups: false, hasParts: true }
+            ]
+          };
+        }
+        if (params.groupId === 'cat_mech') {
+          // 25 adet 2. seviye alt dal döndür, her biri 3. seviyede 2'şer yaprak grup açsın (toplam 50+ yaprak grup -> eski .slice(0,36) sınırını aşar!)
+          const level2 = [];
+          for (let i = 1; i <= 25; i++) {
+            level2.push({
+              id: `sub_mech_${i}`,
+              name: i === 1 ? 'Braking System Front' : `Mechanical Subgroup ${i}`,
+              hasSubgroups: true,
+              hasParts: false
+            });
+          }
+          return { status: 200, data: level2 };
+        }
+        if (String(params.groupId).startsWith('sub_mech_')) {
+          const idx = String(params.groupId).replace('sub_mech_', '');
+          return {
+            status: 200,
+            data: [
+              { id: `leaf_mech_${idx}_a`, name: idx === '1' ? 'Front Brake Caliper & Pad' : `Leaf Assembly ${idx}A`, hasSubgroups: false, hasParts: true },
+              { id: `leaf_mech_${idx}_b`, name: `Leaf Assembly ${idx}B`, hasSubgroups: false, hasParts: true }
+            ]
+          };
+        }
+        return { status: 200, data: [] };
+      }
+
+      // Şemalar: hem root page=0 hem de branchId ile gelen şema yaprakları
+      if (url.includes('/v1/catalogs/renault/schemas')) {
+        if (params.branchId === 'cat_mech') {
+          return {
+            status: 200,
+            data: {
+              list: [
+                {
+                  id: 'sch_branch_brake',
+                  groupId: 'leaf_branch_only_brake',
+                  name: 'Front Pad & Disc Assembly',
+                  img: 'https://img.parts-catalogs.com/renault_2020_03/clio2/front_pad_schema.png'
+                }
+              ]
+            }
+          };
+        }
+        if (!params.branchId && (params.page === 0 || params.page === undefined)) {
+          return {
+            status: 200,
+            data: {
+              list: [
+                {
+                  id: 'sch_acc_1',
+                  groupId: 'leaf_sunblind',
+                  name: 'Sunblind & Accessories',
+                  img: 'https://img.parts-catalogs.com/renault_2020_03/clio2/sunblind.png'
+                }
+              ]
+            }
+          };
+        }
+        return { status: 200, data: { list: [] } };
+      }
+
+      // Yaprak grup parçaları (/parts2)
+      if (url.includes('/v1/catalogs/renault/parts2')) {
+        // Geçici ağ hatası simülasyonu: axiosGetCatalogWithRetry otomatik telafi etmeli ve parça sayısı asla düşmemeli!
+        if (params.groupId === 'leaf_mech_1_a' && !transientFailureInjected) {
+          transientFailureInjected = true;
+          const err = new Error('Simulated ECONNRESET on leaf_mech_1_a');
+          err.code = 'ECONNRESET';
+          throw err;
+        }
+
+        if (params.groupId === 'leaf_sunblind') {
+          return {
+            status: 200,
+            data: {
+              partGroups: [
+                {
+                  name: 'Accessories',
+                  parts: [
+                    { name: 'Sunblind', oem: '7701416288' },
+                    { name: 'SUNBLINDS C2', oem: '7701416289' },
+                    { name: 'Warning triangle', oem: '7711422907' },
+                    { name: 'TRIM', oem: '7711229556' }
+                  ]
+                }
+              ]
+            }
+          };
+        }
+
+        if (params.groupId === 'leaf_mech_1_a') {
+          // Kritik regresyon testi: parameters dizisi olan ve name alanı pozisyon no ("1") olup description alanı "Front pad" olan parça!
+          return {
+            status: 200,
+            data: {
+              partGroups: [
+                {
+                  name: 'Front pad',
+                  parts: [
+                    {
+                      name: '1',
+                      description: 'Front pad',
+                      oem: '7701208122',
+                      parameters: [
+                        { key: 'Thickness', value: '18 mm' },
+                        { key: 'Brake System', value: 'TRW / Lucas' }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          };
+        }
+
+        if (params.groupId === 'leaf_branch_only_brake') {
+          return {
+            status: 200,
+            data: {
+              partGroups: [
+                {
+                  name: 'Rear Brake Pad',
+                  parts: [
+                    {
+                      name: 'Rear pad',
+                      oem: '7701207484',
+                      parameters: [{ key: 'Axle', value: 'Rear' }]
+                    }
+                  ]
+                }
+              ]
+            }
+          };
+        }
+
+        if (String(params.groupId).startsWith('leaf_mech_')) {
+          const cleanToken = String(params.groupId).replace('leaf_mech_', '').replace(/[^a-z0-9]/gi, '').toUpperCase();
+          return {
+            status: 200,
+            data: [
+              {
+                name: `Engine Mount ${cleanToken}`,
+                oem: `820099${cleanToken}R`,
+                parameters: [{ key: 'Side', value: 'Right' }]
+              }
+            ]
+          };
+        }
+      }
+
+      return { status: 200, data: [] };
+    };
+
+    // Aynı şasiyi arka arkaya 5 kez sorgula -> sonuç sayısı ve sırası 5'inde de BİREBİR AYNI olmalı!
+    const runs = [];
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      const r = await invokeController(searchVin, {
+        params: { vin: 'VF1LB17C536060366' }
+      });
+      assert.strictEqual(r.statusCode, 200);
+      assert.strictEqual(r.body.success, true);
+      runs.push(r.body.compatibleParts);
+    }
+
+    const firstRun = runs[0];
+    assert.ok(firstRun.length >= 45, `36 yaprak grup sınırı olmamalı, tüm yaprak gruplar taranmalı (Bulunan: ${firstRun.length})`);
+
+    // "Front pad" (7701208122) mutlaka listede olmalı ve hem "front pad" hem "balata" aramasında çıkmalı
+    const frontPadPart = firstRun.find((p) => p.oemCode === '7701208122');
+    assert.ok(frontPadPart, 'parameters dizisi içeren "Front pad (7701208122)" parçası kesinlikle elenmemeli ve listede bulunmalı');
+    assert.ok(
+      frontPadPart.partName.toLowerCase().includes('front pad') &&
+      frontPadPart.partName.toLowerCase().includes('balata'),
+      `Front pad parça adı hem İngilizce hem Türkçe aramayı desteklemeli (Bulunan: "${frontPadPart.partName}")`
+    );
+    assert.strictEqual(frontPadPart.categoryGroup, 'Fren Sistemi');
+
+    // Branch schemas üzerinden gelen yaprak grup parçası (7701207484) da listede olmalı
+    const branchRearPad = firstRun.find((p) => p.oemCode === '7701207484');
+    assert.ok(branchRearPad, 'Branch /schemas üzerinden gelen yaprak grubun parçaları da taranmalı');
+
+    // Fren Sistemi parçaları (Front pad), aksesuar (Sunblind) parçalarından ÖNCE (listenin en üstünde) sıralanmalı
+    const frontPadIndex = firstRun.findIndex((p) => p.oemCode === '7701208122');
+    const sunblindIndex = firstRun.findIndex((p) => p.oemCode === '7701416288');
+    assert.ok(frontPadIndex >= 0 && sunblindIndex > frontPadIndex, 'Fren Sistemi (Front pad) parçaları Sunblind gibi aksesuarlardan önce sıralanmalı');
+
+    // 5 sorgunun tamamında parça sayısı ve parça sırası %100 aynı olmalı
+    for (let i = 1; i < runs.length; i++) {
+      assert.strictEqual(runs[i].length, firstRun.length, `Sorgu #${i + 1} parça sayısı (${runs[i].length}) ilk sorguyla (${firstRun.length}) birebir aynı olmalı`);
+      assert.deepStrictEqual(runs[i], firstRun, `Sorgu #${i + 1} parça dizilimi ilk sorguyla birebir aynı olmalı`);
+    }
+
+    console.log(`  ✔ VF1LB17C536060366 için 5 ardışık sorguda sabit ${firstRun.length} uyumlu OEM parça döndü.`);
+    console.log(`  ✔ İlk sıradaki parça: ${firstRun[0].partName} (${firstRun[0].oemCode}) [${firstRun[0].categoryGroup}]`);
+
     console.log('\n================================================================');
-    console.log('✅ TÜM ŞASİ (VIN) -> OEM PARÇA AĞACI VE ÇAPRAZ EŞLEŞME TESTLERİ GEÇTİ (4/4)');
+    console.log('✅ TÜM ŞASİ (VIN) -> OEM PARÇA AĞACI VE ÇAPRAZ EŞLEŞME TESTLERİ GEÇTİ (5/5)');
     console.log('================================================================');
   } finally {
     axios.get = originalAxiosGet;

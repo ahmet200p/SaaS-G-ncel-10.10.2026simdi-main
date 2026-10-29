@@ -37,8 +37,9 @@ logs/
 uploads/*
 !uploads/.gitkeep
 
-# İşletim Sistemi ve IDE Dosyaları
+# İşletim Sistemi, IDE ve Çalışma Zamanı Önbellek Dosyaları
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+.cache/
