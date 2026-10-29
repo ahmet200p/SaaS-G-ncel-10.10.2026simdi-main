@@ -9,7 +9,8 @@ const {
   sanitize,
   executeDeepCrossReferenceSearch,
   enrichProductData,
-  searchVinNumber
+  searchVinNumber,
+  vinPartCatalogCache
 } = require('../services/partsCatalogService');
 
 /**
@@ -92,7 +93,7 @@ function buildStrictSearchResponse(result) {
     rootOEM: result.rootOEM || undefined,
     originalOEMs: Array.isArray(result.originalOEMs) ? result.originalOEMs : [],
     referenceCodes: Array.isArray(result.referenceCodes) ? result.referenceCodes : [],
-    technicalSpecs: hasRealSpecs ? result.technicalSpecs : undefined,
+    technicalSpecs: hasRealSpecs ? result.technicalSpecs : {},
     images: Array.isArray(result.images) ? result.images : [],
     schemaSourceCode: result.schemaSourceCode || undefined
   };
@@ -250,11 +251,19 @@ async function searchVin(req, res) {
     };
 
     const compatibleParts = Array.isArray(result.compatibleParts)
-      ? result.compatibleParts.map((part) => ({
-          partName: String(part.partName || '').trim(),
-          oemCode: sanitize(part.oemCode || ''),
-          categoryGroup: String(part.categoryGroup || '').trim()
-        })).filter((p) => p.partName && p.oemCode && p.categoryGroup)
+      ? result.compatibleParts.map((part) => {
+          const sanitizedOem = sanitize(part.oemCode || '');
+          const cached = (typeof vinPartCatalogCache !== 'undefined' && vinPartCatalogCache)
+            ? vinPartCatalogCache.get(sanitizedOem)
+            : null;
+          return {
+            partName: String(part.partName || '').trim(),
+            oemCode: sanitizedOem,
+            categoryGroup: String(part.categoryGroup || '').trim() || 'Genel Yedek Parça',
+            originalOEMs: (cached && cached.originalOEMs) || part.originalOEMs || (sanitizedOem ? [sanitizedOem] : []),
+            referenceCodes: (cached && cached.referenceCodes) || part.referenceCodes || []
+          };
+        }).filter((p) => p.partName && p.oemCode)
       : [];
 
     return res.status(200).json({

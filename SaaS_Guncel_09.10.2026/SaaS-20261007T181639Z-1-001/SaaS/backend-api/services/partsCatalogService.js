@@ -3782,5 +3782,6 @@ module.exports = {
   fetchVehiclePartsTree,
   searchVinNumber,
   searchOeNumber,
-  enrichProductData
+  enrichProductData,
+  vinPartCatalogCache
 };
