@@ -6,6 +6,7 @@
 // ============================================================================
 
 const {
+  sanitize,
   executeDeepCrossReferenceSearch,
   enrichProductData,
   searchVinNumber
@@ -86,6 +87,7 @@ function buildStrictSearchResponse(result) {
 
   const payload = {
     success: true,
+    searchedCode: result.searchedCode || sanitize(result.searchedQuery),
     searchedQuery: result.searchedQuery,
     rootOEM: result.rootOEM || undefined,
     originalOEMs: Array.isArray(result.originalOEMs) ? result.originalOEMs : [],
@@ -243,7 +245,7 @@ async function searchVin(req, res) {
     const compatibleParts = Array.isArray(result.compatibleParts)
       ? result.compatibleParts.map((part) => ({
           partName: String(part.partName || '').trim(),
-          oemCode: String(part.oemCode || '').trim(),
+          oemCode: sanitize(part.oemCode || ''),
           categoryGroup: String(part.categoryGroup || '').trim()
         })).filter((p) => p.partName && p.oemCode && p.categoryGroup)
       : [];

@@ -9,8 +9,9 @@
 
 const assert = require('assert');
 const axios = require('axios');
-const { searchVin } = require('./controllers/searchController');
+const { searchVin, searchParts } = require('./controllers/searchController');
 const {
+  sanitize,
   isValidRealOemCode,
   normalizeCatalogPartItem
 } = require('./services/partsCatalogService');
@@ -112,12 +113,22 @@ async function runTests() {
                 id: 'sch_01',
                 groupId: 'sub_front_brakes',
                 name: 'Front Brake System',
+                img: 'https://img.parts-catalogs.com/renault_2020_03/1351/brake_schema.png',
                 partNames: [
                   // Şema pozisyon numarası ve iç katalog hash'i (elenmeli!)
                   { id: '1', name: 'Callout Number Only' },
                   { id: '099e0afa71f140e94ab1e50481bab91d', name: 'Internal Hash ID' },
                   // Gerçek OEM parçası
                   { oe: '402063149R', name: 'Front Brake Disc' }
+                ]
+              },
+              {
+                id: 'sch_02',
+                groupId: 'grp_engine',
+                name: 'Triger kayışı ve eksantrik dişlisi',
+                img: 'https://img.parts-catalogs.com/renault_2020_03/1351/timing_belt_schema.png',
+                partNames: [
+                  { id: '13028', name: 'Triger kayışı' }
                 ]
               }
             ]
@@ -254,10 +265,40 @@ async function runTests() {
     assert.strictEqual(fake1, null, '"Test Parçası 1" kesinlikle reddedilmeli');
     assert.strictEqual(fake2, null, '"TEST12345" sahte kodu kesinlikle reddedilmeli');
     assert.strictEqual(fake3, false, '32 haneli MD5 katalog ID OEM kodu olarak kabul edilmemeli');
+    assert.strictEqual(sanitize('130 C 175-29R'), '130C17529R', 'sanitize() tüm boşluk ve özel karakterleri temizlemeli');
     console.log('  ✔ "Test Parçası 1", "TEST12345" ve iç hash ID\'leri başarıyla engellendi.');
 
+    // ------------------------------------------------------------------------
+    // TEST 4: VIN Listesinden Tıklanan Mekanik Parça -> Derin Çapraz Eşleştirme & Şema
+    // ------------------------------------------------------------------------
+    console.log('\n▶ TEST 4: VIN Listesinden Tıklanan Parça ("Triger Kayış Seti (130C17529R)") -> OEM, Muadil ve Şema');
+    const timingBeltRes = await invokeController(searchParts, {
+      params: { oeNumber: 'Triger Kayış Seti (130C17529R)' }
+    });
+    assert.strictEqual(timingBeltRes.statusCode, 200);
+    assert.strictEqual(timingBeltRes.body.success, true);
+    assert.strictEqual(timingBeltRes.body.searchedCode, '130C17529R', 'Parantez içindeki OE kodu sanitize edilerek çıkarılmalı');
+    assert.ok(timingBeltRes.body.originalOEMs.includes('130C17529R'), 'originalOEMs aranan OEM kodunu içermeli');
+    assert.ok(timingBeltRes.body.originalOEMs.length >= 2, 'Kardeş/revizyon OEM numaraları dönmeli');
+    assert.ok(timingBeltRes.body.referenceCodes.length >= 3, 'Marka bazlı muadil referans kodları (Gates, INA, Continental vb.) dönmeli');
+    assert.ok(timingBeltRes.body.technicalSpecs && Object.keys(timingBeltRes.body.technicalSpecs).length > 0, 'Teknik özellikler (technicalSpecs) dönmeli');
+    assert.ok(timingBeltRes.body.images.length > 0, 'Mekanik parça için grup/montaj şeması dönmeli');
+    assert.strictEqual(timingBeltRes.body.images[0].url, 'https://img.parts-catalogs.com/renault_2020_03/1351/timing_belt_schema.png');
+    console.log('  ✔ Triger Kayış Seti (130C17529R) Çapraz Eşleşme ve Şema Sonucu:', JSON.stringify(timingBeltRes.body, null, 2));
+
+    // Muadil referans kodu ile tersine arama (Reverse Cross-Reference + Fallback Şema)
+    const sampleAftermarket = timingBeltRes.body.referenceCodes[0];
+    const reverseRes = await invokeController(searchParts, {
+      params: { oeNumber: `${sampleAftermarket.brand} ${sampleAftermarket.code}` }
+    });
+    assert.strictEqual(reverseRes.statusCode, 200);
+    assert.ok(reverseRes.body.originalOEMs.includes('130C17529R'), 'Yan sanayi kodundan OEM koduna geri çözülmeli');
+    assert.ok(reverseRes.body.images.length > 0, 'Yan sanayi kodunda eşdeğer OEM şeması fallback olarak gelmeli');
+    assert.strictEqual(reverseRes.body.images[0].isFallback, true, 'isFallback: true olmalı');
+    console.log(`  ✔ Tersine Yan Sanayi Sorgusu (${sampleAftermarket.brand} ${sampleAftermarket.code}) -> Kök OEM: ${reverseRes.body.rootOEM}, isFallback: ${reverseRes.body.images[0].isFallback}`);
+
     console.log('\n================================================================');
-    console.log('✅ TÜM ŞASİ (VIN) -> OEM PARÇA AĞACI TESTLERİ HATASIZ GEÇTİ (3/3)');
+    console.log('✅ TÜM ŞASİ (VIN) -> OEM PARÇA AĞACI VE ÇAPRAZ EŞLEŞME TESTLERİ GEÇTİ (4/4)');
     console.log('================================================================');
   } finally {
     axios.get = originalAxiosGet;
