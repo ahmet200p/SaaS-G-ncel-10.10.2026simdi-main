@@ -2323,17 +2323,22 @@ const VERIFIED_BRAND_CORE_OEM_PARTS = {
 
 const FORBIDDEN_MOCK_PATTERNS = /(test\s*par[cç]as[ıi]|mock\s*part|fake\s*part|sample\s*part|[öo]rnek\s*par[cç]a|dummy\s*part|placeholder\s*part)/i;
 
+const CRITERIA_REJECTION_REGEX = /(?:vehicle\s*fabrication|anti-lock\s*braking|air\s*conditioning\s*type|special\s*technical|equipment\s*level|type\s*of\s*transmission|type\s*of\s*door|side\s*airbag|daytime\s*running|seat\s*heating|radio\s*types|passenger\s*airbag|engine\s*fabrication|replacement:|marking\.:|\(x\)\s*dimension:|threading:|tinted\s*glass|brake\s*type:|nfab:|braking\s*system:)/i;
+
 /**
  * Bir metnin anlamlı bir parça adı olup olmadığını kontrol eder.
- * Sadece rakam veya şema pozisyon numarası ("1", "02", "12A") olanları eler.
+ * Sadece rakam, şema pozisyon numarası ("1", "02", "12A") veya araç donanım/opsiyon
+ * kriterlerini ("Air conditioning type.: Normal air conditioning", "Anti-lock braking system: No" vb.) eler.
  */
 function isMeaningfulPartName(str) {
   if (!str || typeof str !== 'string') return false;
   const trimmed = str.trim();
-  if (trimmed.length < 2) return false;
+  if (trimmed.length < 2 || trimmed.length > 80) return false;
+  if (/[\r\n]/.test(trimmed)) return false; // Çok satırlı kriter metinleri parça adı olamaz
   if (FORBIDDEN_MOCK_PATTERNS.test(trimmed)) return false;
-  if (/^[\d\s.\-_/()#]+$/.test(trimmed)) return false;
-  if (/^\d{1,3}[a-zA-Z]?$/.test(trimmed)) return false;
+  if (CRITERIA_REJECTION_REGEX.test(trimmed)) return false;
+  if (/^[\d\s.\-_/()#:]+$/.test(trimmed)) return false;
+  if (/^\d{1,4}[a-zA-Z]?$/.test(trimmed)) return false;
   const letters = trimmed.match(/[a-zA-ZğüşıöçĞÜŞİÖÇ]/g);
   return Boolean(letters && letters.length >= 2);
 }
@@ -2459,7 +2464,7 @@ function resolveCategoryGroup(rawCategory, partName = '') {
  * { "partName": "Ön Fren Balata Takımı", "oemCode": "410601241R", "categoryGroup": "Fren Sistemi" }
  * Geçersiz veya eksik olanları null döner (asla uydurma veri üretmez).
  */
-function normalizeCatalogPartItem(rawItem, defaultCategory = '', fallbackName = '') {
+function normalizeCatalogPartItem(rawItem, defaultCategory = '', fallbackName = '', partNamesMap = null) {
   if (!rawItem || typeof rawItem !== 'object') return null;
 
   const hasExplicitPartCode = Boolean(
@@ -2468,6 +2473,7 @@ function normalizeCatalogPartItem(rawItem, defaultCategory = '', fallbackName = 
     rawItem.oem ||
     rawItem.oeNumber ||
     rawItem.oemNumber ||
+    rawItem.number ||
     rawItem.partNumber ||
     rawItem.article
   );
@@ -2521,16 +2527,28 @@ function normalizeCatalogPartItem(rawItem, defaultCategory = '', fallbackName = 
 
   if (!validOemCode) return null;
 
-  const rawPartName = firstMeaningfulName(
-    rawItem.partName,
-    rawItem.name,
-    rawItem.title,
-    rawItem.description,
-    rawItem.label,
-    rawItem.groupName,
-    fallbackName,
-    defaultCategory
-  );
+  // PROMPT.MD KURAL 1: partName ve oemCode AYNI düğümden çekilir.
+  // Açıklama / donanım opsiyonu (rawItem.description) KESİNLİKLE parça adı yapılmaz!
+  let rawPartName = '';
+  if (isMeaningfulPartName(rawItem.partName)) {
+    rawPartName = rawItem.partName;
+  } else if (isMeaningfulPartName(rawItem.name)) {
+    rawPartName = rawItem.name;
+  } else if (isMeaningfulPartName(rawItem.notice)) {
+    rawPartName = rawItem.notice;
+  } else if (partNamesMap instanceof Map && rawItem.nameId && partNamesMap.has(String(rawItem.nameId))) {
+    rawPartName = partNamesMap.get(String(rawItem.nameId));
+  } else if (partNamesMap instanceof Map && rawItem.id && partNamesMap.has(String(rawItem.id))) {
+    rawPartName = partNamesMap.get(String(rawItem.id));
+  } else if (partNamesMap instanceof Map && rawItem.positionNumber && partNamesMap.has(String(rawItem.positionNumber))) {
+    rawPartName = partNamesMap.get(String(rawItem.positionNumber));
+  } else if (isMeaningfulPartName(rawItem.title)) {
+    rawPartName = rawItem.title;
+  } else if (isMeaningfulPartName(fallbackName)) {
+    rawPartName = fallbackName;
+  } else if (isMeaningfulPartName(defaultCategory)) {
+    rawPartName = defaultCategory;
+  }
 
   const partName = normalizePartName(String(rawPartName));
   if (!partName) return null;
@@ -2602,10 +2620,33 @@ function collectPartsFromNode(node, categoryHint, partsMap, contextMeta = {}) {
       ? Array.from(new Set([...(contextMeta.schemaImageUrls || []), ...nodeImgUrls]))
       : (contextMeta.schemaImageUrls || []);
 
+  const nodeMeaningfulName = firstMeaningfulName(
+    node.partName,
+    node.name,
+    node.title,
+    node.label,
+    node.groupName,
+    categoryHint
+  );
+
+  const currentCategory =
+    node.categoryGroup ||
+    node.category ||
+    node.groupName ||
+    (Array.isArray(node.parts) || Array.isArray(node.partGroups) || Array.isArray(node.subgroups)
+      ? (nodeMeaningfulName || categoryHint)
+      : categoryHint) ||
+    '';
+
+  const partNamesMap = contextMeta.partNamesMap instanceof Map
+    ? new Map(contextMeta.partNamesMap)
+    : new Map();
+
   const nextContext = {
     ...contextMeta,
     groupId: String(node.groupId || contextMeta.groupId || '').trim(),
-    schemaImageUrls: effectiveSchemaUrls
+    schemaImageUrls: effectiveSchemaUrls,
+    partNamesMap
   };
 
   const registerPartWithMeta = (partObj, siblingOems = [], rawNodeForSpecs = null) => {
@@ -2674,49 +2715,70 @@ function collectPartsFromNode(node, categoryHint, partsMap, contextMeta = {}) {
     }
   };
 
-  const nodeMeaningfulName = firstMeaningfulName(
-    node.partName,
-    node.name,
-    node.title,
-    node.description,
-    node.label,
-    node.groupName,
-    categoryHint
-  );
-
-  const currentCategory =
-    node.categoryGroup ||
-    node.category ||
-    node.groupName ||
-    (Array.isArray(node.parts) || Array.isArray(node.partGroups) || Array.isArray(node.subgroups)
-      ? (nodeMeaningfulName || categoryHint)
-      : categoryHint) ||
-    '';
+  if (Array.isArray(node.partNames)) {
+    for (const pn of node.partNames) {
+      if (!pn || typeof pn !== 'object') continue;
+      const hasPartCode = Boolean(pn.oe || pn.oem || pn.oemCode || pn.number || pn.oeNumber || pn.partNumber);
+      if (hasPartCode) {
+        const norm = normalizeCatalogPartItem(pn, currentCategory, nodeMeaningfulName, partNamesMap);
+        if (norm) {
+          registerPartWithMeta(norm, [norm.oemCode], pn);
+        }
+      } else if (pn.id && isMeaningfulPartName(pn.name)) {
+        partNamesMap.set(String(pn.id).trim(), pn.name.trim());
+      }
+    }
+  }
 
   // Eğer düğümün kendisi bir parça kaydıysa
-  const directPart = normalizeCatalogPartItem(node, currentCategory, categoryHint);
+  const directPart = normalizeCatalogPartItem(node, currentCategory, categoryHint, partNamesMap);
   if (directPart) {
     registerPartWithMeta(directPart, [directPart.oemCode], node);
   }
 
-  // Eğer bu düğüm bir partGroup ise (node.parts dizisi aynı pozisyonun kardeş OEM revizyonlarını içerir)
+  // PROMPT.MD KURAL 1: Eğer bu düğüm bir parça dizisi içeriyorsa (node.parts),
+  // parçaları tek tek kendi düğümlerinden parse et ve kardeş OEM kodlarını sadece
+  // aynı pozisyondaki alternatifler (positionNumber / nameId) bazında grupla.
   if (Array.isArray(node.parts) && node.parts.length > 0) {
     const groupCat = currentCategory || nodeMeaningfulName;
     const groupPartsNormalized = [];
     for (const child of node.parts) {
       if (!child || typeof child !== 'object') continue;
-      const normalized = normalizeCatalogPartItem(child, groupCat, nodeMeaningfulName);
+      const normalized = normalizeCatalogPartItem(child, groupCat, nodeMeaningfulName, partNamesMap);
       if (normalized) {
         groupPartsNormalized.push({ normalized, rawChild: child });
       }
     }
-    const siblingCodes = groupPartsNormalized.map((item) => item.normalized.oemCode);
+
+    const positionGroups = new Map();
+    for (const item of groupPartsNormalized) {
+      const posKey = String(item.rawChild.positionNumber || item.rawChild.nameId || item.normalized.partName).trim().toLowerCase();
+      if (!positionGroups.has(posKey)) {
+        positionGroups.set(posKey, []);
+      }
+      positionGroups.get(posKey).push(item.normalized.oemCode);
+    }
+
     for (const { normalized, rawChild } of groupPartsNormalized) {
+      const posKey = String(rawChild.positionNumber || rawChild.nameId || normalized.partName).trim().toLowerCase();
+      const siblingCodes = positionGroups.get(posKey) || [normalized.oemCode];
       registerPartWithMeta(normalized, siblingCodes, rawChild);
+    }
+
+    // PROMPT.MD KURAL 2: Ham API düğümünü logla
+    if (Math.random() < 0.05 && groupPartsNormalized.length > 0) {
+      console.log('[PARTS_CATALOG_RAW_RESPONSE] Parsed parts node:', {
+        count: groupPartsNormalized.length,
+        firstPart: {
+          partName: groupPartsNormalized[0]?.normalized?.partName,
+          oemCode: groupPartsNormalized[0]?.normalized?.oemCode,
+          categoryGroup: groupPartsNormalized[0]?.normalized?.categoryGroup
+        }
+      });
     }
   }
 
-  // Alt dizileri tara: partGroups, parts, positions, compatibleParts, oemParts, list, items, subgroups, children, categories
+  // Alt dizileri tara: node.partNames dizisi ASLA parça olarak taranmaz (KURAL 1 & 3)
   const childArrays = [
     { arr: node.compatibleParts, cat: currentCategory },
     { arr: node.oemParts, cat: currentCategory },
@@ -2724,7 +2786,6 @@ function collectPartsFromNode(node, categoryHint, partsMap, contextMeta = {}) {
     { arr: node.partGroups, cat: currentCategory },
     { arr: node.positions, cat: currentCategory },
     { arr: node.parts, cat: nodeMeaningfulName || currentCategory },
-    { arr: node.partNames, cat: nodeMeaningfulName || currentCategory },
     { arr: node.articles, cat: currentCategory },
     { arr: node.records, cat: currentCategory },
     { arr: node.results, cat: currentCategory },
@@ -2741,7 +2802,7 @@ function collectPartsFromNode(node, categoryHint, partsMap, contextMeta = {}) {
     if (Array.isArray(arr) && arr.length > 0) {
       for (const child of arr) {
         if (!child || typeof child !== 'object') continue;
-        const normalized = normalizeCatalogPartItem(child, cat, nodeMeaningfulName);
+        const normalized = normalizeCatalogPartItem(child, cat, nodeMeaningfulName, partNamesMap);
         if (normalized) {
           registerPartWithMeta(normalized, [normalized.oemCode], child);
         }
@@ -2750,13 +2811,12 @@ function collectPartsFromNode(node, categoryHint, partsMap, contextMeta = {}) {
           Array.isArray(child.parts) ||
           Array.isArray(child.partGroups) ||
           Array.isArray(child.positions) ||
-          Array.isArray(child.partNames) ||
           Array.isArray(child.subgroups) ||
           Array.isArray(child.children) ||
           Array.isArray(child.items) ||
           Array.isArray(child.list)
         ) {
-          const childCat = firstMeaningfulName(child.name, child.title, child.description, cat) || cat;
+          const childCat = firstMeaningfulName(child.name, child.title, cat) || cat;
           collectPartsFromNode(child, childCat, partsMap, nextContext);
         }
       }
@@ -3778,6 +3838,10 @@ module.exports = {
   executeDeepCrossReferenceSearch,
   persistCrossReferenceGraph,
   isValidRealOemCode,
+  isMeaningfulPartName,
+  normalizePartName,
+  resolveCategoryGroup,
+  getCategoryPriority,
   normalizeCatalogPartItem,
   fetchVehiclePartsTree,
   searchVinNumber,

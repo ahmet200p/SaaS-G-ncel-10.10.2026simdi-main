@@ -43,3 +43,4 @@ Thumbs.db
 .vscode/
 .idea/
 .cache/
+!.cache/vin_parts_tree_cache.json

@@ -251,19 +251,11 @@ async function searchVin(req, res) {
     };
 
     const compatibleParts = Array.isArray(result.compatibleParts)
-      ? result.compatibleParts.map((part) => {
-          const sanitizedOem = sanitize(part.oemCode || '');
-          const cached = (typeof vinPartCatalogCache !== 'undefined' && vinPartCatalogCache)
-            ? vinPartCatalogCache.get(sanitizedOem)
-            : null;
-          return {
-            partName: String(part.partName || '').trim(),
-            oemCode: sanitizedOem,
-            categoryGroup: String(part.categoryGroup || '').trim() || 'Genel Yedek Parça',
-            originalOEMs: (cached && cached.originalOEMs) || part.originalOEMs || (sanitizedOem ? [sanitizedOem] : []),
-            referenceCodes: (cached && cached.referenceCodes) || part.referenceCodes || []
-          };
-        }).filter((p) => p.partName && p.oemCode)
+      ? result.compatibleParts.map((part) => ({
+          partName: String(part.partName || '').trim(),
+          oemCode: sanitize(part.oemCode || ''),
+          categoryGroup: String(part.categoryGroup || '').trim() || 'Genel Yedek Parça'
+        })).filter((p) => p.partName && p.oemCode)
       : [];
 
     return res.status(200).json({

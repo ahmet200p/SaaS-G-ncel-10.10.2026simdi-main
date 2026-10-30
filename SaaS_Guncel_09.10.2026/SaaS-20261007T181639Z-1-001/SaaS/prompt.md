@@ -1,20 +1,10 @@
-Kritik Hata Bildirimi:
-Şasi (VIN) sorgulama modülünde devasa bir veri kaybı yaşanıyor. Bir VIN numarasına ait API'de 4835 adet OEM parçası olmasına rağmen, arayüz kafasına göre rastgele 95, 99 veya 120 parça listeliyor. Bu tutarsızlık B2B projesinin iptaline kadar gidecek kritik bir hatadır. İsteklerin yarıda kesilmesine (timeout) veya sadece ilk sayfanın (pagination limit) alınmasına SIFIR toleransımız var.
+Kritik Veri Eşleşme (Mapping) Hatası:
+Şasi (VIN) sorgusu sonucunda dönen parça ağacında ciddi bir "Veri Kayması (Index Misalignment)" yaşanıyor. Ekranda 'Klima Radyatörü' yazan parçanın yanındaki OEM kodu aslında 'Aydınlatma' parçasına ait çıkıyor. JSON verisi ayrıştırılırken (parse edilirken) parça isimleri ve kodlar birbirine karışıyor.
 
-Lütfen backend (API controller) ve frontend (UI fetch) kodlarını aşağıdaki 3 kurala göre derhal yeniden yaz:
+Lütfen VIN API'sinden gelen veriyi işleyen arama motoru döngüsünü (map/forEach) derhal incele ve şu kuralları uygula:
 
-1. Backend'de Agresif Sayfa Birleştirme (Pagination Loop):
+Parça adı (partName) ve OEM kodu (oemCode) değerlerinin API yanıtındaki aynı (doğru) JSON objesi/düğümü içinden çekildiğinden %100 emin ol. İki farklı diziyi (array) manuel birleştiriyorsan bu işlemi iptal et; veriyi doğrudan ait olduğu benzersiz ID veya obje üzerinden eşle.
 
-Parts Catalog API'sine VIN sorgusu atılan fonksiyona git.
+API sağlayıcısının (Parts Catalog) orijinal raw JSON yanıtını console.log ile kontrol et. Eğer API'nin kendisi bu veriyi hatalı gönderiyorsa, fetch isteğindeki kategori/grup parametrelerini gözden geçir.
 
-Eğer API veriyi sayfalayarak (limit/offset veya page=1,2,3) dönüyorsa; bir while veya özyinelemeli (recursive) döngü kur.
-
-API'nin "toplam parça sayısı (totalCount)" veya "sonraki sayfa (nextPage)" parametresini oku. Döngü, 4835 parçanın 4835'i de çekilene kadar asla sonlanmayacak.
-
-Farklı sayfalardan gelen tüm dizileri (arrays) sunucu tarafında tek bir devasa array'de (concat) birleştir ve frontend'e eksiksiz tek bir JSON payload olarak gönder.
-
-2. Timeout (Zaman Aşımı) ve Veri Bütünlüğü Güvenliği:
-
-Axios veya Node fetch isteğindeki zaman aşımı (timeout) süresini 5 saniyeden en az 30 veya 60 saniyeye çıkar. Büyük veri gelirken bağlantı kopmasını engelle.
-
-Ağ hatası olursa veya veri eksik gelirse, işlemi sessizce bitirme; "Veri tam çekilemedi, tekrar deneniyor" (retry mechanism) mantığı kur.s
+Kod eşleşmesi düzeltilene ve her parça kendi gerçek OEM kodunu gösterene kadar sistemi strict mode'da test et.

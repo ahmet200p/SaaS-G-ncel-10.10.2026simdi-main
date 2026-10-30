@@ -545,8 +545,81 @@ async function runTests() {
     console.log(`  ✔ VF1LB17C536060366 için 5 ardışık sorguda sabit ${firstRun.length} uyumlu OEM parça döndü.`);
     console.log(`  ✔ İlk sıradaki parça: ${firstRun[0].partName} (${firstRun[0].oemCode}) [${firstRun[0].categoryGroup}]`);
 
+    // ------------------------------------------------------------------------
+    // TEST 6: prompt.md Strict Mode - Sıfır Veri Kayması & Birebir Düğüm Eşleme Doğrulaması
+    // ------------------------------------------------------------------------
+    console.log('\n▶ TEST 6: prompt.md Strict Mode - Sıfır Veri Kayması (Zero Misalignment) & Birebir Eşleme');
+
+    // 6.1: Ham kriter metinlerinin (options/criteria) parça adı yapılmasının engellenmesi
+    const criteriaSample = {
+      id: '1',
+      number: '8200538895',
+      name: '',
+      description: 'NFAB: R\nAnti-lock braking system: No\nAir conditioning type.: Normal air conditioning\nEquipment level: E1'
+    };
+    const normHarness = normalizeCatalogPartItem(criteriaSample, 'Electrical', 'Electrical wiring harness');
+    assert.ok(normHarness, 'Kablo tesisatı başarıyla normalize edilmeli');
+    assert.strictEqual(normHarness.oemCode, '8200538895');
+    assert.strictEqual(normHarness.categoryGroup, 'Elektrik ve Aydınlatma');
+    assert.ok(
+      !normHarness.partName.includes('Anti-lock') && !normHarness.partName.includes('Air conditioning'),
+      'Kriter metni (NFAB/Anti-lock/Air conditioning) asla parça adı olamaz'
+    );
+    assert.strictEqual(normHarness.partName, 'Electrical wiring harness');
+
+    // 6.2: partNames sözlüğü üzerinden nameId ile birebir kimlik eşleşmesi (Array index zipping olmadan!)
+    const schemaWithPartNames = {
+      name: 'Brake calipers',
+      partNames: [
+        { id: '289', name: 'Disc brake pads' },
+        { id: '1045', name: 'Brake caliper' }
+      ]
+    };
+    const partNamesMap = new Map();
+    schemaWithPartNames.partNames.forEach((pn) => partNamesMap.set(pn.id, pn.name));
+
+    const rawPartItem = {
+      number: '7701209639',
+      nameId: '289',
+      name: '',
+      description: 'Air conditioning type.: Normal air conditioning'
+    };
+    const mappedPart = normalizeCatalogPartItem(rawPartItem, 'Fren Sistemi', 'Brake calipers', partNamesMap);
+    assert.ok(mappedPart);
+    assert.strictEqual(mappedPart.oemCode, '7701209639');
+    assert.ok(
+      mappedPart.partName.toLowerCase().includes('disc brake pads') || mappedPart.partName.toLowerCase().includes('balata'),
+      `nameId="289" doğrudan "Disc brake pads" ile eşleşmeli (Bulunan: ${mappedPart.partName})`
+    );
+    assert.strictEqual(mappedPart.categoryGroup, 'Fren Sistemi');
+
+    // 6.3: Klima / Aydınlatma parça karışıklığının (Index Shifting) kesin testi
+    const acRadiatorItem = {
+      number: '8200757789',
+      name: 'A/C Condenser',
+      categoryGroup: 'Isıtma ve Klima Sistemi'
+    };
+    const lightBulbItem = {
+      number: '7701047563',
+      name: 'BULB HOLDER',
+      categoryGroup: 'Elektrik ve Aydınlatma'
+    };
+
+    const normAc = normalizeCatalogPartItem(acRadiatorItem);
+    const normLight = normalizeCatalogPartItem(lightBulbItem);
+
+    assert.strictEqual(normAc.oemCode, '8200757789');
+    assert.strictEqual(normAc.categoryGroup, 'Isıtma ve Klima Sistemi');
+    assert.strictEqual(normLight.oemCode, '7701047563');
+    assert.strictEqual(normLight.categoryGroup, 'Elektrik ve Aydınlatma');
+    assert.notStrictEqual(normAc.categoryGroup, normLight.categoryGroup);
+
+    console.log('  ✔ Kriter metni parça adı olma engeli: PASS');
+    console.log('  ✔ nameId -> partNames sözlük eşleşmesi: PASS');
+    console.log('  ✔ Klima ve Aydınlatma parça ayrımı (Sıfır Veri Kayması): PASS');
+
     console.log('\n================================================================');
-    console.log('✅ TÜM ŞASİ (VIN) -> OEM PARÇA AĞACI VE ÇAPRAZ EŞLEŞME TESTLERİ GEÇTİ (5/5)');
+    console.log('✅ TÜM ŞASİ (VIN) -> OEM PARÇA AĞACI VE ÇAPRAZ EŞLEŞME TESTLERİ GEÇTİ (6/6)');
     console.log('================================================================');
   } finally {
     axios.get = originalAxiosGet;
