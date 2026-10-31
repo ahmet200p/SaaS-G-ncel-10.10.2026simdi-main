@@ -147,6 +147,64 @@
   
 
   <!-- ==========================================================================
+       1.6. AKILLI GARAJ: YENİ ARAÇ KAYDET MODALI (prompt.md ADIM 2.A)
+       ========================================================================== -->
+  <div class="fixed inset-0 bg-zinc-950/60 backdrop-blur-md z-50 items-center justify-center p-3 sm:p-6 hidden transition-all duration-300" id="modal-add-vehicle" onclick="closeAddVehicleModal()">
+    <div class="relative w-full max-w-lg bg-white rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] border border-zinc-200 overflow-hidden transform transition-all duration-200" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-amber-50/70">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">🚗</span>
+          <div>
+            <h3 class="font-black text-base text-amber-950">Akıllı Garajıma Araç Kaydet</h3>
+            <p class="text-[11px] text-amber-900/70">Hızlı arama ve uyumlu parça siparişleri için ustanın garajına araç ekleyin</p>
+          </div>
+        </div>
+        <button type="button" class="w-8 h-8 rounded-full bg-white hover:bg-amber-100 text-amber-900 flex items-center justify-center transition-colors cursor-pointer border border-amber-200/60" onclick="closeAddVehicleModal()" aria-label="Kapat">
+          ✕
+        </button>
+      </div>
+
+      <form id="form-add-vehicle" onsubmit="event.preventDefault(); saveVehicleToGarage(event);" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-vin">Şasi Numarası (VIN) *</label>
+          <input type="text" id="garage-input-vin" required maxlength="17" placeholder="Örn: VF1LB17C536060366" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold uppercase tracking-wider text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-plate">Araç Plakası *</label>
+            <input type="text" id="garage-input-plate" required placeholder="Örn: 34 USTA 1923" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold uppercase text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-customer">Müşteri / Cari Adı</label>
+            <input type="text" id="garage-input-customer" placeholder="Örn: Kemal Usta" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-brand">Araç Markası</label>
+            <input type="text" id="garage-input-brand" placeholder="Örn: Renault" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-model">Araç Modeli</label>
+            <input type="text" id="garage-input-model" placeholder="Örn: Clio II Symbol 1.4" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-notes">Servis & Bakım Notu</label>
+          <textarea id="garage-input-notes" rows="2" placeholder="Örn: Triger değişimi ve periyodik yağ bakımı yapıldı." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+          <button type="button" class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer" onclick="closeAddVehicleModal()">Vazgeç</button>
+          <button type="submit" id="btn-save-vehicle" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold shadow-sm hover:shadow transition-all flex items-center gap-1.5 cursor-pointer">
+            <span>💾 Garaja Kaydet</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
        2. GLASSMORPHISM HEADER (ÜST MENÜ - MULTI-TENANT)
        ========================================================================== -->
   <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/80 shadow-xs transition-all duration-200" id="partsouq-main-header">
@@ -844,6 +902,64 @@
 
   
 
+  <!-- ==========================================================================
+       1.6. AKILLI GARAJ: YENİ ARAÇ KAYDET MODALI (prompt.md ADIM 2.A)
+       ========================================================================== -->
+  <div class="fixed inset-0 bg-zinc-950/60 backdrop-blur-md z-50 items-center justify-center p-3 sm:p-6 hidden transition-all duration-300" id="modal-add-vehicle" onclick="closeAddVehicleModal()">
+    <div class="relative w-full max-w-lg bg-white rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] border border-zinc-200 overflow-hidden transform transition-all duration-200" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-amber-50/70">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">🚗</span>
+          <div>
+            <h3 class="font-black text-base text-amber-950">Akıllı Garajıma Araç Kaydet</h3>
+            <p class="text-[11px] text-amber-900/70">Hızlı arama ve uyumlu parça siparişleri için ustanın garajına araç ekleyin</p>
+          </div>
+        </div>
+        <button type="button" class="w-8 h-8 rounded-full bg-white hover:bg-amber-100 text-amber-900 flex items-center justify-center transition-colors cursor-pointer border border-amber-200/60" onclick="closeAddVehicleModal()" aria-label="Kapat">
+          ✕
+        </button>
+      </div>
+
+      <form id="form-add-vehicle" onsubmit="event.preventDefault(); saveVehicleToGarage(event);" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-vin">Şasi Numarası (VIN) *</label>
+          <input type="text" id="garage-input-vin" required maxlength="17" placeholder="Örn: VF1LB17C536060366" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold uppercase tracking-wider text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-plate">Araç Plakası *</label>
+            <input type="text" id="garage-input-plate" required placeholder="Örn: 34 USTA 1923" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold uppercase text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-customer">Müşteri / Cari Adı</label>
+            <input type="text" id="garage-input-customer" placeholder="Örn: Kemal Usta" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-brand">Araç Markası</label>
+            <input type="text" id="garage-input-brand" placeholder="Örn: Renault" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-model">Araç Modeli</label>
+            <input type="text" id="garage-input-model" placeholder="Örn: Clio II Symbol 1.4" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-notes">Servis & Bakım Notu</label>
+          <textarea id="garage-input-notes" rows="2" placeholder="Örn: Triger değişimi ve periyodik yağ bakımı yapıldı." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+          <button type="button" class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer" onclick="closeAddVehicleModal()">Vazgeç</button>
+          <button type="submit" id="btn-save-vehicle" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold shadow-sm hover:shadow transition-all flex items-center gap-1.5 cursor-pointer">
+            <span>💾 Garaja Kaydet</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- 2. KAYIT OL MODALI (REGISTER MODAL - B2B & B2C AYRIMI) -->
   <div class="auth-modal-backdrop fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 items-center justify-center p-4 hidden" id="modal-register-backdrop" onclick="closeRegisterModal()">
     <div class="auth-modal-card bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-lg overflow-hidden p-6 sm:p-8 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
@@ -943,6 +1059,64 @@
 
   
 
+  <!-- ==========================================================================
+       1.6. AKILLI GARAJ: YENİ ARAÇ KAYDET MODALI (prompt.md ADIM 2.A)
+       ========================================================================== -->
+  <div class="fixed inset-0 bg-zinc-950/60 backdrop-blur-md z-50 items-center justify-center p-3 sm:p-6 hidden transition-all duration-300" id="modal-add-vehicle" onclick="closeAddVehicleModal()">
+    <div class="relative w-full max-w-lg bg-white rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] border border-zinc-200 overflow-hidden transform transition-all duration-200" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-amber-50/70">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">🚗</span>
+          <div>
+            <h3 class="font-black text-base text-amber-950">Akıllı Garajıma Araç Kaydet</h3>
+            <p class="text-[11px] text-amber-900/70">Hızlı arama ve uyumlu parça siparişleri için ustanın garajına araç ekleyin</p>
+          </div>
+        </div>
+        <button type="button" class="w-8 h-8 rounded-full bg-white hover:bg-amber-100 text-amber-900 flex items-center justify-center transition-colors cursor-pointer border border-amber-200/60" onclick="closeAddVehicleModal()" aria-label="Kapat">
+          ✕
+        </button>
+      </div>
+
+      <form id="form-add-vehicle" onsubmit="event.preventDefault(); saveVehicleToGarage(event);" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-vin">Şasi Numarası (VIN) *</label>
+          <input type="text" id="garage-input-vin" required maxlength="17" placeholder="Örn: VF1LB17C536060366" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold uppercase tracking-wider text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-plate">Araç Plakası *</label>
+            <input type="text" id="garage-input-plate" required placeholder="Örn: 34 USTA 1923" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold uppercase text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-customer">Müşteri / Cari Adı</label>
+            <input type="text" id="garage-input-customer" placeholder="Örn: Kemal Usta" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-brand">Araç Markası</label>
+            <input type="text" id="garage-input-brand" placeholder="Örn: Renault" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-model">Araç Modeli</label>
+            <input type="text" id="garage-input-model" placeholder="Örn: Clio II Symbol 1.4" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-notes">Servis & Bakım Notu</label>
+          <textarea id="garage-input-notes" rows="2" placeholder="Örn: Triger değişimi ve periyodik yağ bakımı yapıldı." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+          <button type="button" class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer" onclick="closeAddVehicleModal()">Vazgeç</button>
+          <button type="submit" id="btn-save-vehicle" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold shadow-sm hover:shadow transition-all flex items-center gap-1.5 cursor-pointer">
+            <span>💾 Garaja Kaydet</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- 3. CARİ HESAP EKSTRESİ MODALI -->
   <div class="auth-modal-backdrop fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 items-center justify-center p-4 hidden" id="modal-current-account" onclick="closeCurrentAccountModal()">
     <div class="auth-modal-card bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-2xl overflow-hidden p-6 sm:p-8 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
@@ -997,6 +1171,64 @@
 
   
 
+  <!-- ==========================================================================
+       1.6. AKILLI GARAJ: YENİ ARAÇ KAYDET MODALI (prompt.md ADIM 2.A)
+       ========================================================================== -->
+  <div class="fixed inset-0 bg-zinc-950/60 backdrop-blur-md z-50 items-center justify-center p-3 sm:p-6 hidden transition-all duration-300" id="modal-add-vehicle" onclick="closeAddVehicleModal()">
+    <div class="relative w-full max-w-lg bg-white rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] border border-zinc-200 overflow-hidden transform transition-all duration-200" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-amber-50/70">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">🚗</span>
+          <div>
+            <h3 class="font-black text-base text-amber-950">Akıllı Garajıma Araç Kaydet</h3>
+            <p class="text-[11px] text-amber-900/70">Hızlı arama ve uyumlu parça siparişleri için ustanın garajına araç ekleyin</p>
+          </div>
+        </div>
+        <button type="button" class="w-8 h-8 rounded-full bg-white hover:bg-amber-100 text-amber-900 flex items-center justify-center transition-colors cursor-pointer border border-amber-200/60" onclick="closeAddVehicleModal()" aria-label="Kapat">
+          ✕
+        </button>
+      </div>
+
+      <form id="form-add-vehicle" onsubmit="event.preventDefault(); saveVehicleToGarage(event);" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-vin">Şasi Numarası (VIN) *</label>
+          <input type="text" id="garage-input-vin" required maxlength="17" placeholder="Örn: VF1LB17C536060366" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold uppercase tracking-wider text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-plate">Araç Plakası *</label>
+            <input type="text" id="garage-input-plate" required placeholder="Örn: 34 USTA 1923" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold uppercase text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-customer">Müşteri / Cari Adı</label>
+            <input type="text" id="garage-input-customer" placeholder="Örn: Kemal Usta" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-brand">Araç Markası</label>
+            <input type="text" id="garage-input-brand" placeholder="Örn: Renault" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-model">Araç Modeli</label>
+            <input type="text" id="garage-input-model" placeholder="Örn: Clio II Symbol 1.4" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-notes">Servis & Bakım Notu</label>
+          <textarea id="garage-input-notes" rows="2" placeholder="Örn: Triger değişimi ve periyodik yağ bakımı yapıldı." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+          <button type="button" class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer" onclick="closeAddVehicleModal()">Vazgeç</button>
+          <button type="submit" id="btn-save-vehicle" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold shadow-sm hover:shadow transition-all flex items-center gap-1.5 cursor-pointer">
+            <span>💾 Garaja Kaydet</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- 4. SİPARİŞLERİM MODALI (MY ORDERS & DELIVERY SNAPSHOT) -->
   <div class="auth-modal-backdrop fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 items-center justify-center p-4 hidden" id="modal-my-orders" onclick="closeMyOrdersModal()">
     <div class="auth-modal-card bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-3xl overflow-hidden p-6 sm:p-8 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
@@ -1015,6 +1247,64 @@
   </div>
 
   
+
+  <!-- ==========================================================================
+       1.6. AKILLI GARAJ: YENİ ARAÇ KAYDET MODALI (prompt.md ADIM 2.A)
+       ========================================================================== -->
+  <div class="fixed inset-0 bg-zinc-950/60 backdrop-blur-md z-50 items-center justify-center p-3 sm:p-6 hidden transition-all duration-300" id="modal-add-vehicle" onclick="closeAddVehicleModal()">
+    <div class="relative w-full max-w-lg bg-white rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] border border-zinc-200 overflow-hidden transform transition-all duration-200" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-amber-50/70">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">🚗</span>
+          <div>
+            <h3 class="font-black text-base text-amber-950">Akıllı Garajıma Araç Kaydet</h3>
+            <p class="text-[11px] text-amber-900/70">Hızlı arama ve uyumlu parça siparişleri için ustanın garajına araç ekleyin</p>
+          </div>
+        </div>
+        <button type="button" class="w-8 h-8 rounded-full bg-white hover:bg-amber-100 text-amber-900 flex items-center justify-center transition-colors cursor-pointer border border-amber-200/60" onclick="closeAddVehicleModal()" aria-label="Kapat">
+          ✕
+        </button>
+      </div>
+
+      <form id="form-add-vehicle" onsubmit="event.preventDefault(); saveVehicleToGarage(event);" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-vin">Şasi Numarası (VIN) *</label>
+          <input type="text" id="garage-input-vin" required maxlength="17" placeholder="Örn: VF1LB17C536060366" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold uppercase tracking-wider text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-plate">Araç Plakası *</label>
+            <input type="text" id="garage-input-plate" required placeholder="Örn: 34 USTA 1923" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold uppercase text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-customer">Müşteri / Cari Adı</label>
+            <input type="text" id="garage-input-customer" placeholder="Örn: Kemal Usta" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-brand">Araç Markası</label>
+            <input type="text" id="garage-input-brand" placeholder="Örn: Renault" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-model">Araç Modeli</label>
+            <input type="text" id="garage-input-model" placeholder="Örn: Clio II Symbol 1.4" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-notes">Servis & Bakım Notu</label>
+          <textarea id="garage-input-notes" rows="2" placeholder="Örn: Triger değişimi ve periyodik yağ bakımı yapıldı." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+          <button type="button" class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer" onclick="closeAddVehicleModal()">Vazgeç</button>
+          <button type="submit" id="btn-save-vehicle" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold shadow-sm hover:shadow transition-all flex items-center gap-1.5 cursor-pointer">
+            <span>💾 Garaja Kaydet</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- 5. HESAP VE ADRES AYARLARI MODALI -->
   <div class="auth-modal-backdrop fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 items-center justify-center p-4 hidden" id="modal-account-settings" onclick="closeAccountSettingsModal()">
@@ -1060,6 +1350,64 @@
 
   
 
+  <!-- ==========================================================================
+       1.6. AKILLI GARAJ: YENİ ARAÇ KAYDET MODALI (prompt.md ADIM 2.A)
+       ========================================================================== -->
+  <div class="fixed inset-0 bg-zinc-950/60 backdrop-blur-md z-50 items-center justify-center p-3 sm:p-6 hidden transition-all duration-300" id="modal-add-vehicle" onclick="closeAddVehicleModal()">
+    <div class="relative w-full max-w-lg bg-white rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] border border-zinc-200 overflow-hidden transform transition-all duration-200" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-amber-50/70">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">🚗</span>
+          <div>
+            <h3 class="font-black text-base text-amber-950">Akıllı Garajıma Araç Kaydet</h3>
+            <p class="text-[11px] text-amber-900/70">Hızlı arama ve uyumlu parça siparişleri için ustanın garajına araç ekleyin</p>
+          </div>
+        </div>
+        <button type="button" class="w-8 h-8 rounded-full bg-white hover:bg-amber-100 text-amber-900 flex items-center justify-center transition-colors cursor-pointer border border-amber-200/60" onclick="closeAddVehicleModal()" aria-label="Kapat">
+          ✕
+        </button>
+      </div>
+
+      <form id="form-add-vehicle" onsubmit="event.preventDefault(); saveVehicleToGarage(event);" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-vin">Şasi Numarası (VIN) *</label>
+          <input type="text" id="garage-input-vin" required maxlength="17" placeholder="Örn: VF1LB17C536060366" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold uppercase tracking-wider text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-plate">Araç Plakası *</label>
+            <input type="text" id="garage-input-plate" required placeholder="Örn: 34 USTA 1923" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold uppercase text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-customer">Müşteri / Cari Adı</label>
+            <input type="text" id="garage-input-customer" placeholder="Örn: Kemal Usta" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-brand">Araç Markası</label>
+            <input type="text" id="garage-input-brand" placeholder="Örn: Renault" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-model">Araç Modeli</label>
+            <input type="text" id="garage-input-model" placeholder="Örn: Clio II Symbol 1.4" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-notes">Servis & Bakım Notu</label>
+          <textarea id="garage-input-notes" rows="2" placeholder="Örn: Triger değişimi ve periyodik yağ bakımı yapıldı." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+          <button type="button" class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer" onclick="closeAddVehicleModal()">Vazgeç</button>
+          <button type="submit" id="btn-save-vehicle" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold shadow-sm hover:shadow transition-all flex items-center gap-1.5 cursor-pointer">
+            <span>💾 Garaja Kaydet</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- 6. RESİM BÜYÜTME (LIGHTBOX) MODALI -->
   <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 items-center justify-center p-4 hidden" id="modal-image-lightbox" onclick="closeImageModal()">
     <div class="relative max-w-2xl w-full bg-white rounded-3xl p-4 shadow-2xl" onclick="event.stopPropagation()">
@@ -1072,6 +1420,64 @@
   </div>
 
   
+
+  <!-- ==========================================================================
+       1.6. AKILLI GARAJ: YENİ ARAÇ KAYDET MODALI (prompt.md ADIM 2.A)
+       ========================================================================== -->
+  <div class="fixed inset-0 bg-zinc-950/60 backdrop-blur-md z-50 items-center justify-center p-3 sm:p-6 hidden transition-all duration-300" id="modal-add-vehicle" onclick="closeAddVehicleModal()">
+    <div class="relative w-full max-w-lg bg-white rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] border border-zinc-200 overflow-hidden transform transition-all duration-200" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-amber-50/70">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">🚗</span>
+          <div>
+            <h3 class="font-black text-base text-amber-950">Akıllı Garajıma Araç Kaydet</h3>
+            <p class="text-[11px] text-amber-900/70">Hızlı arama ve uyumlu parça siparişleri için ustanın garajına araç ekleyin</p>
+          </div>
+        </div>
+        <button type="button" class="w-8 h-8 rounded-full bg-white hover:bg-amber-100 text-amber-900 flex items-center justify-center transition-colors cursor-pointer border border-amber-200/60" onclick="closeAddVehicleModal()" aria-label="Kapat">
+          ✕
+        </button>
+      </div>
+
+      <form id="form-add-vehicle" onsubmit="event.preventDefault(); saveVehicleToGarage(event);" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-vin">Şasi Numarası (VIN) *</label>
+          <input type="text" id="garage-input-vin" required maxlength="17" placeholder="Örn: VF1LB17C536060366" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold uppercase tracking-wider text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-plate">Araç Plakası *</label>
+            <input type="text" id="garage-input-plate" required placeholder="Örn: 34 USTA 1923" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold uppercase text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-customer">Müşteri / Cari Adı</label>
+            <input type="text" id="garage-input-customer" placeholder="Örn: Kemal Usta" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-brand">Araç Markası</label>
+            <input type="text" id="garage-input-brand" placeholder="Örn: Renault" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-model">Araç Modeli</label>
+            <input type="text" id="garage-input-model" placeholder="Örn: Clio II Symbol 1.4" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-notes">Servis & Bakım Notu</label>
+          <textarea id="garage-input-notes" rows="2" placeholder="Örn: Triger değişimi ve periyodik yağ bakımı yapıldı." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+          <button type="button" class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer" onclick="closeAddVehicleModal()">Vazgeç</button>
+          <button type="submit" id="btn-save-vehicle" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold shadow-sm hover:shadow transition-all flex items-center gap-1.5 cursor-pointer">
+            <span>💾 Garaja Kaydet</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- ==========================================================================
        1.5. PARÇA DETAY, MUADİLLER (CROSS-REFERENCE), FITMENT & ŞEMA MODALI
@@ -1323,6 +1729,64 @@
   </div>
 
   
+
+  <!-- ==========================================================================
+       1.6. AKILLI GARAJ: YENİ ARAÇ KAYDET MODALI (prompt.md ADIM 2.A)
+       ========================================================================== -->
+  <div class="fixed inset-0 bg-zinc-950/60 backdrop-blur-md z-50 items-center justify-center p-3 sm:p-6 hidden transition-all duration-300" id="modal-add-vehicle" onclick="closeAddVehicleModal()">
+    <div class="relative w-full max-w-lg bg-white rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] border border-zinc-200 overflow-hidden transform transition-all duration-200" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-amber-50/70">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">🚗</span>
+          <div>
+            <h3 class="font-black text-base text-amber-950">Akıllı Garajıma Araç Kaydet</h3>
+            <p class="text-[11px] text-amber-900/70">Hızlı arama ve uyumlu parça siparişleri için ustanın garajına araç ekleyin</p>
+          </div>
+        </div>
+        <button type="button" class="w-8 h-8 rounded-full bg-white hover:bg-amber-100 text-amber-900 flex items-center justify-center transition-colors cursor-pointer border border-amber-200/60" onclick="closeAddVehicleModal()" aria-label="Kapat">
+          ✕
+        </button>
+      </div>
+
+      <form id="form-add-vehicle" onsubmit="event.preventDefault(); saveVehicleToGarage(event);" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-vin">Şasi Numarası (VIN) *</label>
+          <input type="text" id="garage-input-vin" required maxlength="17" placeholder="Örn: VF1LB17C536060366" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold uppercase tracking-wider text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-plate">Araç Plakası *</label>
+            <input type="text" id="garage-input-plate" required placeholder="Örn: 34 USTA 1923" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold uppercase text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-customer">Müşteri / Cari Adı</label>
+            <input type="text" id="garage-input-customer" placeholder="Örn: Kemal Usta" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-brand">Araç Markası</label>
+            <input type="text" id="garage-input-brand" placeholder="Örn: Renault" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-model">Araç Modeli</label>
+            <input type="text" id="garage-input-model" placeholder="Örn: Clio II Symbol 1.4" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1" for="garage-input-notes">Servis & Bakım Notu</label>
+          <textarea id="garage-input-notes" rows="2" placeholder="Örn: Triger değişimi ve periyodik yağ bakımı yapıldı." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+          <button type="button" class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer" onclick="closeAddVehicleModal()">Vazgeç</button>
+          <button type="submit" id="btn-save-vehicle" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold shadow-sm hover:shadow transition-all flex items-center gap-1.5 cursor-pointer">
+            <span>💾 Garaja Kaydet</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- ==========================================================================
        FOOTER (STORE FOOTER & POWERED BY SAAS ROZETİ)
