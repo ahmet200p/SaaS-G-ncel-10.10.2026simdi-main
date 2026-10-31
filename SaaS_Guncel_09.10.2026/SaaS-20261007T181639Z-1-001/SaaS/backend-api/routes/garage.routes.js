@@ -42,3 +42,4 @@ router.get('/history', getGarageVehicleHistory);
 router.delete('/:id', deleteGarageVehicle);
 
 module.exports = router;
+
