@@ -14,6 +14,7 @@ const { orderLimiter } = require('../middleware/rateLimiter');
 const jwt = require('jsonwebtoken');
 const authController = require('../controllers/authController');
 const { registerLimiter } = require('../middleware/rateLimiter');
+const { estimateLaborTime, getRecommendedTogether } = require('../services/partsCatalogService');
 
 // ============================================================================
 // Multi-Tenant Güvenlik Ara Yazılımı (Tenant Isolation Middleware)
@@ -280,6 +281,17 @@ router.get('/products', async (req, res) => {
         andConditions.push({
           product: { name: { contains: searchKeyword, mode: 'insensitive' } }
         });
+      } else if (searchType === 'vin' || /^[A-HJ-NPR-Z0-9]{11,17}$/i.test(searchKeyword)) {
+        andConditions.push({
+          product: {
+            OR: [
+              { compatibleModels: { contains: searchKeyword, mode: 'insensitive' } },
+              { name: { contains: searchKeyword, mode: 'insensitive' } },
+              { oeNumber: { contains: searchKeyword, mode: 'insensitive' } },
+              { vehicleBrand: { contains: searchKeyword, mode: 'insensitive' } }
+            ]
+          }
+        });
       } else {
         andConditions.push({
           product: {
@@ -360,6 +372,8 @@ router.get('/products', async (req, res) => {
           attributes: item.product.attributes || [],
           diagramUrl: item.product.diagramUrl,
           diagrams: item.product.diagrams || [],
+          estimatedLaborTime: estimateLaborTime(item.product.name, item.product.category, item.product.vehicleBrand),
+          recommendedTogether: getRecommendedTogether(item.product.name, item.product.category),
           // Güvenlik Koruması: Fiyat ve stok gizlenir
           stock: null,
           isDiscounted: false,
@@ -398,6 +412,8 @@ router.get('/products', async (req, res) => {
         attributes: item.product.attributes || [],
         diagramUrl: item.product.diagramUrl,
         diagrams: item.product.diagrams || [],
+        estimatedLaborTime: estimateLaborTime(item.product.name, item.product.category, item.product.vehicleBrand),
+        recommendedTogether: getRecommendedTogether(item.product.name, item.product.category),
         stock: item.stock,
         isDiscounted: item.isDiscounted,
         defaultPrice: listPrice,
@@ -713,6 +729,8 @@ router.get('/products/:id', async (req, res) => {
           attributes: item.product.attributes || [],
           diagramUrl: item.product.diagramUrl,
           diagrams: item.product.diagrams || [],
+          estimatedLaborTime: estimateLaborTime(item.product.name, item.product.category, item.product.vehicleBrand),
+          recommendedTogether: getRecommendedTogether(item.product.name, item.product.category),
           stock: null,
           isDiscounted: false,
           defaultPrice: null,
@@ -751,6 +769,8 @@ router.get('/products/:id', async (req, res) => {
         attributes: item.product.attributes || [],
         diagramUrl: item.product.diagramUrl,
         diagrams: item.product.diagrams || [],
+        estimatedLaborTime: estimateLaborTime(item.product.name, item.product.category, item.product.vehicleBrand),
+        recommendedTogether: getRecommendedTogether(item.product.name, item.product.category),
         stock: item.stock,
         isDiscounted: item.isDiscounted,
         defaultPrice: listPrice,

@@ -1,25 +1,27 @@
-# PROJE GÖREVİ: "Oto Servis & Usta" Sadakat Modülleri - Backend Mimarisi
+# KRİTİK GÖREV: UI Yanlış Konumlandırma Temizliği ve `store.html` Entegrasyonu
 
-**GÖREV BİLDİRİMİ:**
-B2B AFS Systems platformuna ustaların işini kolaylaştıracak ve platform bağımlılığını artıracak 3 yeni modül ekliyoruz: Akıllı Garaj, Bakım Kitleri (Çapraz Satış) ve İşçilik Süresi. Aşağıdaki veritabanı (Prisma) ve API güncellemelerini kusursuz bir şekilde uygulamanı emrediyorum.
+**DURUM BİLDİRİMİ VE ZORUNLU KABUL:**
+Önceki adımlarda "Akıllı Garaj", "İşçilik Süresi" ve "Bakım Kiti" modüllerini ısrarla `bayi.html` (bayi yönetim/stok ekleme) dosyasına entegre ettin. **Bu tamamen yanlıştır ve iptal edilmiştir.** Bu özellikler bayinin stok eklediği yerde değil, müşterinin/ustanın parça satın aldığı B2B Vitrin'de (`store.html`) olmak ZORUNDADIR. 
+Aşağıdaki adımları sırasıyla, itiraz etmeden ve başka bir alternatif sunmadan uygulayacaksın.
 
-**1. PRISMA SCHEMA GÜNCELLEMESİ (Akıllı Garaj Modülü):**
-Sisteme ustaların kendi müşterilerini ve araçlarını kaydedebileceği bir tablo ekle.
-- `GarageVehicle` adında bir model oluştur.
-- Alanlar: `id`, `userId` (Bayi/Usta ID'si ile ilişkili), `vin` (Şasi Numarası), `plate` (Plaka - Opsiyonel), `customerName` (Araç Sahibi), `lastServiceDate` (Son Bakım Tarihi), `createdAt`, `updatedAt`.
-- Bir ustanın (User) birden fazla aracı (GarageVehicle) olabilsin (One-to-Many).
+### ADIM 1: `bayi.html` DOSYASININ TAMAMEN TEMİZLENMESİ
+1. `bayi.html` dosyasını aç.
+2. Önceki adımlarda bu dosyaya eklediğin "Garajımdan Seç", "Tahmini İşçilik" ve "Çapraz Satış (Birlikte Al)" modüllerine ait **TÜM HTML kodlarını, butonları ve JavaScript fetch/DOM manipülasyon fonksiyonlarını KESİNLİKLE SİL.**
+3. `bayi.html` içindeki "Yeni Ürün Ekle" modalı veya diğer alanlar tamamen eski (sade) haline geri dönsün. Bu dosyada sadakat modülüne dair tek bir satır kod kalmayacak.
 
-**2. GARAJ API ENDPOINT'LERİ (CRUD):**
-- `POST /api/garage` -> Şasi arama sonucundan dönen bir aracı tek tıkla ustanın garajına kaydetmek için. (vin, plate, customerName alacak).
-- `GET /api/garage` -> Ustanın kaydettiği tüm araçları listelemek için.
-- `GET /api/garage/history/:vin` -> Belirli bir şasiye geçmişte bu usta tarafından hangi parçaların sipariş edildiğini getiren sorgu.
+### ADIM 2: `store.html` (B2B VİTRİN) DOSYASINA ENTEGRASYON VE YERLEŞİM
+Şimdi tüm bu modülleri asıl yeri olan `store.html` dosyasına inşa edeceksin.
 
-**3. BAKIM KİTLERİ VE ÇAPRAZ SATIŞ (Cross-Sell Engine):**
-- Parça arama (Katalog) API'sini güncelle. Eğer kullanıcı 'Triger Kayışı' (veya belirli anahtar kelimelere sahip bir parça) aratıyorsa, JSON yanıtına `recommendedTogether` (Birlikte Alınanlar) adında bir dizi (array) ekle.
-- Şimdilik bu dizinin içine mantıksal olarak ilişkili parçaları (Örn: Triger aratana -> Devirdaim Pompası, Rulman) parça grubuna göre eşleştirip döndür. Amaç sepet ortalamasını artırmaktır.
+**A. Üst Navigasyon & Kullanıcı Menüsü:**
+- Sayfanın en üstünde yer alan (içinde Sepet ikonu ve Kullanıcı Profili olan) Header/Navigasyon barına **"🚗 Garajım"** adında şık bir buton ekle.
+- Bu butona tıklandığında, kullanıcının daha önce kaydettiği araçları (Plaka ve Müşteri Adı ile) listeleyen ufak bir dropdown açılsın. Buradan seçilen aracın Şasi Numarası otomatik olarak arama çubuğuna aktarılsın.
 
-**4. İŞÇİLİK VE BAKIM SÜRESİ (Labor Time):**
-- Parça detay API yanıtındaki `technicalSpecs` objesinin içine `estimatedLaborTime` (Tahmini İşçilik Süresi) adında bir alan ekle. 
-- API/Katalog sağlayıcısından bu veri geliyorsa doğrudan yansıt, gelmiyorsa yedek parça kategorisine göre (Örn: Fren balatası için "45 Dk", Triger için "3 Saat", Filtre grubu için "30 Dk") koda basit bir tahmini eşleştirme (mapping) fonksiyonu yazarak bu veriyi frontend'e kesin olarak gönder.
+**B. Sol "Katalog Filtreleri" Alanı (Sidebar):**
+- Ekrandaki "Katalog Filtreleri" kısmında, 'Araç Markası' Bento seçim grid'inin hemen üstüne veya altına **"Akıllı Garaj (Hızlı Araç Seçimi)"** adında yeni bir panel (div) yerleştir.
+- Bu panelin içine, kullanıcının hızlıca garajındaki kayıtlı araçları seçebileceği bir `<select>` (Dropdown) elementi koy. "Garajdan seçilen araç" ile arama doğrudan tetiklensin.
 
-Kodu yaz, Prisma migrate işlemini hatırlat ve endpointleri hazırla.
+**C. Ürün Detay ve Arama Sonuçları (Orta/Sağ Alan):**
+- `store.html` içindeki arama sonuçlarının listelendiği ürün kartlarına (Product Card) veya tabloya, Backend'den gelecek olan `estimatedLaborTime` verisini basan **"Tahmini İşçilik: X Saat"** rozetini ekle.
+- Bir ürüne tıklandığında (veya detayına girildiğinde) sayfanın altına **"💡 Bu parçayı alanlar şunları da aldı (Bakım Kiti)"** yatay kaydırılabilir (scrollable) listesini yerleştir.
+
+**GÖREV KURALI:** Bu değişikliklerin tamamı sadece `store.html` ve ona bağlı JS dosyalarında yapılacaktır. Bu mimari kararı kabul et ve kodu buna göre hemen üretmeye başla.
