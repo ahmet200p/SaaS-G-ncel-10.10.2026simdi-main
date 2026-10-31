@@ -984,6 +984,8 @@ router.post('/orders', orderLimiter, async (req, res) => {
       snapshotShippingAddress = snapshotShippingAddress.substring(0, 1000);
     }
 
+    const orderVin = (req.body.vin || req.body.vinNumber || '').trim().toUpperCase() || null;
+
     // 5. Prisma Transaction (Atomik Sipariş Oluşturma, KDV, Güvenli Stok Düşme, Stok Denetimi ve Cari Bakiye Defteri)
     const createdOrder = await prisma.$transaction(async (tx) => {
       // A. Sipariş ana kaydını oluştur (KDV oran ve tutarlarıyla, shippingAddress snapshot'ı ile birlikte)
@@ -999,6 +1001,7 @@ router.post('/orders', orderLimiter, async (req, res) => {
           status: orderStatus,
           paymentMethod: paymentMethod || null,
           shippingAddress: snapshotShippingAddress,
+          vin: orderVin,
           items: {
             create: orderItemsToCreate
           }

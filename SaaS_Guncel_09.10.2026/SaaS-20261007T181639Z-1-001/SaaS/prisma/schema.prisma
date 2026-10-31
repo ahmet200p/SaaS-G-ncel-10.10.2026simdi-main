@@ -35,6 +35,9 @@ model User {
   // Otoservis Müşteri Profili (1-e-1)
   customerProfile  CustomerProfile?
 
+  // Akıllı Garaj Araçları (1-n)
+  garageVehicles   GarageVehicle[]
+
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
@@ -216,6 +219,7 @@ model Order {
   cargoCompany   String?         // Kargo Firması adı (Yurtiçi Kargo, Aras Kargo, MNG Kargo, Sürat Kargo, PTT Kargo vb.)
   trackingNumber String?         // Kargo Takip Barkod Numarası
   shippingAddress String?        // Sipariş anındaki teslimat ve irsaliye adresi (Snapshot)
+  vin            String?         // Akıllı Garaj Şasi Numarası ilişkisi
 
   items          OrderItem[]
   stockMovements StockMovement[]
@@ -227,6 +231,7 @@ model Order {
   @@index([tenantId])
   @@index([customerId])
   @@index([status])
+  @@index([vin])
 }
 
 // ----------------------------------------------------------------------------
@@ -357,5 +362,27 @@ model ReturnRequest {
   @@index([tenantId])
   @@index([customerId])
   @@index([status])
+}
+
+// ----------------------------------------------------------------------------
+// 13. GARAGE VEHICLE (Akıllı Garaj - Usta & Servis Müşteri Araç Kayıtları)
+// ----------------------------------------------------------------------------
+model GarageVehicle {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vin             String
+  plate           String?   // Plaka - Opsiyonel
+  customerName    String?   // Araç Sahibi
+  lastServiceDate DateTime? // Son Bakım Tarihi
+  vehicleBrand    String?   // Araç Markası (Örn: Renault, Volkswagen)
+  model           String?   // Araç Modeli (Örn: Clio II, Golf 7)
+  notes           String?   // Usta / Servis Notları
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([vin])
 }
 

@@ -18,6 +18,7 @@ const superAdminRoutes = require('./routes/superAdmin');
 const tenantRoutes = require('./routes/tenant');
 const storeRoutes = require('./routes/store');
 const catalogRoutes = require('./routes/catalog.routes');
+const garageRoutes = require('./routes/garage.routes');
 const securityHeaders = require('./middleware/security');
 const { tenantApiKeyInterceptor } = require('./middleware/tenantApiKey');
 const { apiLimiter } = require('./middleware/rateLimiter');
@@ -238,7 +239,8 @@ app.get('/', (req, res) => {
       auth: '/api/auth',
       store: '/api/store',
       tenant: '/api/tenant',
-      admin: '/api/admin'
+      admin: '/api/admin',
+      garage: '/api/garage'
     }
   });
 });
@@ -359,6 +361,11 @@ app.get(['/api/search', '/api/search/:query', '/search', '/search/:query', '/api
 app.post(['/api/search', '/search', '/api/parts/search', '/parts/search'], searchParts);
 app.get(['/api/search-vin/:vin', '/api/search-vin', '/search-vin/:vin', '/search-vin', '/api/vin/:vin', '/api/vin', '/vin/:vin', '/vin'], searchVin);
 app.post(['/api/search-vin/:vin', '/api/search-vin', '/search-vin/:vin', '/search-vin', '/api/vin/:vin', '/api/vin', '/vin/:vin', '/vin'], searchVin);
+
+// F. Akıllı Garaj (Smart Garage): Oto Servis & Usta Sadakat Modülü CRUD Rotaları
+// POST /api/garage, GET /api/garage, GET /api/garage/history/:vin
+app.use('/api/garage', garageRoutes);
+app.use('/garage', garageRoutes);
 
 // ----------------------------------------------------------------------------
 // 4. BULUNAMAYAN ROTA (404) VE MERKEZİ HATA YÖNETİMİ

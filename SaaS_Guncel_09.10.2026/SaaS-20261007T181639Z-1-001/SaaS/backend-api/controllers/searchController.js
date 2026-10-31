@@ -10,6 +10,8 @@ const {
   executeDeepCrossReferenceSearch,
   enrichProductData,
   searchVinNumber,
+  estimateLaborTime,
+  getRecommendedTogether,
   vinPartCatalogCache
 } = require('../services/partsCatalogService');
 
@@ -81,10 +83,22 @@ function extractSearchContext(req) {
  * Sadece gerçek verileri döner. Boş/olmayan opsiyonel alanlar undefined bırakılır (KURAL 3).
  */
 function buildStrictSearchResponse(result) {
-  const hasRealSpecs =
-    result.technicalSpecs &&
-    typeof result.technicalSpecs === 'object' &&
-    Object.keys(result.technicalSpecs).length > 0;
+  const partText = result.partName || result.searchedQuery || '';
+  const partGrp = result.partGroup || '';
+
+  const specs = (result.technicalSpecs && typeof result.technicalSpecs === 'object')
+    ? { ...result.technicalSpecs }
+    : {};
+
+  // Prompt 4: technicalSpecs objesinin içine estimatedLaborTime (Tahmini İşçilik Süresi) ekle
+  if (!specs.estimatedLaborTime) {
+    specs.estimatedLaborTime = estimateLaborTime(partText, partGrp, '', specs);
+  }
+
+  // Prompt 3: recommendedTogether (Birlikte Alınanlar) çapraz satış kitini ekle
+  const recommendedTogether = (Array.isArray(result.recommendedTogether) && result.recommendedTogether.length > 0)
+    ? result.recommendedTogether
+    : getRecommendedTogether(partText, partGrp, result.searchedQuery || '');
 
   const payload = {
     success: true,
@@ -93,7 +107,8 @@ function buildStrictSearchResponse(result) {
     rootOEM: result.rootOEM || undefined,
     originalOEMs: Array.isArray(result.originalOEMs) ? result.originalOEMs : [],
     referenceCodes: Array.isArray(result.referenceCodes) ? result.referenceCodes : [],
-    technicalSpecs: hasRealSpecs ? result.technicalSpecs : {},
+    technicalSpecs: specs,
+    recommendedTogether: recommendedTogether,
     images: Array.isArray(result.images) ? result.images : [],
     schemaSourceCode: result.schemaSourceCode || undefined
   };

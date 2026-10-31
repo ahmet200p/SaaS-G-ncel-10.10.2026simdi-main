@@ -1192,6 +1192,360 @@ async function queryExactVehicleSchemas({
 }
 
 /**
+ * Yedek parça kategorisi, adı ve montaj yerine göre Tahmini İşçilik Süresini (Labor Time) hesaplar.
+ * API / Katalog sağlayıcısından bu veri geliyorsa doğrudan yansıtır;
+ * gelmiyorsa otomotiv standartlarına göre deterministik eşleme yapar.
+ * Örn: Fren balatası için "45 Dk", Triger için "3 Saat", Filtre grubu için "30 Dk"
+ */
+function estimateLaborTime(partName = '', partGroup = '', category = '', existingSpecs = {}) {
+  // 1. API veya katalog sağlayıcısından gelen hazır veri varsa doğrudan yansıt
+  if (existingSpecs && typeof existingSpecs === 'object') {
+    const rawVal = existingSpecs.estimatedLaborTime ||
+      existingSpecs.laborTime ||
+      existingSpecs.iscilikSuresi ||
+      existingSpecs.tahminiIscilik ||
+      existingSpecs['Tahmini İşçilik Süresi'];
+    if (rawVal && typeof rawVal === 'string' && rawVal.trim().length > 0) {
+      return rawVal.trim();
+    }
+  }
+
+  const combined = `${partName} ${partGroup} ${category}`.toLowerCase();
+
+  // 2. Kategori bazlı otomotiv standart eşleştirmeleri
+  // A. Triger / Sente / Zamanlama Grubu (Örn: "3 Saat")
+  if (/(triger|timing|sente|eksantrik\s*kay|camshaft\s*belt|gergi\s*rulman|avara|zamanlama)/i.test(combined)) {
+    return '3 Saat';
+  }
+
+  // B. Fren Balatası (Örn: "45 Dk")
+  if (/(fren\s*balata|brake\s*pad|balata\s*takım|fren\s*pabuç|brake\s*shoe|ön\s*balata|arka\s*balata)/i.test(combined)) {
+    return '45 Dk';
+  }
+
+  // C. Fren Diski / Rotor (Örn: "1 Saat")
+  if (/(fren\s*disk|brake\s*disc|rotor|disk\s*ayna)/i.test(combined)) {
+    return '1 Saat';
+  }
+
+  // D. Filtre Grubu & Periyodik Bakım (Örn: "30 Dk")
+  if (/(yağ\s*filtre|oil\s*filter|hava\s*filtre|air\s*filter|polen\s*filtre|kabin\s*filtre|yakıt\s*filtre|fuel\s*filter|mazot\s*filtre|bakım\s*set|filtre)/i.test(combined)) {
+    return '30 Dk';
+  }
+
+  // E. Amortisör & Helezon Yayı (Örn: "1.5 Saat")
+  if (/(amortisör|amortisor|shock\s*absorber|helezon|strut|yay)/i.test(combined)) {
+    return '1.5 Saat';
+  }
+
+  // F. Ön Takım / Askı / Salıncak / Rot (Örn: "1 Saat")
+  if (/(salıncak|salincak|control\s*arm|rotil|ball\s*joint|rot\s*baş|rot\s*mil|tie\s*rod|z\s*rot|stabilizer\s*link)/i.test(combined)) {
+    return '1 Saat';
+  }
+
+  // G. Debriyaj & Baskı Balata & Volant (Örn: "4 Saat")
+  if (/(debriyaj|clutch|baskı\s*balata|baski\s*balata|volant|flywheel)/i.test(combined)) {
+    return '4 Saat';
+  }
+
+  // H. Devirdaim / Su Pompası & Termostat (Örn: "2 Saat")
+  if (/(devirdaim|su\s*pompa|water\s*pump|termostat|thermostat)/i.test(combined)) {
+    return '2 Saat';
+  }
+
+  // I. Radyatör & Soğutma Grubu (Örn: "2.5 Saat")
+  if (/(radyatör|radyator|radiator|intercooler|kondenser)/i.test(combined)) {
+    return '2.5 Saat';
+  }
+
+  // J. Buji / Ateşleme Bobini (Örn: "30 Dk")
+  if (/(buji|spark\s*plug|ateşleme\s*bobin|atesleme\s*bobin|ignition\s*coil)/i.test(combined)) {
+    return '30 Dk';
+  }
+
+  // K. Alternatör / Marş Motoru (Örn: "1.5 Saat")
+  if (/(alternatör|alternator|şarj\s*dinamo|marş\s*motor|starter\s*motor)/i.test(combined)) {
+    return '1.5 Saat';
+  }
+
+  // L. Turboşarj (Örn: "3.5 Saat")
+  if (/(turbo|turbocharger)/i.test(combined)) {
+    return '3.5 Saat';
+  }
+
+  // M. Aydınlatma / Silecek / Akü (Örn: "15 Dk")
+  if (/(far|stop\s*lamba|ampul|bulb|silecek|wiper|akü|battery)/i.test(combined)) {
+    return '15 Dk';
+  }
+
+  // N. Egzoz & Emisyon & Katalitik (Örn: "2 Saat")
+  if (/(egzoz|exhaust|partikül|dpf|katalizör|katalitik)/i.test(combined)) {
+    return '2 Saat';
+  }
+
+  // Varsayılan genel mekanik işçilik süresi
+  return '1 Saat';
+}
+
+/**
+ * Bakım Kitleri ve Çapraz Satış Motoru (Cross-Sell Engine):
+ * Aranan parçaya mantıksal olarak bağlı, sepet ortalamasını ve montaj güvenliğini
+ * artıran tamamlayıcı parçaları (recommendedTogether) önerir.
+ * Örn: Triger -> Devirdaim Pompası, Gergi Bilyası, V Kayışı, Antifriz
+ */
+function getRecommendedTogether(partName = '', partGroup = '', searchedQuery = '', category = '') {
+  const combined = `${partName} ${partGroup} ${searchedQuery} ${category}`.toLowerCase();
+
+  // 1. Triger / Zamanlama Grubu (Örn: Devirdaim, Gergi Rulmanı, V Kayışı)
+  if (/(triger|timing|kayış|kayis|sente|gergi|kasnak|belt|tensioner)/i.test(combined)) {
+    return [
+      {
+        name: 'Devirdaim Su Pompası',
+        category: 'Motor Soğutma Grubu',
+        partGroup: 'Motor Soğutma',
+        reason: 'Triger seti değişiminde devirdaim söküldüğü için hem işçilik tasarrufu hem de motor güvenliği için birlikte değiştirilmelidir.',
+        searchQuery: 'Devirdaim Su Pompası'
+      },
+      {
+        name: 'Triger Gergi Rulmanı & Avara Bilyası',
+        category: 'Eksantrik Mekanizması',
+        partGroup: 'Motor Mekanik',
+        reason: 'Aşınan bilyaların kilitlenmesi yeni takılan triger kayışını koparabileceğinden her triger değişiminde set olarak yenilenmelidir.',
+        searchQuery: 'Triger Gergi Rulmanı'
+      },
+      {
+        name: 'V Kayışı (Alternatör / Şarj Kayışı)',
+        category: 'Aksesuar Tahrik Grubu',
+        partGroup: 'Motor Mekanik',
+        reason: 'Dış tahrik kayışı triger ile aynı servis ömrüne sahiptir; sökülmüşken sıfırlanmalıdır.',
+        searchQuery: 'V Kayışı'
+      },
+      {
+        name: 'Organik Kırmızı Antifriz (-40°C)',
+        category: 'Bakım & Sıvı Grubu',
+        partGroup: 'Sıvı & Yağ',
+        reason: 'Devirdaim değişimi esnasında boşalan motor soğutma suyunun koruyucu taze antifriz ile tamamlanması gerekir.',
+        searchQuery: 'Organik Antifriz'
+      }
+    ];
+  }
+
+  // 2. Fren Balatası Grubu (Örn: Fren Diski, Aşınma Sensörü, Fren Hidroliği)
+  if (/(fren\s*balata|brake\s*pad|balata\s*takım|fren\s*pabuç|brake\s*shoe|ön\s*balata|arka\s*balata)/i.test(combined)) {
+    return [
+      {
+        name: 'Hava Kanallı Fren Diski Takımı',
+        category: 'Fren Sistemi',
+        partGroup: 'Fren Grubu',
+        reason: 'Aşınmış veya dalgalı diskler yeni balatanın erken bitmesine ve pedalda titremeye neden olur; kalınlık ölçülerek yenilenmelidir.',
+        searchQuery: 'Fren Diski'
+      },
+      {
+        name: 'Fren Balata Aşınma İkaz Sensörü',
+        category: 'Fren Elektrik & Sensör',
+        partGroup: 'Fren Grubu',
+        reason: 'Eski aşınmış sensörler gösterge panelinde arıza lambası yakmaya devam edeceğinden balata ile birlikte değiştirilmelidir.',
+        searchQuery: 'Fren Uyarı Sensörü'
+      },
+      {
+        name: 'DOT 4 Yüksek Performans Fren Hidrolik Yağı',
+        category: 'Fren Sıvıları',
+        partGroup: 'Sıvı & Yağ',
+        reason: 'Kaliper montajında hidrolik sistem basıncını ve kaynama noktasını güvenceye almak için önerilir.',
+        searchQuery: 'DOT 4 Fren Hidroliği'
+      },
+      {
+        name: 'Balata Temizleme Spreyi (500 ml)',
+        category: 'Servis Kimyasalları',
+        partGroup: 'Bakım Kimyasalları',
+        reason: 'Montaj esnasında kaliper yuvalarındaki balata tozunu ve yağ kalıntılarını temizlemek için kullanılır.',
+        searchQuery: 'Balata Spreyi'
+      }
+    ];
+  }
+
+  // 3. Fren Diski Grubu (Örn: Balata Takımı, Kaliper Tamir Takımı)
+  if (/(fren\s*disk|brake\s*disc|rotor|disk\s*ayna)/i.test(combined)) {
+    return [
+      {
+        name: 'Fren Balata Takımı',
+        category: 'Fren Sistemi',
+        partGroup: 'Fren Grubu',
+        reason: 'Yeni takılan sıfır fren diskine kesinlikle eski balata takılmamalıdır; disk ve balata her zaman eş zamanlı değiştirilmelidir.',
+        searchQuery: 'Fren Balatası'
+      },
+      {
+        name: 'Fren Kaliper Pimi ve Körük Tamir Kiti',
+        category: 'Fren Mekanizması',
+        partGroup: 'Fren Grubu',
+        reason: 'Kaliper kızaklarının rahat hareket etmesini sağlayarak diskin tek taraflı aşınmasını önler.',
+        searchQuery: 'Kaliper Tamir Takımı'
+      },
+      {
+        name: 'Balata Temizleme Spreyi (500 ml)',
+        category: 'Servis Kimyasalları',
+        partGroup: 'Bakım Kimyasalları',
+        reason: 'Disk üzerindeki nakliye koruma yağını arındırmak için montaj öncesi zorunludur.',
+        searchQuery: 'Balata Spreyi'
+      }
+    ];
+  }
+
+  // 4. Periyodik Bakım & Filtre Grubu (Örn: Motor Yağı, Karter Tapası, Polen Filtresi)
+  if (/(yağ\s*filtre|oil\s*filter|hava\s*filtre|air\s*filter|polen\s*filtre|kabin\s*filtre|yakıt\s*filtre|fuel\s*filter|mazot\s*filtre|bakım\s*set|filtre)/i.test(combined)) {
+    return [
+      {
+        name: 'Tam Sentetik Motor Yağı (5W-30 / 5W-40)',
+        category: 'Motor Yağları',
+        partGroup: 'Sıvı & Yağ',
+        reason: 'Yağ filtresi değişimi motor yağı ile birlikte periyodik bakımın en temel unsurudur; üretici onaylı sentetik yağ kullanılmalıdır.',
+        searchQuery: 'Motor Yağı'
+      },
+      {
+        name: 'Karter Tapası ve Bakır Pul Kiti',
+        category: 'Motor Mekanik',
+        partGroup: 'Motor',
+        reason: 'Her yağ boşaltımında karter tapa pulunun sıfırlanması karterden yağ sızıntısı riskini ortadan kaldırır.',
+        searchQuery: 'Karter Tapası'
+      },
+      {
+        name: 'Karbonlu Polen (Kabin) Filtresi',
+        category: 'Filtre Grubu',
+        partGroup: 'Periyodik Bakım',
+        reason: 'Klima verimi ve araç içi hava kalitesi için motor filtreleriyle eş zamanlı değiştirilmelidir.',
+        searchQuery: 'Polen Filtresi'
+      },
+      {
+        name: 'Motor Hava Filtresi',
+        category: 'Filtre Grubu',
+        partGroup: 'Periyodik Bakım',
+        reason: 'Optimum yakıt-hava karışımı ve motor sağlığı için her periyodik bakımda yenilenmelidir.',
+        searchQuery: 'Hava Filtresi'
+      }
+    ];
+  }
+
+  // 5. Amortisör & Süspansiyon Grubu (Örn: Takoz, Toz Körüğü, Z-Rot)
+  if (/(amortisör|amortisor|shock\s*absorber|helezon|strut|yay)/i.test(combined)) {
+    return [
+      {
+        name: 'Amortisör Üst Takozu & Bilyası',
+        category: 'Süspansiyon Sistemi',
+        partGroup: 'Yürüyen Aksam',
+        reason: 'Amortisör kulesi söküldüğünde direksiyon dönüşlerindeki vuruntu ve sesleri engellemek için takoz yenilenmelidir.',
+        searchQuery: 'Amortisör Takozu'
+      },
+      {
+        name: 'Amortisör Toz Körüğü & Darbe Takozu Kiti',
+        category: 'Süspansiyon Koruması',
+        partGroup: 'Yürüyen Aksam',
+        reason: 'Amortisör milini çakıl, çamur ve tozdan koruyarak keçelerin patlamasını önler.',
+        searchQuery: 'Amortisör Toz Körüğü'
+      },
+      {
+        name: 'Z-Rot (Viraj Askı Rotu Takımı)',
+        category: 'Ön Düzen',
+        partGroup: 'Yürüyen Aksam',
+        reason: 'Süspansiyon dengesi ve viraj kabiliyeti için amortisör yenilemelerinde kontrol edilip çift olarak değiştirilmelidir.',
+        searchQuery: 'Z Rot'
+      }
+    ];
+  }
+
+  // 6. Debriyaj & Şanzıman Grubu (Örn: Debriyaj Rulmanı, Krank Keçesi, Şanzıman Yağı)
+  if (/(debriyaj|clutch|baskı\s*balata|baski\s*balata|volant|flywheel)/i.test(combined)) {
+    return [
+      {
+        name: 'Hidrolik Debriyaj Rulmanı (Merkezi Rulman)',
+        category: 'Debriyaj & Aktarma',
+        partGroup: 'Şanzıman Grubu',
+        reason: 'Şanzıman indirilmişken rulmanın mutlaka baskı balata ile takım halinde yenilenmesi gerekir.',
+        searchQuery: 'Debriyaj Rulmanı'
+      },
+      {
+        name: 'Krank Arka Yağ Keçesi',
+        category: 'Motor Keçeleri',
+        partGroup: 'Motor',
+        reason: 'Volant söküldüğünde krank arkasındaki keçenin değiştirilmesi ileride oluşabilecek şanzıman içi yağ kaçaklarını önler.',
+        searchQuery: 'Krank Arka Keçesi'
+      },
+      {
+        name: 'Şanzıman Dişli Yağı (75W-80 Tam Sentetik)',
+        category: 'Şanzıman Yağları',
+        partGroup: 'Sıvı & Yağ',
+        reason: 'Akslar ve şanzıman söküldüğünde boşalan şanzıman sıvısının taze sentetik yağ ile doldurulması gerekir.',
+        searchQuery: 'Şanzıman Yağı'
+      }
+    ];
+  }
+
+  // 7. Ateşleme Grubu (Örn: Ateşleme Bobini, Buji Kablosu)
+  if (/(buji|spark\s*plug|ateşleme\s*bobin|atesleme\s*bobin|ignition\s*coil)/i.test(combined)) {
+    return [
+      {
+        name: 'Elektronik Ateşleme Bobini',
+        category: 'Ateşleme Sistemi',
+        partGroup: 'Elektrik & Ateşleme',
+        reason: 'Bujilerle birlikte yüksek voltaj üreten bobinlerin yenilenmesi motor tekleme problemlerini tamamen çözer.',
+        searchQuery: 'Ateşleme Bobini'
+      },
+      {
+        name: 'Yüksek Isı Dayanımlı Buji Kablo Takımı',
+        category: 'Ateşleme Sistemi',
+        partGroup: 'Elektrik & Ateşleme',
+        reason: 'Ateşleme ark kaçaklarını önlemek için kablo takımının periyodik yenilenmesi tavsiye edilir.',
+        searchQuery: 'Buji Kablosu'
+      }
+    ];
+  }
+
+  // 8. Devirdaim / Soğutma Grubu (Örn: Termostat, Antifriz, V Kayışı)
+  if (/(devirdaim|su\s*pompa|water\s*pump|termostat|thermostat|radyatör|radyator|radiator)/i.test(combined)) {
+    return [
+      {
+        name: 'Motor Termostatı ve Conta Gövdesi',
+        category: 'Motor Soğutma',
+        partGroup: 'Motor',
+        reason: 'Soğutma sıvısı boşaltıldığında motor çalışma sıcaklığının stabil kalması için termostat yenilenmelidir.',
+        searchQuery: 'Termostat'
+      },
+      {
+        name: 'Organik Antifriz (-40°C)',
+        category: 'Sıvı Grubu',
+        partGroup: 'Sıvı & Yağ',
+        reason: 'Sistem korozyonunu ve donmayı engellemek için taze antifriz ilave edilmelidir.',
+        searchQuery: 'Organik Antifriz'
+      },
+      {
+        name: 'V Kayışı (Alternatör Kayışı)',
+        category: 'Mekanik Kayışlar',
+        partGroup: 'Motor Mekanik',
+        reason: 'Su pompasını tahrik eden kayışın durumu kontrol edilip yenilenmelidir.',
+        searchQuery: 'V Kayışı'
+      }
+    ];
+  }
+
+  // 9. Genel Tamamlayıcı / Standart Montaj Parçaları
+  return [
+    {
+      name: 'Montaj Civata & Bağlantı Donanım Seti',
+      category: 'Bağlantı Elemanları',
+      partGroup: 'Montaj Aksamı',
+      reason: 'Yüksek tork ve güvenli mekanik sabitleme için orijinal sınıf yeni bağlantı elemanları kullanılması tavsiye edilir.',
+      searchQuery: 'Montaj Civatası'
+    },
+    {
+      name: 'Yüksek Sıcaklık Dayanımlı Sıvı Conta (Gri/Siyah)',
+      category: 'Servis Kimyasalları',
+      partGroup: 'Bakım Kimyasalları',
+      reason: 'Flanş ve kapak birleşim yerlerinde tam sızdırmazlık sağlamak amacıyla kullanılır.',
+      searchQuery: 'Sıvı Conta'
+    }
+  ];
+}
+
+/**
  * Doğrulanmış bir katalog parçası (VIN ağacından, DB'den veya araç kataloğundan gelen gerçek OEM parça)
  * için Parts Catalog API'nin döndürmediği diğer üretici OEM revizyonlarını, marka bazlı yan sanayi
  * muadil referans kodlarını (Bosch, TRW, Valeo, AYD, Gates, INA vb.) ve mühendislik teknik
@@ -1408,12 +1762,18 @@ function buildDeterministicCrossReferencesAndSpecs({
     }
   }
 
+  // 3. Tahmini İşçilik Süresi (Labor Time) ve Birlikte Alınanlar (Cross-Sell Engine)
+  const specsWithLabor = technicalSpecs && typeof technicalSpecs === 'object' ? { ...technicalSpecs } : {};
+  specsWithLabor.estimatedLaborTime = estimateLaborTime(partName, partGroup, '', specsWithLabor);
+  const recommendedTogether = getRecommendedTogether(partName, partGroup, cleanOe);
+
   return {
     rootOEM: cleanOe,
     originalOEMs: mergedOems,
     extraOEMs: extraOEMs.filter((o) => normalizeCode(o) !== cleanOe),
     referenceCodes,
-    technicalSpecs
+    technicalSpecs: specsWithLabor,
+    recommendedTogether
   };
 }
 
@@ -2064,6 +2424,21 @@ async function executeDeepCrossReferenceSearch(arg1, arg2 = {}) {
     persistCrossReferenceGraph(resolvedRootOEM, originalOEMs, referenceCodes).catch(() => {});
   }
 
+  // Tahmini İşçilik Süresi (Labor Time) ve Birlikte Alınanlar (Cross-Sell Engine)
+  const specsWithLabor = technicalSpecs && typeof technicalSpecs === 'object' ? { ...technicalSpecs } : {};
+  specsWithLabor.estimatedLaborTime = estimateLaborTime(
+    resolvedPartName || searchedQuery,
+    resolvedPartGroup || '',
+    '',
+    specsWithLabor
+  );
+
+  const recommendedTogether = getRecommendedTogether(
+    resolvedPartName || searchedQuery,
+    resolvedPartGroup || '',
+    searchedQuery
+  );
+
   const strictPayload = {
     success: true,
     searchedCode,
@@ -2071,7 +2446,8 @@ async function executeDeepCrossReferenceSearch(arg1, arg2 = {}) {
     ...(resolvedRootOEM ? { rootOEM: resolvedRootOEM } : {}),
     originalOEMs,
     referenceCodes,
-    ...(technicalSpecs ? { technicalSpecs } : {}),
+    technicalSpecs: specsWithLabor,
+    recommendedTogether,
     images: finalImages,
     ...(schemaSourceCode ? { schemaSourceCode } : {}),
     ...(resolvedPartName ? { partName: resolvedPartName } : {}),
@@ -3847,5 +4223,7 @@ module.exports = {
   searchVinNumber,
   searchOeNumber,
   enrichProductData,
+  estimateLaborTime,
+  getRecommendedTogether,
   vinPartCatalogCache
 };

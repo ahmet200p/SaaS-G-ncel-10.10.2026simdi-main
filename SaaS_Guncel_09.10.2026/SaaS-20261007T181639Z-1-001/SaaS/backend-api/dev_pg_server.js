@@ -74,6 +74,25 @@ async function startServer() {
       CREATE INDEX IF NOT EXISTS "PartCrossReference_normalizedCode_idx" ON "PartCrossReference"("normalizedCode");
       CREATE INDEX IF NOT EXISTS "PartCrossReference_rootOEM_idx" ON "PartCrossReference"("rootOEM");
       CREATE INDEX IF NOT EXISTS "PartCrossReference_productId_idx" ON "PartCrossReference"("productId");
+      ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "vin" TEXT;
+      CREATE INDEX IF NOT EXISTS "Order_vin_idx" ON "Order"("vin");
+      CREATE TABLE IF NOT EXISTS "GarageVehicle" (
+        "id" TEXT NOT NULL,
+        "userId" TEXT NOT NULL,
+        "vin" TEXT NOT NULL,
+        "plate" TEXT,
+        "customerName" TEXT,
+        "lastServiceDate" TIMESTAMP(3),
+        "vehicleBrand" TEXT,
+        "model" TEXT,
+        "notes" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "GarageVehicle_pkey" PRIMARY KEY ("id"),
+        CONSTRAINT "GarageVehicle_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS "GarageVehicle_userId_idx" ON "GarageVehicle"("userId");
+      CREATE INDEX IF NOT EXISTS "GarageVehicle_vin_idx" ON "GarageVehicle"("vin");
     `);
   } catch (e) {}
 

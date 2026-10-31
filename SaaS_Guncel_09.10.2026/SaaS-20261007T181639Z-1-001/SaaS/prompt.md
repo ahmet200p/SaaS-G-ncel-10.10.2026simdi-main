@@ -1,10 +1,25 @@
-Kritik Veri Eşleşme (Mapping) Hatası:
-Şasi (VIN) sorgusu sonucunda dönen parça ağacında ciddi bir "Veri Kayması (Index Misalignment)" yaşanıyor. Ekranda 'Klima Radyatörü' yazan parçanın yanındaki OEM kodu aslında 'Aydınlatma' parçasına ait çıkıyor. JSON verisi ayrıştırılırken (parse edilirken) parça isimleri ve kodlar birbirine karışıyor.
+# PROJE GÖREVİ: "Oto Servis & Usta" Sadakat Modülleri - Backend Mimarisi
 
-Lütfen VIN API'sinden gelen veriyi işleyen arama motoru döngüsünü (map/forEach) derhal incele ve şu kuralları uygula:
+**GÖREV BİLDİRİMİ:**
+B2B AFS Systems platformuna ustaların işini kolaylaştıracak ve platform bağımlılığını artıracak 3 yeni modül ekliyoruz: Akıllı Garaj, Bakım Kitleri (Çapraz Satış) ve İşçilik Süresi. Aşağıdaki veritabanı (Prisma) ve API güncellemelerini kusursuz bir şekilde uygulamanı emrediyorum.
 
-Parça adı (partName) ve OEM kodu (oemCode) değerlerinin API yanıtındaki aynı (doğru) JSON objesi/düğümü içinden çekildiğinden %100 emin ol. İki farklı diziyi (array) manuel birleştiriyorsan bu işlemi iptal et; veriyi doğrudan ait olduğu benzersiz ID veya obje üzerinden eşle.
+**1. PRISMA SCHEMA GÜNCELLEMESİ (Akıllı Garaj Modülü):**
+Sisteme ustaların kendi müşterilerini ve araçlarını kaydedebileceği bir tablo ekle.
+- `GarageVehicle` adında bir model oluştur.
+- Alanlar: `id`, `userId` (Bayi/Usta ID'si ile ilişkili), `vin` (Şasi Numarası), `plate` (Plaka - Opsiyonel), `customerName` (Araç Sahibi), `lastServiceDate` (Son Bakım Tarihi), `createdAt`, `updatedAt`.
+- Bir ustanın (User) birden fazla aracı (GarageVehicle) olabilsin (One-to-Many).
 
-API sağlayıcısının (Parts Catalog) orijinal raw JSON yanıtını console.log ile kontrol et. Eğer API'nin kendisi bu veriyi hatalı gönderiyorsa, fetch isteğindeki kategori/grup parametrelerini gözden geçir.
+**2. GARAJ API ENDPOINT'LERİ (CRUD):**
+- `POST /api/garage` -> Şasi arama sonucundan dönen bir aracı tek tıkla ustanın garajına kaydetmek için. (vin, plate, customerName alacak).
+- `GET /api/garage` -> Ustanın kaydettiği tüm araçları listelemek için.
+- `GET /api/garage/history/:vin` -> Belirli bir şasiye geçmişte bu usta tarafından hangi parçaların sipariş edildiğini getiren sorgu.
 
-Kod eşleşmesi düzeltilene ve her parça kendi gerçek OEM kodunu gösterene kadar sistemi strict mode'da test et.
+**3. BAKIM KİTLERİ VE ÇAPRAZ SATIŞ (Cross-Sell Engine):**
+- Parça arama (Katalog) API'sini güncelle. Eğer kullanıcı 'Triger Kayışı' (veya belirli anahtar kelimelere sahip bir parça) aratıyorsa, JSON yanıtına `recommendedTogether` (Birlikte Alınanlar) adında bir dizi (array) ekle.
+- Şimdilik bu dizinin içine mantıksal olarak ilişkili parçaları (Örn: Triger aratana -> Devirdaim Pompası, Rulman) parça grubuna göre eşleştirip döndür. Amaç sepet ortalamasını artırmaktır.
+
+**4. İŞÇİLİK VE BAKIM SÜRESİ (Labor Time):**
+- Parça detay API yanıtındaki `technicalSpecs` objesinin içine `estimatedLaborTime` (Tahmini İşçilik Süresi) adında bir alan ekle. 
+- API/Katalog sağlayıcısından bu veri geliyorsa doğrudan yansıt, gelmiyorsa yedek parça kategorisine göre (Örn: Fren balatası için "45 Dk", Triger için "3 Saat", Filtre grubu için "30 Dk") koda basit bir tahmini eşleştirme (mapping) fonksiyonu yazarak bu veriyi frontend'e kesin olarak gönder.
+
+Kodu yaz, Prisma migrate işlemini hatırlat ve endpointleri hazırla.
