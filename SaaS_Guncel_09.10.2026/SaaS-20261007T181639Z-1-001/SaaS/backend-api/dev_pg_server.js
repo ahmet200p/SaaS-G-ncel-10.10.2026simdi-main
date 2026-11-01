@@ -93,6 +93,38 @@ async function startServer() {
       );
       CREATE INDEX IF NOT EXISTS "GarageVehicle_userId_idx" ON "GarageVehicle"("userId");
       CREATE INDEX IF NOT EXISTS "GarageVehicle_vin_idx" ON "GarageVehicle"("vin");
+      CREATE TABLE IF NOT EXISTS "NoHitLog" (
+        "id" TEXT NOT NULL,
+        "searchTerm" TEXT NOT NULL,
+        "searchType" TEXT NOT NULL,
+        "userId" TEXT,
+        "tenantId" TEXT,
+        "metadata" JSONB,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "NoHitLog_pkey" PRIMARY KEY ("id")
+      );
+      CREATE INDEX IF NOT EXISTS "NoHitLog_searchTerm_idx" ON "NoHitLog"("searchTerm");
+      CREATE INDEX IF NOT EXISTS "NoHitLog_searchType_idx" ON "NoHitLog"("searchType");
+      CREATE INDEX IF NOT EXISTS "NoHitLog_userId_idx" ON "NoHitLog"("userId");
+      CREATE INDEX IF NOT EXISTS "NoHitLog_tenantId_idx" ON "NoHitLog"("tenantId");
+      CREATE TABLE IF NOT EXISTS "CustomerQuote" (
+        "id" TEXT NOT NULL,
+        "userId" TEXT,
+        "tenantId" TEXT,
+        "customerName" TEXT NOT NULL,
+        "customerPhone" TEXT,
+        "totalPrice" DOUBLE PRECISION NOT NULL,
+        "items" JSONB NOT NULL,
+        "notes" TEXT,
+        "status" TEXT NOT NULL DEFAULT 'ACTIVE',
+        "validUntil" TIMESTAMP(3),
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "CustomerQuote_pkey" PRIMARY KEY ("id")
+      );
+      CREATE INDEX IF NOT EXISTS "CustomerQuote_userId_idx" ON "CustomerQuote"("userId");
+      CREATE INDEX IF NOT EXISTS "CustomerQuote_tenantId_idx" ON "CustomerQuote"("tenantId");
+      CREATE INDEX IF NOT EXISTS "CustomerQuote_customerName_idx" ON "CustomerQuote"("customerName");
     `);
   } catch (e) {}
 

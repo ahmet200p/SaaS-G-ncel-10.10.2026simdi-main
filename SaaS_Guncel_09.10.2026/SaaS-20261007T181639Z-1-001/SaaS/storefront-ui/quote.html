@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Müşteri Yedek Parça Teklifi</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen antialiased flex flex-col justify-between">
+
+  <!-- Üst Başlık & Logo -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-xs">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-black text-lg flex items-center justify-center shadow-md">
+          ⚙️
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-black text-slate-900 leading-tight" id="dealer-name">B2B Yedek Parça Teklifi</h1>
+          <span class="text-xs text-slate-500 font-medium">Yetkili Otomotiv & Yedek Parça Servisi</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" onclick="window.print()" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          Yazdır
+        </button>
+        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200" id="quote-status-badge">
+          ● Aktif Teklif
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Ana Teklif Alanı -->
+  <main class="max-w-4xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 flex-1">
+    
+    <!-- Yükleniyor Göstergesi -->
+    <div id="loading-state" class="py-20 text-center text-slate-500">
+      <div class="inline-block w-8 h-8 border-3 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-3"></div>
+      <div class="font-bold text-sm text-slate-800">Teklif Bilgileri Yükleniyor...</div>
+    </div>
+
+    <!-- Hata Durumu -->
+    <div id="error-state" class="hidden bg-rose-50 border border-rose-200 rounded-2xl p-8 text-center max-w-md mx-auto my-12">
+      <div class="text-3xl mb-2">⚠️</div>
+      <h3 class="text-base font-extrabold text-rose-900 mb-1" id="error-title">Teklif Bulunamadı</h3>
+      <p class="text-xs text-rose-700 leading-relaxed mb-4" id="error-message">Belirtilen teklif bağlantısı geçersiz veya süresi dolmuş olabilir.</p>
+      <a href="/storefront-ui/store.html" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800">
+        Kataloğa Dön
+      </a>
+    </div>
+
+    <!-- Teklif İçeriği Kartı -->
+    <div id="quote-content" class="hidden space-y-6">
+      
+      <!-- Üst Künye Bento Kartı -->
+      <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-5 sm:p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+          <div>
+            <span class="text-[11px] font-bold text-blue-600 uppercase tracking-wider block mb-1">Müşteri Teklifi</span>
+            <h2 class="text-xl sm:text-2xl font-black text-slate-900" id="customer-name">Sayın Müşteri</h2>
+            <p class="text-xs text-slate-500 font-mono mt-0.5" id="quote-uuid">Teklif No: -</p>
+          </div>
+          <div class="sm:text-right">
+            <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Teklif Tarihi</div>
+            <div class="text-sm font-bold text-slate-700" id="quote-date">-</div>
+            <div class="text-[11px] text-amber-600 font-medium mt-1" id="quote-validity">Geçerlilik: 7 Gün</div>
+          </div>
+        </div>
+
+        <!-- Teklif Notu (Varsa) -->
+        <div id="quote-notes-container" class="hidden mt-4 p-3.5 bg-amber-50/70 border border-amber-200/60 rounded-xl">
+          <div class="text-[11px] font-bold text-amber-800 uppercase tracking-wider mb-0.5">Teklif Açıklaması & Şartlar:</div>
+          <p class="text-xs text-amber-900 leading-relaxed" id="quote-notes-text"></p>
+        </div>
+      </div>
+
+      <!-- Parça Kalemleri Tablosu -->
+      <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden">
+        <div class="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
+          <h3 class="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2">
+            <span>📦</span> Teklif Edilen Parça Kalemleri
+          </h3>
+          <span class="text-xs font-bold text-slate-500" id="items-count-badge">0 Kalem</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr class="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                <th class="p-3 sm:p-4">Parça Adı</th>
+                <th class="p-3 sm:p-4">OE / OEM Kodu</th>
+                <th class="p-3 sm:p-4 text-center">Adet</th>
+                <th class="p-3 sm:p-4 text-right">Birim Fiyat</th>
+                <th class="p-3 sm:p-4 text-right">Tutar</th>
+              </tr>
+            </thead>
+            <tbody id="quote-items-tbody" class="divide-y divide-slate-100">
+              <!-- JS ile doldurulur -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Alt Toplamlar Çubuğu -->
+        <div class="p-4 sm:p-6 bg-slate-50/70 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="text-xs text-slate-500">
+            * Fiyatlar teklif tarihindeki stok ve bayi iskonto koşullarına göre hesaplanmıştır.
+          </div>
+          <div class="text-right space-y-1">
+            <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Genel Toplam (KDV Dahil)</div>
+            <div class="text-2xl sm:text-3xl font-black text-emerald-600 font-mono" id="quote-total-price">0.00 TL</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WhatsApp ile Teyit / Sipariş Butonu -->
+      <div class="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-2xl p-5 sm:p-6 text-white shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h4 class="text-base font-black flex items-center gap-2">
+            <span>📱</span> Bu Teklifi Onaylamak İstiyor musunuz?
+          </h4>
+          <p class="text-xs text-emerald-100 mt-1">
+            Teklifi onaylamak ve siparişinizi hazırlatmak için doğrudan WhatsApp üzerinden bayimize yazabilirsiniz.
+          </p>
+        </div>
+        <a id="btn-whatsapp-confirm" href="#" target="_blank" class="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-white hover:bg-emerald-50 text-emerald-700 font-black text-sm shadow-md transition-all active:scale-98 shrink-0">
+          <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+            <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.694.074-2.127-.518-1.574-.652-2.588-2.257-2.666-2.361-.078-.105-.638-.85-.638-1.622 0-.771.405-1.15.549-1.306.144-.157.315-.196.42-.196.105 0 .21 0 .301.006.098.006.23.018.334.269.125.301.42 1.033.458 1.109.039.077.065.166.013.27-.052.105-.078.17-.156.262-.078.092-.164.205-.235.275-.078.079-.16.164-.069.321.092.157.409.675.877 1.092.602.537 1.109.704 1.267.782.157.079.249.066.341-.039.092-.105.393-.458.498-.615.105-.157.21-.131.353-.079.144.052.916.432 1.073.511.157.079.262.118.301.184.039.066.039.38-.105.785z"/>
+          </svg>
+          <span>WhatsApp ile Teyit Et</span>
+        </a>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Alt Bilgi -->
+  <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400">
+    Multi-Tenant B2B Yedek Parça SaaS Altyapısı • Güvenli Müşteri Teklif Portalı
+  </footer>
+
+  <script>
+    (function () {
+      function getQuoteId() {
+        const urlParams = new URLSearchParams(window.location.search);
+        let id = urlParams.get('id') || urlParams.get('uuid');
+        if (!id) {
+          const pathSegments = window.location.pathname.split('/').filter(Boolean);
+          const quoteIndex = pathSegments.findIndex(s => s === 'quote' || s === 'quotes');
+          if (quoteIndex !== -1 && pathSegments[quoteIndex + 1]) {
+            id = pathSegments[quoteIndex + 1];
+          }
+        }
+        return id ? id.replace(/\.html$/i, '') : null;
+      }
+
+      function escapeHtml(text) {
+        if (!text) return '';
+        return String(text)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
+      async function loadQuote() {
+        const quoteId = getQuoteId();
+        const loadingEl = document.getElementById('loading-state');
+        const errorEl = document.getElementById('error-state');
+        const contentEl = document.getElementById('quote-content');
+
+        if (!quoteId) {
+          if (loadingEl) loadingEl.classList.add('hidden');
+          if (errorEl) {
+            errorEl.classList.remove('hidden');
+            document.getElementById('error-title').textContent = 'Teklif Numarası Belirtilmedi';
+            document.getElementById('error-message').textContent = 'Lütfen geçerli bir teklif linki üzerinden giriş yapınız.';
+          }
+          return;
+        }
+
+        const isLocalHost = (
+          window.location.hostname === 'localhost' ||
+          window.location.hostname === '127.0.0.1' ||
+          window.location.port === '5000' ||
+          window.location.port === '5500' ||
+          window.location.hostname.endsWith('.onrender.com')
+        );
+
+        const candidateUrls = [
+          isLocalHost ? `/api/quotes/${quoteId}` : `https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api/quotes/${quoteId}`,
+          `/api/quotes/${quoteId}`,
+          `https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api/quotes/${quoteId}`
+        ];
+
+        let quoteData = null;
+
+        for (const url of candidateUrls) {
+          try {
+            const res = await fetch(url, {
+              headers: { 'Accept': 'application/json' }
+            });
+            if (res.ok) {
+              const json = await res.json();
+              if (json && json.success && json.data) {
+                quoteData = json.data;
+                break;
+              }
+            }
+          } catch (_) {}
+        }
+
+        if (loadingEl) loadingEl.classList.add('hidden');
+
+        if (!quoteData) {
+          if (errorEl) errorEl.classList.remove('hidden');
+          return;
+        }
+
+        if (contentEl) contentEl.classList.remove('hidden');
+
+        // Başlık ve Künye
+        if (quoteData.dealerName) {
+          document.getElementById('dealer-name').textContent = quoteData.dealerName;
+        }
+        document.getElementById('customer-name').textContent = 'Sayın ' + (quoteData.customerName || 'Müşteri');
+        document.getElementById('quote-uuid').textContent = `Teklif Referansı: #${quoteData.id}`;
+
+        const createdDate = quoteData.createdAt ? new Date(quoteData.createdAt) : new Date();
+        document.getElementById('quote-date').textContent = createdDate.toLocaleDateString('tr-TR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+
+        if (quoteData.validUntil) {
+          const validDate = new Date(quoteData.validUntil);
+          document.getElementById('quote-validity').textContent = `Geçerlilik: ${validDate.toLocaleDateString('tr-TR')}`;
+        }
+
+        // Notlar
+        if (quoteData.notes) {
+          const notesBox = document.getElementById('quote-notes-container');
+          const notesText = document.getElementById('quote-notes-text');
+          if (notesBox && notesText) {
+            notesText.textContent = quoteData.notes;
+            notesBox.classList.remove('hidden');
+          }
+        }
+
+        // Parça Kalemleri
+        const items = Array.isArray(quoteData.items) ? quoteData.items : [];
+        const tbody = document.getElementById('quote-items-tbody');
+        if (tbody) {
+          tbody.innerHTML = '';
+          items.forEach((item, idx) => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50/80 transition-colors';
+            const unitP = parseFloat(item.unitPrice || 0);
+            const totalP = parseFloat(item.totalPrice || (unitP * (parseInt(item.quantity, 10) || 1)));
+
+            tr.innerHTML = `
+              <td class="p-3 sm:p-4 font-bold text-slate-900">
+                ${escapeHtml(item.partName || `Parça ${idx + 1}`)}
+                ${item.brand ? `<span class="block text-[11px] font-semibold text-blue-600">${escapeHtml(item.brand)}</span>` : ''}
+              </td>
+              <td class="p-3 sm:p-4 font-mono font-bold text-slate-700">${escapeHtml(item.oemCode || '-')}</td>
+              <td class="p-3 sm:p-4 text-center font-bold text-slate-900">${parseInt(item.quantity, 10) || 1}</td>
+              <td class="p-3 sm:p-4 text-right font-mono font-semibold text-slate-700">${unitP.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</td>
+              <td class="p-3 sm:p-4 text-right font-mono font-extrabold text-slate-900">${totalP.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+
+        document.getElementById('items-count-badge').textContent = `${items.length} Kalem Parça`;
+        const total = parseFloat(quoteData.totalPrice || 0);
+        document.getElementById('quote-total-price').textContent = total.toLocaleString('tr-TR', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }) + ' TL';
+
+        // WhatsApp Teyit Butonu
+        const btnWa = document.getElementById('btn-whatsapp-confirm');
+        if (btnWa) {
+          const confirmMsg =
+            `Merhaba, #${quoteData.id.slice(0, 8)} referanslı ${total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL tutarındaki yedek parça teklifinizi onaylıyorum. ` +
+            `Siparişimi hazırlayabilirsiniz.`;
+          btnWa.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(confirmMsg)}`;
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', loadQuote);
+    })();
+  </script>
+</body>
+</html>

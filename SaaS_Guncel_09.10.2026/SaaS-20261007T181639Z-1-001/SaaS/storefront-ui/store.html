@@ -801,6 +801,14 @@
         <span>Siparişi Onayla</span>
       </button>
 
+      <!-- WhatsApp Teklif Oluştur Butonu (prompt.md: POST /api/quotes/generate -> /quote/:uuid) -->
+      <button type="button" class="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98" id="btn-create-whatsapp-quote" onclick="openWhatsAppQuoteModal()">
+        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+          <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.694.074-2.127-.518-1.574-.652-2.588-2.257-2.666-2.361-.078-.105-.638-.85-.638-1.622 0-.771.405-1.15.549-1.306.144-.157.315-.196.42-.196.105 0 .21 0 .301.006.098.006.23.018.334.269.125.301.42 1.033.458 1.109.039.077.065.166.013.27-.052.105-.078.17-.156.262-.078.092-.164.205-.235.275-.078.079-.16.164-.069.321.092.157.409.675.877 1.092.602.537 1.109.704 1.267.782.157.079.249.066.341-.039.092-.105.393-.458.498-.615.105-.157.21-.131.353-.079.144.052.916.432 1.073.511.157.079.262.118.301.184.039.066.039.38-.105.785z"/>
+        </svg>
+        <span>📱 WhatsApp Teklifi Paylaş</span>
+      </button>
+
     </div>
 
   </aside>
@@ -1059,6 +1067,48 @@
   </div>
 
   
+
+  <!-- 7. WHATSAPP MÜŞTERİ TEKLİFİ MODALI (prompt.md: POST /api/quotes/generate -> /quote/:uuid) -->
+  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 items-center justify-center p-4 hidden" id="modal-quote-backdrop" onclick="closeWhatsAppQuoteModal()">
+    <div class="bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-md overflow-hidden p-6 sm:p-8" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+        <div>
+          <h3 class="text-xl font-black text-slate-900 flex items-center gap-2">
+            <span class="text-emerald-600">📱</span> WhatsApp Müşteri Teklifi
+          </h3>
+          <span class="text-xs text-slate-500 font-medium">Sepetteki parçaları WhatsApp teklif linki olarak hazırlayın</span>
+        </div>
+        <button type="button" class="text-slate-400 hover:text-slate-700 p-2 text-lg font-bold cursor-pointer" onclick="closeWhatsAppQuoteModal()">✕</button>
+      </div>
+
+      <form class="space-y-4" id="form-whatsapp-quote" onsubmit="event.preventDefault(); submitWhatsAppQuote();">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5" for="quote-customer-name">Müşteri / Servis Adı <span class="text-rose-500">*</span></label>
+          <input type="text" id="quote-customer-name" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Örn: Ahmet Usta / Yıldız Otomotiv" required>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5" for="quote-customer-phone">WhatsApp Numarası (Opsiyonel)</label>
+          <input type="tel" id="quote-customer-phone" class="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono" placeholder="Örn: 0532 123 45 67">
+          <span class="text-[11px] text-slate-400 mt-1 block">Numara girilirse doğrudan müşterinin sohbet penceresi açılır.</span>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5" for="quote-notes">Teklif Notu (Opsiyonel)</label>
+          <textarea id="quote-notes" rows="2" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Örn: Fiyatlara montaj dahil değildir. 7 gün geçerlidir."></textarea>
+        </div>
+
+        <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex justify-between items-center text-xs">
+          <span class="font-bold text-emerald-900" id="quote-modal-items-count">0 Parça Kalemi</span>
+          <span class="font-black text-emerald-700 text-sm" id="quote-modal-total-price">0.00 TL</span>
+        </div>
+
+        <button type="submit" id="btn-generate-quote-submit" class="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-lg shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98">
+          <span>🚀 Teklif Linki Üret & WhatsApp'ta Aç</span>
+        </button>
+      </form>
+    </div>
+  </div>
 
   <!-- 6. RESİM BÜYÜTME (LIGHTBOX) MODALI -->
   <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 items-center justify-center p-4 hidden" id="modal-image-lightbox" onclick="closeImageModal()">
@@ -1379,9 +1429,21 @@
       const slug = (typeof getStoreSubdomain === 'function') ? getStoreSubdomain() : 'ahmetoto';
       defaultHeaders['X-Tenant-Slug'] = slug;
 
-      const baseUrl = (window.API_BASE_URL || window.API_BASE || 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api').replace(/\/+$/, '');
+      const isLocalHost = typeof window !== 'undefined' && (
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.port === '5000' ||
+        window.location.port === '5500' ||
+        window.location.hostname.endsWith('.onrender.com')
+      );
+      const defaultBase = isLocalHost ? '/api' : 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api';
+      const baseUrl = (window.API_BASE_URL || window.API_BASE || defaultBase).replace(/\/+$/, '');
       const cleanEndpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
-      const targetUrl = endpoint.startsWith('http') ? endpoint : (endpoint.startsWith('/api') ? `https://saas-g-ncel-10-10-2026simdi-main.onrender.com${endpoint}` : `${baseUrl}${cleanEndpoint}`);
+      const targetUrl = endpoint.startsWith('http')
+        ? endpoint
+        : (endpoint.startsWith('/api')
+          ? (isLocalHost ? endpoint : `https://saas-g-ncel-10-10-2026simdi-main.onrender.com${endpoint}`)
+          : `${baseUrl}${cleanEndpoint}`);
 
       const config = {
         ...options,
@@ -1670,10 +1732,9 @@
         let res = null;
 
         const candidateEndpoints = [
-          `https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api/store/products?${queryString}`,
-          `https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api/store/products?${queryString}`,
           `/api/store/products?${queryString}`,
-          `/api/products?${queryString}`
+          `/api/products?${queryString}`,
+          `https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api/store/products?${queryString}`
         ];
 
         const token = localStorage.getItem('token');
@@ -1708,6 +1769,11 @@
           allProductsData = [];
         }
 
+        // prompt.md Kural 2: Frontend'de arama sonucu '0' döndüğünde POST /api/analytics/no-hit sessizce tetiklenir
+        if (currentSearchQuery && allProducts.length === 0) {
+          sendNoHitLog(currentSearchQuery, currentSearchType);
+        }
+
         renderProductsGrid();
       } catch (err) {
         console.error('[LOAD_PRODUCTS_ERROR]:', err);
@@ -1715,6 +1781,46 @@
         allProductsData = [];
         renderProductsGrid();
       }
+    }
+
+    // prompt.md: Kayıp Arama (No-Hit Log) Gönderici Fonksiyonu (Sessiz 200 OK)
+    async function sendNoHitLog(searchTerm, searchType) {
+      if (!searchTerm || typeof searchTerm !== 'string') return;
+      try {
+        const cleanTerm = searchTerm.trim();
+        if (!cleanTerm) return;
+        const normType = (searchType === 'vin' || /^[A-HJ-NPR-Z0-9]{11,17}$/i.test(cleanTerm))
+          ? 'VIN'
+          : (searchType === 'oe' ? 'OEM' : 'KEYWORD');
+
+        const activeSlug = (typeof getStoreSubdomain === 'function') ? getStoreSubdomain() : 'ahmetoto';
+        const isLocalHost = typeof window !== 'undefined' && (
+          window.location.hostname === 'localhost' ||
+          window.location.hostname === '127.0.0.1' ||
+          window.location.port === '5000' ||
+          window.location.port === '5500' ||
+          window.location.hostname.endsWith('.onrender.com')
+        );
+        const endpoint = isLocalHost ? '/api/analytics/no-hit' : 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api/analytics/no-hit';
+        await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Tenant-Slug': activeSlug
+          },
+          body: JSON.stringify({
+            searchTerm: cleanTerm,
+            searchType: normType,
+            metadata: {
+              source: 'storefront',
+              subdomain: activeSlug,
+              brand: currentBrand !== 'ALL' ? currentBrand : null,
+              category: currentCategory !== 'ALL' ? currentCategory : null
+            }
+          })
+        });
+      } catch (_) {}
     }
 
     // --------------------------------------------------------------------------
@@ -2188,6 +2294,143 @@
             </svg>
             <span>Siparişi Onayla</span>
           `;
+        }
+      }
+    }
+
+    // --------------------------------------------------------------------------
+    // 6.5. WHATSAPP MÜŞTERİ TEKLİFİ OLUŞTURMA (prompt.md: POST /api/quotes/generate)
+    // --------------------------------------------------------------------------
+    function openWhatsAppQuoteModal() {
+      if (!cart || cart.length === 0) {
+        showToast('Teklif oluşturmak için sepetinize en az bir ürün ekleyiniz.', 'warning');
+        return;
+      }
+
+      const modal = document.getElementById('modal-quote-backdrop');
+      const itemsCountEl = document.getElementById('quote-modal-items-count');
+      const totalPriceEl = document.getElementById('quote-modal-total-price');
+
+      let totalQty = 0;
+      let totalSum = 0;
+      for (const item of cart) {
+        const qty = parseInt(item.quantity, 10) || 1;
+        const price = parseFloat(item.price || item.customPrice || item.defaultPrice || 0);
+        totalQty += qty;
+        totalSum += price * qty;
+      }
+
+      if (itemsCountEl) itemsCountEl.textContent = `${cart.length} Kalem (${totalQty} Adet Parça)`;
+      if (totalPriceEl) totalPriceEl.textContent = totalSum.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL';
+
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        const nameInput = document.getElementById('quote-customer-name');
+        if (nameInput) setTimeout(() => nameInput.focus(), 100);
+      }
+    }
+
+    function closeWhatsAppQuoteModal() {
+      const modal = document.getElementById('modal-quote-backdrop');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    async function submitWhatsAppQuote() {
+      const nameInput = document.getElementById('quote-customer-name');
+      const phoneInput = document.getElementById('quote-customer-phone');
+      const notesInput = document.getElementById('quote-notes');
+      const submitBtn = document.getElementById('btn-generate-quote-submit');
+
+      const customerName = nameInput ? nameInput.value.trim() : '';
+      const customerPhone = phoneInput ? phoneInput.value.trim() : '';
+      const notes = notesInput ? notesInput.value.trim() : '';
+
+      if (!customerName) {
+        showToast('Lütfen müşteri veya servis adını giriniz.', 'warning');
+        if (nameInput) nameInput.focus();
+        return;
+      }
+
+      if (!cart || cart.length === 0) {
+        showToast('Sepetiniz boş!', 'warning');
+        return;
+      }
+
+      const origText = submitBtn ? submitBtn.innerHTML : '';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `
+          <div class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          <span>Teklif Oluşturuluyor...</span>
+        `;
+      }
+
+      try {
+        const isLocalHost = typeof window !== 'undefined' && (
+          window.location.hostname === 'localhost' ||
+          window.location.hostname === '127.0.0.1' ||
+          window.location.port === '5000' ||
+          window.location.port === '5500' ||
+          window.location.hostname.endsWith('.onrender.com')
+        );
+        const endpoint = isLocalHost ? '/api/quotes/generate' : 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api/quotes/generate';
+
+        const quoteItems = cart.map(item => ({
+          partName: item.name || item.partName || item.product?.name || 'Yedek Parça',
+          oemCode: item.oeNumber || item.oemCode || item.code || '-',
+          quantity: parseInt(item.quantity, 10) || 1,
+          unitPrice: parseFloat(item.price || item.customPrice || item.defaultPrice || 0),
+          totalPrice: parseFloat(((item.price || 0) * (parseInt(item.quantity, 10) || 1)).toFixed(2)),
+          brand: item.vehicleBrand || item.brand || undefined,
+          imageUrl: item.imageUrl || undefined
+        }));
+
+        const totalQuotePrice = quoteItems.reduce((acc, curr) => acc + curr.totalPrice, 0);
+        const activeSlug = (typeof getStoreSubdomain === 'function') ? getStoreSubdomain() : 'ahmetoto';
+        const token = localStorage.getItem('token');
+        const headers = {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-Tenant-Slug': activeSlug
+        };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            customerName,
+            customerPhone: customerPhone || undefined,
+            notes: notes || undefined,
+            items: quoteItems,
+            totalPrice: totalQuotePrice
+          })
+        });
+
+        const json = await res.json();
+        if (res.ok && json.success) {
+          closeWhatsAppQuoteModal();
+          showToast('✅ WhatsApp Teklifi başarıyla oluşturuldu!', 'success');
+
+          if (json.data && json.data.whatsappShareUrl) {
+            window.open(json.data.whatsappShareUrl, '_blank');
+          } else if (json.data && json.data.fullQuoteUrl) {
+            window.open(json.data.fullQuoteUrl, '_blank');
+          }
+        } else {
+          showToast(json.message || 'Teklif oluşturulamadı.', 'danger');
+        }
+      } catch (err) {
+        console.error('[WHATSAPP_QUOTE_ERROR]:', err);
+        showToast('Teklif oluşturulurken bir hata oluştu: ' + err.message, 'danger');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = origText;
         }
       }
     }

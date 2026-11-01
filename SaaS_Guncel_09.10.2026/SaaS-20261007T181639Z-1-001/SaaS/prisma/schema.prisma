@@ -38,6 +38,12 @@ model User {
   // Akıllı Garaj Araçları (1-n)
   garageVehicles   GarageVehicle[]
 
+  // Kayıp Aramalar (No-Hit Logs) (1-n)
+  noHitLogs        NoHitLog[]
+
+  // Müşteri Teklifleri (WhatsApp Quotes) (1-n)
+  customerQuotes   CustomerQuote[]
+
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
@@ -65,6 +71,8 @@ model Tenant {
   stockMovements   StockMovement[]
   customerLedgers  CustomerLedger[]
   returnRequests   ReturnRequest[]
+  noHitLogs        NoHitLog[]
+  customerQuotes   CustomerQuote[]
 
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
@@ -384,5 +392,53 @@ model GarageVehicle {
 
   @@index([userId])
   @@index([vin])
+}
+
+// ----------------------------------------------------------------------------
+// 14. NO HIT LOG (Kayıp Arama Günlüğü - Pazarlama ve Büyüme Analitiği)
+// Bayilerin aratıp bulamadığı parça ve şasileri izlemek için
+// ----------------------------------------------------------------------------
+model NoHitLog {
+  id          String   @id @default(uuid())
+  searchTerm  String   // Aranan Şasi veya Parça
+  searchType  String   // VIN veya OEM veya KEYWORD
+  userId      String?  // Aramayı yapan bayi / kullanıcı (opsiyonel/misafir)
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tenantId    String?  // Aramanın yapıldığı bayi/tenant
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  metadata    Json?    // Ek arama detayları (IP, sonuç sayısı, filtreler)
+  createdAt   DateTime @default(now())
+
+  @@index([searchTerm])
+  @@index([searchType])
+  @@index([userId])
+  @@index([tenantId])
+  @@index([createdAt])
+}
+
+// ----------------------------------------------------------------------------
+// 15. CUSTOMER QUOTE (Müşteri Teklifi - WhatsApp & Hızlı Teklif Linki)
+// WhatsApp'tan paylaşılacak teklifleri kaydetmek için
+// ----------------------------------------------------------------------------
+model CustomerQuote {
+  id            String    @id @default(uuid()) // UUID - public link için (/quote/:uuid)
+  userId        String?   // Teklifi oluşturan bayi / kullanıcı
+  user          User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tenantId      String?   // Bayi / Tenant kimliği
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  customerName  String    // Teklif verilen müşteri / servis adı
+  customerPhone String?   // WhatsApp telefon numarası (Örn: +905321234567)
+  totalPrice    Float     // Toplam teklif tutarı (TL)
+  items         Json      // JSON formatında parçalar: [{ partName, oemCode, quantity, unitPrice, totalPrice }]
+  notes         String?   // Teklif açıklaması / özel şartlar
+  status        String    @default("ACTIVE") // ACTIVE, ACCEPTED, EXPIRED
+  validUntil    DateTime? // Teklif geçerlilik tarihi
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([customerName])
+  @@index([createdAt])
 }
 

@@ -1843,9 +1843,21 @@
       const slug = (typeof getStoreSubdomain === 'function') ? getStoreSubdomain() : 'ahmetoto';
       defaultHeaders['X-Tenant-Slug'] = slug;
 
-      const baseUrl = (window.API_BASE_URL || window.API_BASE || 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api').replace(/\/+$/, '');
+      const isLocalHost = typeof window !== 'undefined' && (
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.port === '5000' ||
+        window.location.port === '5500' ||
+        window.location.hostname.endsWith('.onrender.com')
+      );
+      const defaultBase = isLocalHost ? '/api' : 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api';
+      const baseUrl = (window.API_BASE_URL || window.API_BASE || defaultBase).replace(/\/+$/, '');
       const cleanEndpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
-      const targetUrl = endpoint.startsWith('http') ? endpoint : (endpoint.startsWith('/api') ? `https://saas-g-ncel-10-10-2026simdi-main.onrender.com${endpoint}` : `${baseUrl}${cleanEndpoint}`);
+      const targetUrl = endpoint.startsWith('http')
+        ? endpoint
+        : (endpoint.startsWith('/api')
+          ? (isLocalHost ? endpoint : `https://saas-g-ncel-10-10-2026simdi-main.onrender.com${endpoint}`)
+          : `${baseUrl}${cleanEndpoint}`);
 
       const config = {
         ...options,
@@ -2134,10 +2146,9 @@
         let res = null;
 
         const candidateEndpoints = [
-          `https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api/store/products?${queryString}`,
-          `https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api/store/products?${queryString}`,
           `/api/store/products?${queryString}`,
-          `/api/products?${queryString}`
+          `/api/products?${queryString}`,
+          `https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api/store/products?${queryString}`
         ];
 
         const token = localStorage.getItem('token');
@@ -2172,6 +2183,11 @@
           allProductsData = [];
         }
 
+        // prompt.md Kural 2: Frontend'de arama sonucu '0' döndüğünde POST /api/analytics/no-hit sessizce tetiklenir
+        if (currentSearchQuery && allProducts.length === 0) {
+          sendNoHitLog(currentSearchQuery, currentSearchType);
+        }
+
         renderProductsGrid();
       } catch (err) {
         console.error('[LOAD_PRODUCTS_ERROR]:', err);
@@ -2179,6 +2195,46 @@
         allProductsData = [];
         renderProductsGrid();
       }
+    }
+
+    // prompt.md: Kayıp Arama (No-Hit Log) Gönderici Fonksiyonu (Sessiz 200 OK)
+    async function sendNoHitLog(searchTerm, searchType) {
+      if (!searchTerm || typeof searchTerm !== 'string') return;
+      try {
+        const cleanTerm = searchTerm.trim();
+        if (!cleanTerm) return;
+        const normType = (searchType === 'vin' || /^[A-HJ-NPR-Z0-9]{11,17}$/i.test(cleanTerm))
+          ? 'VIN'
+          : (searchType === 'oe' ? 'OEM' : 'KEYWORD');
+
+        const activeSlug = (typeof getStoreSubdomain === 'function') ? getStoreSubdomain() : 'ahmetoto';
+        const isLocalHost = typeof window !== 'undefined' && (
+          window.location.hostname === 'localhost' ||
+          window.location.hostname === '127.0.0.1' ||
+          window.location.port === '5000' ||
+          window.location.port === '5500' ||
+          window.location.hostname.endsWith('.onrender.com')
+        );
+        const endpoint = isLocalHost ? '/api/analytics/no-hit' : 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api/analytics/no-hit';
+        await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Tenant-Slug': activeSlug
+          },
+          body: JSON.stringify({
+            searchTerm: cleanTerm,
+            searchType: normType,
+            metadata: {
+              source: 'storefront',
+              subdomain: activeSlug,
+              brand: currentBrand !== 'ALL' ? currentBrand : null,
+              category: currentCategory !== 'ALL' ? currentCategory : null
+            }
+          })
+        });
+      } catch (_) {}
     }
 
     // --------------------------------------------------------------------------

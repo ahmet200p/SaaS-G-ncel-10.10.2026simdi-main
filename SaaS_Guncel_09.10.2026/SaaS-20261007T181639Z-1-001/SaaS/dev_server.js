@@ -81,6 +81,14 @@ const frontendServer = http.createServer((req, res) => {
     reqPath = '/storefront-ui/store.html';
   }
 
+  // /quote/:id veya /quotes/:id isteklerini doğrudan müşteri teklifi arayüzüne yönlendir
+  if (reqPath.startsWith('/quote/') || reqPath.startsWith('/quotes/')) {
+    const quoteId = reqPath.split('/')[2];
+    res.writeHead(302, { Location: `/storefront-ui/quote.html?id=${encodeURIComponent(quoteId || '')}` });
+    res.end();
+    return;
+  }
+
   // Güvenlik Koruması: Path Traversal (Dizin Atlama) Atağını Engelle
   const safePath = path.normalize(reqPath).replace(/^(\.\.[\/\\])+/, '');
   const filePath = path.join(ROOT_DIR, safePath);

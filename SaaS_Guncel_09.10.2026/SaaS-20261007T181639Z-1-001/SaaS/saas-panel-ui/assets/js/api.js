@@ -16,9 +16,19 @@
 (function (window) {
   'use strict';
 
-  // Sunucu Adresi Yapılandırması (Headless Mimari prompt.md gereği doğrudan absolute URL):
-  const API_BASE = (typeof window !== 'undefined' && window.API_BASE) ? window.API_BASE : 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api';
-  const isDirectExpress = false;
+  // Sunucu Adresi Yapılandırması:
+  const isLocalHost = (typeof window !== 'undefined' && window.location) ? (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.port === '5000' ||
+    window.location.port === '5500' ||
+    window.location.hostname.endsWith('.onrender.com')
+  ) : false;
+
+  const API_BASE = (typeof window !== 'undefined' && window.API_BASE)
+    ? window.API_BASE
+    : (isLocalHost ? '/api' : 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api');
+  const isDirectExpress = isLocalHost;
 
   // ----------------------------------------------------------------------------
   // YEREL TOHUM (MOCK SEED) VERİ HAVUZU
@@ -1664,8 +1674,8 @@
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       if (!url.startsWith('/api')) {
         url = `${API_BASE}${url.startsWith('/') ? url : '/' + url}`;
-      } else if (!isDirectExpress) {
-        url = `https://saas-g-ncel-10-10-2026simdi-main.onrender.com${url}`;
+      } else {
+        url = isDirectExpress ? url : `https://saas-g-ncel-10-10-2026simdi-main.onrender.com${url}`;
       }
     }
 

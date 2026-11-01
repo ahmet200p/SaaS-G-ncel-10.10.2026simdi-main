@@ -100,6 +100,50 @@ function buildStrictSearchResponse(result) {
     ? result.recommendedTogether
     : getRecommendedTogether(partText, partGrp, result.searchedQuery || '');
 
+  // prompt.md Kural 3 (Görsel Hotspot Desteği):
+  // Eğer Parts Catalog sağlayıcısı resimlerle birlikte parça koordinatlarını (x,y pozisyonları veya hotspots) dönüyorsa,
+  // bunları ZORUNLU olarak JSON payload'unda images[].hotspots dizisi olarak frontend'e ilet (boşsa []).
+  const rawImages = Array.isArray(result.images) ? result.images : [];
+  const normalizedImages = rawImages.map((img) => {
+    if (!img) return null;
+    if (typeof img === 'string') {
+      return {
+        url: img,
+        hotspots: []
+      };
+    }
+    if (typeof img === 'object') {
+      const url = img.url || img.imageUrl || img.img || img.src || '';
+      const rawHotspots = Array.isArray(img.hotspots)
+        ? img.hotspots
+        : (Array.isArray(img.coordinates)
+          ? img.coordinates
+          : (Array.isArray(img.labels)
+            ? img.labels
+            : (Array.isArray(img.positions) ? img.positions : [])));
+
+      const hotspots = rawHotspots.map((hs) => {
+        if (!hs || typeof hs !== 'object') return null;
+        return {
+          x: hs.x !== undefined ? Number(hs.x) : (hs.left !== undefined ? Number(hs.left) : 0),
+          y: hs.y !== undefined ? Number(hs.y) : (hs.top !== undefined ? Number(hs.top) : 0),
+          width: hs.width !== undefined ? Number(hs.width) : (hs.w !== undefined ? Number(hs.w) : 0),
+          height: hs.height !== undefined ? Number(hs.height) : (hs.h !== undefined ? Number(hs.h) : 0),
+          positionNumber: String(hs.positionNumber || hs.position || hs.pos || hs.num || hs.index || ''),
+          oemCode: String(hs.oemCode || hs.oe || hs.oem || hs.code || '').trim(),
+          partName: String(hs.partName || hs.name || hs.title || '').trim()
+        };
+      }).filter(Boolean);
+
+      return {
+        ...img,
+        url,
+        hotspots
+      };
+    }
+    return null;
+  }).filter(Boolean);
+
   const payload = {
     success: true,
     searchedCode: result.searchedCode || sanitize(result.searchedQuery),
@@ -109,7 +153,7 @@ function buildStrictSearchResponse(result) {
     referenceCodes: Array.isArray(result.referenceCodes) ? result.referenceCodes : [],
     technicalSpecs: specs,
     recommendedTogether: recommendedTogether,
-    images: Array.isArray(result.images) ? result.images : [],
+    images: normalizedImages,
     schemaSourceCode: result.schemaSourceCode || undefined
   };
 

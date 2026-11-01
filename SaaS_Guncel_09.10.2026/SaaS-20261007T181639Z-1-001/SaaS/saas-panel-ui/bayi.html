@@ -1278,6 +1278,25 @@
   <script>
     document.addEventListener('DOMContentLoaded', function () {
 
+      function getPanelApiBase() {
+        if (typeof window !== 'undefined' && window.API_BASE) {
+          return window.API_BASE.replace(/\/+$/, '');
+        }
+        if (typeof window !== 'undefined' && window.location) {
+          if (
+            window.location.hostname === 'localhost' ||
+            window.location.hostname === '127.0.0.1' ||
+            window.location.port === '5500' ||
+            window.location.port === '5000' ||
+            window.location.port === '' ||
+            window.location.hostname.endsWith('.onrender.com')
+          ) {
+            return '/api';
+          }
+        }
+        return 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api';
+      }
+
       // 0. Oturum ve Rol Doğrulama (TENANT_ADMIN Guard)
       const currentUser = requireAuth(['TENANT_ADMIN', 'SUPER_ADMIN']);
       if (currentUser) {
@@ -3285,11 +3304,7 @@
           `;
         }
 
-        const apiBase = (typeof window !== 'undefined' && window.API_BASE)
-          ? window.API_BASE
-          : ((window.location.protocol === 'http:' || window.location.protocol === 'https:') && (window.location.port === '5000' || window.location.port === '')
-            ? '/api'
-            : 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api');
+        const apiBase = getPanelApiBase();
 
         const token = localStorage.getItem('token');
         const headers = { 'Accept': 'application/json' };
@@ -3507,6 +3522,12 @@
           } else {
             const msg = (finalJson && finalJson.message) || `"${rawVin}" Şasi (VIN) numarası katalogda bulunamadı.`;
             showToast(msg, 'warning');
+            // prompt.md Kural 2: Kayıp Arama (No-Hit) kaydını sessizce ilet
+            fetch(`${apiBase}/analytics/no-hit`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              body: JSON.stringify({ searchTerm: rawVin, searchType: 'VIN' })
+            }).catch(() => {});
           }
         } catch (err) {
           console.error('[VIN_SEARCH_ERROR]:', err);
@@ -3739,11 +3760,7 @@
         }
 
         try {
-          const apiBase = (typeof window !== 'undefined' && window.API_BASE)
-            ? window.API_BASE
-            : ((window.location.protocol === 'http:' || window.location.protocol === 'https:') && (window.location.port === '5000' || window.location.port === '')
-              ? '/api'
-              : 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api');
+          const apiBase = getPanelApiBase();
 
           const token = localStorage.getItem('token');
           const headers = { 'Accept': 'application/json' };
@@ -3859,6 +3876,12 @@
           } else {
             const msg = (json && json.message) || `"${rawOe}" OE veya referans numarasına ait parça katalogda bulunamadı.`;
             showToast(msg, 'warning');
+            // prompt.md Kural 2: Kayıp Arama (No-Hit) kaydını sessizce ilet
+            fetch(`${apiBase}/analytics/no-hit`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              body: JSON.stringify({ searchTerm: rawOe, searchType: 'OEM' })
+            }).catch(() => {});
           }
         } catch (err) {
           console.error('[OE_SEARCH_ERROR]:', err);
@@ -3988,11 +4011,7 @@
 
           try {
             const token = localStorage.getItem('token');
-            const apiBase = (typeof window !== 'undefined' && window.API_BASE)
-              ? window.API_BASE
-              : ((window.location.protocol === 'http:' || window.location.protocol === 'https:') && (window.location.port === '5000' || window.location.port === '')
-                ? '/api'
-                : 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api');
+            const apiBase = getPanelApiBase();
 
             if (editId) {
               // Düzenleme Modu: PATCH/PUT /api/tenant/products/:id (FormData ile alanlar ve varsa yeni görseller)

@@ -188,24 +188,41 @@ function isMockedAxiosEnvironment() {
 
 function loadPersistentVinCache() {
   try {
-    if (fs.existsSync(VIN_CACHE_FILE_PATH)) {
-      const raw = fs.readFileSync(VIN_CACHE_FILE_PATH, 'utf8');
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === 'object' && parsed.version === CACHE_SCHEMA_VERSION) {
-        if (parsed.vinResults && typeof parsed.vinResults === 'object') {
-          for (const [k, v] of Object.entries(parsed.vinResults)) {
-            if (k && v && Array.isArray(v.compatibleParts) && v.compatibleParts.length > 0) {
-              vinFullResultMemoryCache.set(k, v);
+    const candidatePaths = [
+      VIN_CACHE_FILE_PATH,
+      path.join(process.cwd(), 'backend-api', '.cache', 'vin_parts_tree_cache.json'),
+      path.join(process.cwd(), '.cache', 'vin_parts_tree_cache.json'),
+      path.join(__dirname, '..', '.cache', 'vin_parts_tree_cache.json'),
+      path.join(__dirname, '.cache', 'vin_parts_tree_cache.json')
+    ];
+
+    for (const cPath of candidatePaths) {
+      if (fs.existsSync(cPath)) {
+        try {
+          const raw = fs.readFileSync(cPath, 'utf8');
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object') {
+            if (parsed.vinResults && typeof parsed.vinResults === 'object') {
+              for (const [k, v] of Object.entries(parsed.vinResults)) {
+                if (k && v && Array.isArray(v.compatibleParts) && v.compatibleParts.length > 0) {
+                  const existing = vinFullResultMemoryCache.get(k);
+                  if (!existing || !Array.isArray(existing.compatibleParts) || existing.compatibleParts.length < v.compatibleParts.length) {
+                    vinFullResultMemoryCache.set(k, v);
+                  }
+                }
+              }
+            }
+            if (parsed.partRecords && typeof parsed.partRecords === 'object') {
+              for (const [k, v] of Object.entries(parsed.partRecords)) {
+                if (k && v && typeof v === 'object') {
+                  if (!vinPartCatalogCache.has(k)) {
+                    vinPartCatalogCache.set(k, v);
+                  }
+                }
+              }
             }
           }
-        }
-        if (parsed.partRecords && typeof parsed.partRecords === 'object') {
-          for (const [k, v] of Object.entries(parsed.partRecords)) {
-            if (k && v && typeof v === 'object') {
-              vinPartCatalogCache.set(k, v);
-            }
-          }
-        }
+        } catch (_) {}
       }
     }
   } catch (_) {}
@@ -214,10 +231,12 @@ function loadPersistentVinCache() {
 function savePersistentVinCache() {
   if (isMockedAxiosEnvironment()) return;
   try {
-    const cacheDir = path.dirname(VIN_CACHE_FILE_PATH);
-    if (!fs.existsSync(cacheDir)) {
-      fs.mkdirSync(cacheDir, { recursive: true });
-    }
+    const targetPaths = [
+      VIN_CACHE_FILE_PATH,
+      path.join(process.cwd(), 'backend-api', '.cache', 'vin_parts_tree_cache.json'),
+      path.join(process.cwd(), '.cache', 'vin_parts_tree_cache.json')
+    ];
+
     const vinResults = {};
     for (const [k, v] of vinFullResultMemoryCache.entries()) {
       vinResults[k] = v;
@@ -225,15 +244,22 @@ function savePersistentVinCache() {
     const partRecords = {};
     let count = 0;
     for (const [k, v] of vinPartCatalogCache.entries()) {
-      if (count > 6000) break;
+      if (count > 8000) break;
       partRecords[k] = v;
       count++;
     }
-    fs.writeFileSync(
-      VIN_CACHE_FILE_PATH,
-      JSON.stringify({ version: CACHE_SCHEMA_VERSION, vinResults, partRecords }),
-      'utf8'
-    );
+
+    const payload = JSON.stringify({ version: CACHE_SCHEMA_VERSION, vinResults, partRecords });
+
+    for (const tPath of targetPaths) {
+      try {
+        const cacheDir = path.dirname(tPath);
+        if (!fs.existsSync(cacheDir)) {
+          fs.mkdirSync(cacheDir, { recursive: true });
+        }
+        fs.writeFileSync(tPath, payload, 'utf8');
+      } catch (_) {}
+    }
   } catch (_) {}
 }
 

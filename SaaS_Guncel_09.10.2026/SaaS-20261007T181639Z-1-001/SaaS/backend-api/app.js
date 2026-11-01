@@ -19,6 +19,8 @@ const tenantRoutes = require('./routes/tenant');
 const storeRoutes = require('./routes/store');
 const catalogRoutes = require('./routes/catalog.routes');
 const garageRoutes = require('./routes/garage.routes');
+const analyticsRoutes = require('./routes/analytics.routes');
+const quoteRoutes = require('./routes/quote.routes');
 const securityHeaders = require('./middleware/security');
 const { tenantApiKeyInterceptor } = require('./middleware/tenantApiKey');
 const { apiLimiter } = require('./middleware/rateLimiter');
@@ -366,6 +368,18 @@ app.post(['/api/search-vin/:vin', '/api/search-vin', '/search-vin/:vin', '/searc
 // POST /api/garage, GET /api/garage, GET /api/garage/history/:vin
 app.use('/api/garage', garageRoutes);
 app.use('/garage', garageRoutes);
+
+// G. Analitik ve Kayıp Arama (No-Hit): Pazarlama ve Büyüme Analitiği (prompt.md)
+// POST /api/analytics/no-hit, GET /api/analytics/no-hit
+app.use('/api/analytics', analyticsRoutes);
+app.use('/analytics', analyticsRoutes);
+
+// H. Müşteri Teklifi (CustomerQuote): WhatsApp Teklif Oluşturma & Paylaşım Linki (prompt.md)
+// POST /api/quotes/generate, GET /api/quotes/:id, GET /quote/:id
+app.use('/api/quotes', quoteRoutes);
+app.use('/quotes', quoteRoutes);
+app.use('/quote', quoteRoutes);
+app.use('/api/quote', quoteRoutes);
 
 // ----------------------------------------------------------------------------
 // 4. BULUNAMAYAN ROTA (404) VE MERKEZİ HATA YÖNETİMİ
