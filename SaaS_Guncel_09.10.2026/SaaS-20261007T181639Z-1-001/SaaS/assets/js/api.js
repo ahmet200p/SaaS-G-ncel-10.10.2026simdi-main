@@ -1780,8 +1780,11 @@
           if (data && typeof data === 'object') {
             data._status = response.status;
             data._ok = response.ok;
+            if (!data.error) {
+              data.error = "Oturum süreniz dolmuş, lütfen tekrar giriş yapın.";
+            }
           }
-          return data || { success: false, status: response.status, message: 'Oturum gerekli' };
+          return data || { success: false, status: response.status, error: "Oturum süreniz dolmuş, lütfen tekrar giriş yapın.", message: 'Oturum gerekli' };
         }
 
         console.warn(`[API] Yetkisiz erişim (${response.status}). Giriş sayfasına yönlendiriliyor...`);

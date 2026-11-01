@@ -2221,9 +2221,22 @@
     // 6. SİPARİŞİ TAMAMLAMA (ATOMIC CHECKOUT & ADDRESS SNAPSHOT)
     // --------------------------------------------------------------------------
     async function submitStoreOrder() {
-      if (!isLoggedIn()) {
-        showToast('Sipariş vermek için lütfen giriş yapınız.', 'info');
-        openLoginModal();
+      const token = localStorage.getItem('token');
+      if (!token) {
+        if (window.Swal) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Bayi Girişi Gerekli',
+            text: 'Lütfen siparişi tamamlamak için Bayi Girişi yapınız.',
+            confirmButtonText: 'Bayi Girişi Yap',
+            confirmButtonColor: 'var(--tenant-color, #f97316)'
+          }).then(() => {
+            openLoginModal();
+          });
+        } else {
+          alert('Lütfen siparişi tamamlamak için Bayi Girişi yapınız.');
+          openLoginModal();
+        }
         return;
       }
 
@@ -2250,11 +2263,32 @@
 
         const res = await apiFetch('/store/orders', {
           method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + token
+          },
           body: {
             items: itemsPayload,
             paymentMethod
           }
         });
+
+        if (res && (res.error === "Oturum süreniz dolmuş, lütfen tekrar giriş yapın." || res.status === 401 || res._status === 401)) {
+          if (window.Swal) {
+            Swal.fire({
+              icon: 'warning',
+              title: 'Oturum Süresi Doldu',
+              text: res.error || 'Oturum süreniz dolmuş, lütfen tekrar giriş yapın.',
+              confirmButtonText: 'Bayi Girişi Yap',
+              confirmButtonColor: 'var(--tenant-color, #f97316)'
+            }).then(() => {
+              openLoginModal();
+            });
+          } else {
+            alert(res.error || 'Oturum süreniz dolmuş, lütfen tekrar giriş yapın.');
+            openLoginModal();
+          }
+          return;
+        }
 
         if (res && res.success) {
           cart = [];
@@ -2302,6 +2336,25 @@
     // 6.5. WHATSAPP MÜŞTERİ TEKLİFİ OLUŞTURMA (prompt.md: POST /api/quotes/generate)
     // --------------------------------------------------------------------------
     function openWhatsAppQuoteModal() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        if (window.Swal) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Bayi Girişi Gerekli',
+            text: 'Lütfen siparişi tamamlamak için Bayi Girişi yapınız.',
+            confirmButtonText: 'Bayi Girişi Yap',
+            confirmButtonColor: 'var(--tenant-color, #f97316)'
+          }).then(() => {
+            openLoginModal();
+          });
+        } else {
+          alert('Lütfen siparişi tamamlamak için Bayi Girişi yapınız.');
+          openLoginModal();
+        }
+        return;
+      }
+
       if (!cart || cart.length === 0) {
         showToast('Teklif oluşturmak için sepetinize en az bir ürün ekleyiniz.', 'warning');
         return;
@@ -2340,6 +2393,25 @@
     }
 
     async function submitWhatsAppQuote() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        if (window.Swal) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Bayi Girişi Gerekli',
+            text: 'Lütfen siparişi tamamlamak için Bayi Girişi yapınız.',
+            confirmButtonText: 'Bayi Girişi Yap',
+            confirmButtonColor: 'var(--tenant-color, #f97316)'
+          }).then(() => {
+            openLoginModal();
+          });
+        } else {
+          alert('Lütfen siparişi tamamlamak için Bayi Girişi yapınız.');
+          openLoginModal();
+        }
+        return;
+      }
+
       const nameInput = document.getElementById('quote-customer-name');
       const phoneInput = document.getElementById('quote-customer-phone');
       const notesInput = document.getElementById('quote-notes');
@@ -2391,13 +2463,12 @@
 
         const totalQuotePrice = quoteItems.reduce((acc, curr) => acc + curr.totalPrice, 0);
         const activeSlug = (typeof getStoreSubdomain === 'function') ? getStoreSubdomain() : 'ahmetoto';
-        const token = localStorage.getItem('token');
         const headers = {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'X-Tenant-Slug': activeSlug
+          'X-Tenant-Slug': activeSlug,
+          'Authorization': `Bearer ${token}`
         };
-        if (token) headers['Authorization'] = `Bearer ${token}`;
 
         const res = await fetch(endpoint, {
           method: 'POST',
@@ -2412,6 +2483,24 @@
         });
 
         const json = await res.json();
+        if (res.status === 401 || json.error === "Oturum süreniz dolmuş, lütfen tekrar giriş yapın.") {
+          if (window.Swal) {
+            Swal.fire({
+              icon: 'warning',
+              title: 'Oturum Süresi Doldu',
+              text: json.error || 'Oturum süreniz dolmuş, lütfen tekrar giriş yapın.',
+              confirmButtonText: 'Bayi Girişi Yap',
+              confirmButtonColor: 'var(--tenant-color, #f97316)'
+            }).then(() => {
+              openLoginModal();
+            });
+          } else {
+            alert(json.error || 'Oturum süreniz dolmuş, lütfen tekrar giriş yapın.');
+            openLoginModal();
+          }
+          return;
+        }
+
         if (res.ok && json.success) {
           closeWhatsAppQuoteModal();
           showToast('✅ WhatsApp Teklifi başarıyla oluşturuldu!', 'success');

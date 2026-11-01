@@ -1,16 +1,21 @@
-# PROJE GÖREVİ: Pazarlama ve Büyüme (Growth) Modülleri - Backend Mimarisi
+# KRİTİK HATA ÇÖZÜMÜ: Sipariş Tamamlama (Checkout) 500 Hatası ve Auth (401) Sorunu
 
-**GÖREV BİLDİRİMİ:**
-Sistemin kendi kendini pazarlaması ve yönetime analitik veri sağlaması için 3 kritik modülün arka planını (Veritabanı ve API) yazacaksın. Aşağıdaki Prisma şema güncellemelerini ve endpoint'leri derhal oluştur:
+**HATA TESPİTİ:**
+Vitrin sayfasında (`store.html`) sipariş tamamlama (veya teklif oluşturma) işlemi sırasında zincirleme hatalar yaşanıyor. 
+1. Önce `401 Unauthorized` hatası dönüyor ve sistem "Ziyaretçi Moduna" düşüyor.
+2. Ziyaretçi modundayken sipariş tamamlanmaya çalışıldığında, Backend `500 Internal Server Error` vererek çöküyor (Büyük ihtimalle `userId` null olduğu için Prisma kaydı reddediyor).
 
-**1. PRISMA SCHEMA GÜNCELLEMELERİ:**
-Şemaya şu iki yeni modeli ekle:
-- `NoHitLog` (Kayıp Arama Günlüğü): Bayilerin aratıp bulamadığı parça ve şasileri izlemek için. Alanlar: `id`, `searchTerm` (Aranan Şasi veya Parça), `searchType` (VIN veya OEM), `userId` (Aramayı yapan bayi), `createdAt`.
-- `CustomerQuote` (Müşteri Teklifi): WhatsApp'tan paylaşılacak teklifleri kaydetmek için. Alanlar: `id` (UUID - public link için), `userId`, `customerName`, `totalPrice`, `items` (JSON formatında parçalar), `createdAt`.
+Lütfen şu iki düzeltmeyi DERHAL yap:
 
-**2. API ENDPOINT'LERİ:**
-- **Kayıp Arama (No-Hit) API'si:** `POST /api/analytics/no-hit` -> Frontend'de arama sonucu '0' döndüğünde tetiklenecek. Aranan kelimeyi `NoHitLog` tablosuna sessizce (200 OK) kaydedecek.
-- **Teklif Oluşturma API'si:** `POST /api/quotes/generate` -> Bayi sepetindeki veya arama sonucundaki ürünleri yolladığında, bunu `CustomerQuote` tablosuna yazıp dışarıdan erişilebilir benzersiz bir URL (Örn: `/quote/:uuid`) dönecek.
-- **Görsel Hotspot (Şema Koordinat) Desteği:** Mevcut Katalog Arama API'sini güncelle. Eğer Parts Catalog sağlayıcısı resimlerle birlikte parça koordinatlarını (x,y pozisyonları veya hotspots) dönüyorsa, bunları ZORUNLU olarak JSON payload'unda `images[].hotspots` dizisi olarak frontend'e ilet.
+### 1. FRONTEND KONTROLÜ (`api.js` veya `store.html` sipariş fonksiyonu):
+- Siparişi Tamamla / Teklif Gönder butonuna basıldığında tetiklenen `fetch` isteğini bul.
+- Bu isteğin `headers` kısmına kullanıcının oturum token'ının (Örn: `localStorage.getItem('token')`) eklendiğinden %100 emin ol.
+- EĞER kullanıcı giriş yapmamışsa (token yoksa), `fetch` isteğini hiç başlatmadan ekrana anında `alert` veya modal ile "Lütfen siparişi tamamlamak için Bayi Girişi yapınız" uyarısı ver. Kimliksiz istek atılmasını fronted'de engelle.
 
-Kodu yaz, Prisma migrate işlemini yap ve endpoint'leri frontend'in tüketimine hazırla.
+### 2. BACKEND KONTROLÜ (Sipariş/Teklif Oluşturma Endpoint'i):
+- Siparişi karşılayan endpoint'e (URL'de `subdomain=...` query'si alan controller'a) git.
+- Fonksiyonun içine kapsamlı bir `try/catch` bloğu ekle. 
+- Eğer `req.user` veya `req.body.userId` eksikse sunucuyu çöktürmek (500) yerine, frontend'e düzgün bir HTTP `401` veya `403` JSON hatası dön (`{ error: "Oturum süreniz dolmuş, lütfen tekrar giriş yapın." }`).
+- 500 hatasının asıl sebebini görmek için catch bloğuna `console.error(error)` ekle ki terminalde Prisma'nın tam olarak nerede patladığını görebilelim.
+
+Bu düzeltmeleri yap ve sipariş akışının B2B yetkilendirme mantığına uygun çalışmasını sağla.

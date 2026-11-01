@@ -820,8 +820,25 @@ router.use(verifyToken, checkCustomer);
  */
 router.post('/orders', orderLimiter, async (req, res) => {
   try {
-    const tenantId = req.user.tenantId;
-    const userId = req.user.id;
+    // 1. Yetkilendirme ve Kimlik Kontrolü (Prompt Kural 2)
+    const userId = req.user?.id || req.body?.userId;
+    const tenantId = req.user?.tenantId || req.tenant?.id || req.body?.tenantId;
+
+    if (!req.user || !userId) {
+      return res.status(401).json({
+        success: false,
+        error: "Oturum süreniz dolmuş, lütfen tekrar giriş yapın.",
+        message: "Oturum süreniz dolmuş, lütfen tekrar giriş yapın."
+      });
+    }
+
+    if (!tenantId) {
+      return res.status(403).json({
+        success: false,
+        error: "Geçerli bir bayi oturumu bulunamadı.",
+        message: "Geçerli bir bayi oturumu bulunamadı."
+      });
+    }
     const { items } = req.body;
 
     // 1. Sepet Doğrulaması
@@ -1113,10 +1130,11 @@ router.post('/orders', orderLimiter, async (req, res) => {
 
   } catch (error) {
     console.error('[STORE_CREATE_ORDER_ERROR]:', error);
+    console.error(error);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Sipariş oluşturulurken sunucu hatası meydana geldi.',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: error.message || 'Sipariş oluşturulurken sunucu hatası meydana geldi.',
+      message: error.message || 'Sipariş oluşturulurken sunucu hatası meydana geldi.'
     });
   }
 });

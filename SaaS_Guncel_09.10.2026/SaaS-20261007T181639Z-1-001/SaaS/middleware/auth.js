@@ -13,6 +13,7 @@ const verifyToken = (req, res, next) => {
   if (!authHeader || typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({
       success: false,
+      error: "Oturum süreniz dolmuş, lütfen tekrar giriş yapın.",
       message: 'Erişim engellendi: Yetkilendirme tokenı (Bearer Token) bulunamadı.'
     });
   }
@@ -22,6 +23,7 @@ const verifyToken = (req, res, next) => {
   if (!token || !token.trim()) {
     return res.status(401).json({
       success: false,
+      error: "Oturum süreniz dolmuş, lütfen tekrar giriş yapın.",
       message: 'Erişim engellendi: Geçersiz token biçimi.'
     });
   }
@@ -61,6 +63,7 @@ const verifyToken = (req, res, next) => {
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({
         success: false,
+        error: "Oturum süreniz dolmuş, lütfen tekrar giriş yapın.",
         message: 'Oturum süreniz doldu. Lütfen tekrar giriş yapınız.'
       });
     }
@@ -68,6 +71,7 @@ const verifyToken = (req, res, next) => {
     // İmzası hatalı, süresi dolmuş, sahte veya manipüle edilmiş tüm tokenlar anında durdurulur
     return res.status(403).json({
       success: false,
+      error: "Oturum süreniz dolmuş, lütfen tekrar giriş yapın.",
       message: 'Geçersiz veya bozuk yetkilendirme tokenı.'
     });
   }
@@ -148,13 +152,15 @@ const checkCustomer = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
-      message: 'Oturum bilgisi bulunamadı.'
+      error: "Oturum süreniz dolmuş, lütfen tekrar giriş yapın.",
+      message: 'Oturum süreniz dolmuş, lütfen tekrar giriş yapın.'
     });
   }
 
   if (req.user.role !== 'CUSTOMER' && req.user.role !== 'TENANT_ADMIN' && req.user.role !== 'SUPER_ADMIN') {
     return res.status(403).json({
       success: false,
+      error: "Oturum süreniz dolmuş, lütfen tekrar giriş yapın.",
       message: 'Erişim reddedildi: Bu alana erişim yetkiniz bulunmamaktadır.'
     });
   }
