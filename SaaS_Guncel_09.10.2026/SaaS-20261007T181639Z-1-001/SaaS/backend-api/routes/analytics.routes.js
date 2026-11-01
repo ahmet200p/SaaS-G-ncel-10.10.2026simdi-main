@@ -17,3 +17,4 @@ router.get('/no-hit', analyticsController.getNoHitLogs);
 router.get('/', analyticsController.getNoHitLogs);
 
 module.exports = router;
+

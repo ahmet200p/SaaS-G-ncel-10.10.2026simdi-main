@@ -22,7 +22,7 @@ function getPgliteInstance() {
     if (require.cache[devServerPath] && require.cache[devServerPath].exports?.pgliteDbInstance) {
       return require.cache[devServerPath].exports.pgliteDbInstance;
     }
-  } catch (_) {}
+  } catch (_) { }
   return null;
 }
 
@@ -100,7 +100,7 @@ async function recordNoHitLog(req, res) {
           if (pResult.rows && pResult.rows.length > 0) {
             savedLog = pResult.rows[0];
           }
-        } catch (_) {}
+        } catch (_) { }
       }
 
       // 3. Üçüncül Yol: Bellek İçi Kuyruk
@@ -186,7 +186,7 @@ async function getNoHitLogs(req, res) {
             params
           );
           logs = pResult.rows || [];
-        } catch (_) {}
+        } catch (_) { }
       }
 
       // 3. Bellek içi kayıtları birleştir

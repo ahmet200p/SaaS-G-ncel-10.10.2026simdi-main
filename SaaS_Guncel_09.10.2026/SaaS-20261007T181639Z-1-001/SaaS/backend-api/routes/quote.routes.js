@@ -18,3 +18,4 @@ router.get('/:id', quoteController.getQuoteById);
 router.get('/', quoteController.getQuotes);
 
 module.exports = router;
+
