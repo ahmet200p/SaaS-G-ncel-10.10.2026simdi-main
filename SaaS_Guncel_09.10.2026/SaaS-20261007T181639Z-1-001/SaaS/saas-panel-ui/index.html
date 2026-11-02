@@ -648,14 +648,14 @@
 
               // 5. Kullanıcının rolüne göre yönlendirme yap (window.location.href)
               const userRole = (res.user && res.user.role) || res.role;
-              if (userRole === 'SUPER_ADMIN') {
-                // Role 'SUPER_ADMIN' ise admin.html'e git
+              if (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN') {
+                // Role 'SUPER_ADMIN' / 'ADMIN' ise admin.html'e git
                 window.location.href = 'admin.html';
-              } else if (userRole === 'TENANT_ADMIN') {
-                // Role 'TENANT_ADMIN' ise bayi.html'e git
+              } else if (userRole === 'TENANT_ADMIN' || userRole === 'BAYI') {
+                // Role 'TENANT_ADMIN' / 'BAYI' ise bayi.html'e git
                 window.location.href = 'bayi.html';
-              } else if (userRole === 'CUSTOMER') {
-                // Role 'CUSTOMER' ise storefront vitrinine git (3-katmanlı mimari konumu)
+              } else if (userRole === 'CUSTOMER' || userRole === 'MUSTERI') {
+                // Role 'CUSTOMER' / 'MUSTERI' ise storefront vitrinine git (3-katmanlı mimari konumu)
                 window.location.href = '../storefront-ui/store.html';
               } else {
                 window.location.href = 'admin.html';

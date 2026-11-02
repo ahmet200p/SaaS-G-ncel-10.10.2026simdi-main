@@ -340,6 +340,7 @@ const handleCreateOrUpdateProduct = async (req, res) => {
             oeNumber: oeNumber,
             name: name,
             category: category,
+            bayiId: tenantId,
             vehicleBrand: vehicleBrand,
             compatibleModels: compatibleModels,
             partGroup: partGroup,
@@ -486,6 +487,52 @@ const handleGetTenantProducts = async (req, res) => {
 
 router.get('/products', handleGetTenantProducts);
 router.get('/catalog', handleGetTenantProducts);
+
+/**
+ * @route   GET /api/tenant/products/:id & GET /api/tenant/catalog/:id
+ * @desc    Bayinin kataloğundaki tekil bir ürünün detayını döner.
+ * @access  Protected (TENANT_ADMIN / BAYI - İlgili Bayi)
+ */
+const handleGetTenantProductById = async (req, res) => {
+  try {
+    const tenantId = resolveTenantId(req, res);
+    if (!tenantId) return;
+
+    const id = req.params.id;
+    let product = await prisma.tenantProduct.findFirst({
+      where: { id: id, tenantId: tenantId },
+      include: { product: true }
+    });
+
+    if (!product) {
+      product = await prisma.tenantProduct.findFirst({
+        where: { productId: id, tenantId: tenantId },
+        include: { product: true }
+      });
+    }
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Katalog parçası bulunamadı veya bayinize ait değil.'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: product
+    });
+  } catch (error) {
+    console.error('[TENANT_GET_PRODUCT_BY_ID_ERROR]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Ürün detayı getirilirken sunucu hatası oluştu.'
+    });
+  }
+};
+
+router.get('/products/:id', handleGetTenantProductById);
+router.get('/catalog/:id', handleGetTenantProductById);
 
 /**
  * @route   DELETE /api/tenant/products/:id & DELETE /api/tenant/catalog/:id

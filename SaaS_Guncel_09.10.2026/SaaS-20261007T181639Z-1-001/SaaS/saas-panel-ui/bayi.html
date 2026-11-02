@@ -1328,7 +1328,7 @@
         ? tokenPayload.role 
         : (currentUser ? currentUser.role : null);
 
-      if (verifiedRole === 'SUPER_ADMIN') {
+      if (verifiedRole === 'SUPER_ADMIN' || verifiedRole === 'ADMIN') {
         if (!localStorage.getItem('tenantId')) {
           localStorage.setItem('tenantId', '51144f71-81dd-4f24-98d5-45fac505cfc2');
         }
@@ -1401,7 +1401,7 @@
         }
 
         // Süper Admin asla engellenmez
-        if (verifiedRole === 'SUPER_ADMIN') {
+        if (verifiedRole === 'SUPER_ADMIN' || verifiedRole === 'ADMIN') {
           isPending = false;
         }
 

@@ -13,20 +13,34 @@ datasource db {
 }
 
 // ----------------------------------------------------------------------------
+// 0. ROLE ENUM (prompt.md Mimari Standardı)
+// ----------------------------------------------------------------------------
+enum Role {
+  ADMIN
+  BAYI
+  MUSTERI
+  SUPER_ADMIN
+  TENANT_ADMIN
+  CUSTOMER
+}
+
+// ----------------------------------------------------------------------------
 // 1. USER (Kullanıcılar)
-// SQLite enum desteklemediği için role: String olarak tanımlanmıştır.
 // ----------------------------------------------------------------------------
 model User {
   id               String           @id @default(uuid())
   email            String           @unique
   password         String
-  role             String           @default("CUSTOMER") // SUPER_ADMIN, TENANT_ADMIN, CUSTOMER
+  role             Role             @default(MUSTERI) // ADMIN, BAYI, MUSTERI (ve geriye dönük uyumlu: SUPER_ADMIN, TENANT_ADMIN, CUSTOMER)
   name             String?          // Ad Soyad
   status           String?          @default("PENDING")  // PENDING, APPROVED, REJECTED
 
   // Super Admin için null; Tenant Admin ve Customer için zorunlu (1-n Tenant İlişkisi)
   tenantId         String?
   tenant           Tenant?          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Doğrudan Müşteri Siparişleri İlişkisi (prompt.md Mimarisi)
+  musteriOrders    Order[]          @relation("MusteriOrders")
 
   // Parola sıfırlama akışı
   resetToken       String?
@@ -66,6 +80,7 @@ model Tenant {
   // İlişkiler (1-n)
   users            User[]
   tenantProducts   TenantProduct[]
+  bayiProducts     Product[]         @relation("BayiProducts") // Doğrudan Bayi Parça İlişkisi (prompt.md Mimarisi)
   customerProfiles CustomerProfile[]
   orders           Order[]
   stockMovements   StockMovement[]
@@ -109,6 +124,10 @@ model Product {
   diagramUrl         String?       // Teknik Montaj / Patlatılmış Şema Görseli URL
   diagrams           Json?         // Ek şemalar ve patlatılmış montaj çizimleri listesi
 
+  // Bayi İlişkisi (prompt.md Mimarisi - Product modelini BAYI ile ilişkilendir)
+  bayiId             String?
+  bayi               Tenant?       @relation("BayiProducts", fields: [bayiId], references: [id], onDelete: SetNull)
+
   tenantProducts       TenantProduct[]
   partCrossReferences  PartCrossReference[]
 
@@ -118,6 +137,7 @@ model Product {
   @@index([oeNumber])
   @@index([rootOEM])
   @@index([category])
+  @@index([bayiId])
   @@index([vehicleBrand])
   @@index([partGroup])
 }
@@ -217,6 +237,10 @@ model Order {
   customerId     String
   customer       CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
+  // Müşteri İlişkisi (prompt.md Mimarisi - Order modelini MUSTERI ile ilişkilendir)
+  musteriId      String?
+  musteri        User?           @relation("MusteriOrders", fields: [musteriId], references: [id], onDelete: SetNull)
+
   subtotal       Float           @default(0.0)
   vatRate        Float           @default(20.0) // %20 KDV
   vatAmount      Float           @default(0.0)
@@ -238,6 +262,7 @@ model Order {
 
   @@index([tenantId])
   @@index([customerId])
+  @@index([musteriId])
   @@index([status])
   @@index([vin])
 }

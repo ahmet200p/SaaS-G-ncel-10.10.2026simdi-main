@@ -2002,7 +2002,7 @@
           const isRetail = (user.customerProfile && user.customerProfile.customerType === 'RETAIL') || user.customerType === 'RETAIL';
           const roleText = isRetail
             ? 'Bireysel Müşteri'
-            : (user.role === 'SUPER_ADMIN' ? 'Süper Admin' : (user.role === 'TENANT_ADMIN' ? 'Bayi Yöneticisi' : 'Otoservis Müşterisi'));
+            : (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN' ? 'Süper Admin' : (user.role === 'TENANT_ADMIN' || user.role === 'BAYI' ? 'Bayi Yöneticisi' : 'Otoservis Müşterisi'));
           if (userRoleEl) userRoleEl.textContent = roleText;
           if (dropdownRoleEl) dropdownRoleEl.textContent = roleText;
 

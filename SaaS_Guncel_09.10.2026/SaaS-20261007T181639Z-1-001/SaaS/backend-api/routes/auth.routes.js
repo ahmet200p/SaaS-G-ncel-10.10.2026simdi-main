@@ -69,13 +69,13 @@ router.post('/register-admin', verifyToken, isSuperAdmin, async (req, res) => {
       });
     }
 
-    const validAdminRoles = ['SUPER_ADMIN', 'TENANT_ADMIN'];
-    const targetRole = validAdminRoles.includes(role) ? role : 'TENANT_ADMIN';
+    const validAdminRoles = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'BAYI'];
+    let targetRole = validAdminRoles.includes(role) ? role : 'BAYI';
 
-    if (targetRole === 'TENANT_ADMIN' && !tenantId) {
+    if ((targetRole === 'TENANT_ADMIN' || targetRole === 'BAYI') && !tenantId) {
       return res.status(400).json({
         success: false,
-        message: 'Bayi yöneticisi (TENANT_ADMIN) için yetkilendirilecek bayi kimliği (tenantId) zorunludur.'
+        message: 'Bayi yöneticisi için yetkilendirilecek bayi kimliği (tenantId) zorunludur.'
       });
     }
 
@@ -238,12 +238,23 @@ router.post('/login', loginLimiter, async (req, res) => {
       user.tenant = tenant;
     }
 
-    // 7. JWT Payload hazırlığı (id, email, role, status, tenantId eksiksiz eklenir)
+    // 7. Rol Eşleme & Normalizasyonu (prompt.md Mimarisi: ADMIN, BAYI, MUSTERI)
+    let standardRole = user.role;
+    if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') {
+      standardRole = 'ADMIN';
+    } else if (user.role === 'TENANT_ADMIN' || user.role === 'BAYI') {
+      standardRole = 'BAYI';
+    } else if (user.role === 'CUSTOMER' || user.role === 'MUSTERI') {
+      standardRole = 'MUSTERI';
+    }
+
+    // JWT Payload hazırlığı (id, email, role, status, tenantId eksiksiz eklenir)
     const payload = {
       id: user.id,
       email: user.email,
-      role: user.role,
-      status: user.status || 'PENDING',
+      role: standardRole, // Zorunlu standart: ADMIN | BAYI | MUSTERI
+      legacyRole: user.role,
+      status: user.status || 'APPROVED',
       tenantId: user.tenantId || effectiveTenantId
     };
 
@@ -257,8 +268,9 @@ router.post('/login', loginLimiter, async (req, res) => {
       id: user.id,
       email: user.email,
       name: user.name || (user.customerProfile ? user.customerProfile.companyName : null),
-      role: user.role,
-      status: user.status || 'PENDING',
+      role: standardRole,
+      legacyRole: user.role,
+      status: user.status || 'APPROVED',
       tenantId: effectiveTenantId,
       tenant: user.tenant || null,
       customerProfile: user.customerProfile || null
@@ -268,11 +280,11 @@ router.post('/login', loginLimiter, async (req, res) => {
       success: true,
       message: 'Giriş başarılı.',
       token,
-      role: user.role,
+      role: standardRole,
       user: userPayload,
       data: {
         token,
-        role: user.role,
+        role: standardRole,
         user: userPayload
       }
     });

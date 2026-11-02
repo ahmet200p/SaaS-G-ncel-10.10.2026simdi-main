@@ -7,8 +7,29 @@ const config = require('./config');
 config.validateJwtSecret();
 config.validateDatabaseUrl();
 
+const cors = require('cors');
 const app = require('./app');
 const prisma = require('./lib/prisma');
+
+// ----------------------------------------------------------------------------
+// CORS ARA YAZILIMI (prompt.md Kural 4: origin: '*' ve Netlify/Frontend İzinleri)
+// ----------------------------------------------------------------------------
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Tenant-Id',
+    'Tenant-ID',
+    'X-Tenant-Slug',
+    'X-Tenant-API-Key',
+    'X-API-Key',
+    'Accept',
+    'Origin',
+    'X-Requested-With'
+  ]
+}));
 
 const PORT = config.PORT;
 
@@ -39,7 +60,14 @@ const ensureInitialData = async () => {
   }
 
   try {
-    const adminCount = await prisma.user.count({ where: { role: 'SUPER_ADMIN' } });
+    const adminCount = await prisma.user.count({
+      where: {
+        OR: [
+          { role: 'SUPER_ADMIN' },
+          { role: 'ADMIN' }
+        ]
+      }
+    });
     if (adminCount === 0) {
       const bcrypt = require('bcryptjs');
       const hash = await bcrypt.hash(adminPassword, 10);
@@ -324,7 +352,14 @@ const ensureNeonTables = async () => {
     }
 
     // 2. İlk Yönetici Hesaplarının Otomatik Kurulumu (Veritabanında hiç Süper Admin yoksa)
-    const adminCount = await prisma.user.count({ where: { role: 'SUPER_ADMIN' } });
+    const adminCount = await prisma.user.count({
+      where: {
+        OR: [
+          { role: 'SUPER_ADMIN' },
+          { role: 'ADMIN' }
+        ]
+      }
+    });
     if (adminCount === 0) {
       console.log('👑 [NEON_INIT] Veritabanında Süper Admin bulunamadı, başlangıç hesabı oluşturuluyor...');
       const adminPass = process.env.DEFAULT_ADMIN_PASSWORD || 'Kim_!Lik9304.';

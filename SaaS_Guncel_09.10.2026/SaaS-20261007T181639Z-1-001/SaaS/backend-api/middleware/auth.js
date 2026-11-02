@@ -169,23 +169,23 @@ const checkTenantAdmin = (req, res, next) => {
   }
 
   // 4. ADIM: Çapraz Yetki İhlali (Privilege Escalation) Koruması
-  // role: 'CUSTOMER' olan bir token'ın, bayi yönetimine ait hiçbir rotaya (/api/tenant/...) erişemeyeceğini katı bir şekilde denetle.
-  // Müşteri token'ı ile bayi paneline istek atılırsa anında 403 Forbidden döndür.
-  if (req.user.role === 'CUSTOMER') {
+  // role: 'CUSTOMER' / 'MUSTERI' olan bir token'ın, bayi yönetimine ait hiçbir rotaya erişemeyeceğini katı bir şekilde denetle.
+  const role = String(req.user.role || '').toUpperCase();
+  if (role === 'CUSTOMER' || role === 'MUSTERI') {
     return res.status(403).json({
       success: false,
       message: 'Erişim reddedildi: Müşteri hesabı ile bayi yönetim paneline ve rotalarına erişilemez.'
     });
   }
 
-  if (!req.user.tenantId && req.user.role !== 'SUPER_ADMIN') {
+  if (!req.user.tenantId && role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
     return res.status(403).json({
       success: false,
       message: 'Erişim reddedildi: Bu işlem için geçerli bir bayi (tenant) üyeliği gereklidir.'
     });
   }
 
-  if (req.user.role !== 'TENANT_ADMIN' && req.user.role !== 'SUPER_ADMIN') {
+  if (role !== 'TENANT_ADMIN' && role !== 'BAYI' && role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
     return res.status(403).json({
       success: false,
       message: 'Bu alana yalnızca Bayi Yöneticileri erişebilir.'
@@ -196,8 +196,87 @@ const checkTenantAdmin = (req, res, next) => {
 };
 
 /**
+ * verifyBayi Middleware (prompt.md Mimarisi):
+ * Yalnızca yetkili bayilerin (BAYI, TENANT_ADMIN, ADMIN, SUPER_ADMIN) erişimine izin verir.
+ * Token henüz çözülmemişse otomatik olarak verifyToken'ı çalıştırır.
+ */
+const verifyBayi = (req, res, next) => {
+  if (req.method === 'OPTIONS') return next();
+
+  const performCheck = () => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: "Oturum süreniz dolmuş, lütfen tekrar giriş yapın.",
+        message: 'Yetkilendirme tokenı bulunamadı.'
+      });
+    }
+
+    const currentRole = String(req.user.role || '').toUpperCase();
+    if (currentRole === 'CUSTOMER' || currentRole === 'MUSTERI') {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN_BAYI_ONLY',
+        message: 'Erişim engellendi: Müşteri hesabı ile bayi yönetim paneline ve rotalarına erişilemez.'
+      });
+    }
+
+    if (currentRole !== 'BAYI' && currentRole !== 'TENANT_ADMIN' && currentRole !== 'ADMIN' && currentRole !== 'SUPER_ADMIN') {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN_BAYI_ONLY',
+        message: 'Bu alana yalnızca Bayi Yöneticileri erişebilir.'
+      });
+    }
+
+    next();
+  };
+
+  if (!req.user) {
+    return verifyToken(req, res, performCheck);
+  }
+  return performCheck();
+};
+
+/**
+ * verifyMusteri Middleware (prompt.md Mimarisi):
+ * Yalnızca yetkili müşterilerin (MUSTERI, CUSTOMER) veya vitrini inceleyen yöneticilerin erişimine izin verir.
+ * Token henüz çözülmemişse otomatik olarak verifyToken'ı çalıştırır.
+ */
+const verifyMusteri = (req, res, next) => {
+  if (req.method === 'OPTIONS') return next();
+
+  const performCheck = () => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: "Oturum süreniz dolmuş, lütfen tekrar giriş yapın.",
+        message: 'Yetkilendirme tokenı bulunamadı.'
+      });
+    }
+
+    const currentRole = String(req.user.role || '').toUpperCase();
+    const validRoles = ['MUSTERI', 'CUSTOMER', 'BAYI', 'TENANT_ADMIN', 'ADMIN', 'SUPER_ADMIN'];
+    if (!validRoles.includes(currentRole)) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN_MUSTERI_ONLY',
+        message: 'Erişim engellendi: Bu işlem yalnızca Müşteri oturumu ile gerçekleştirilebilir.'
+      });
+    }
+
+    next();
+  };
+
+  if (!req.user) {
+    return verifyToken(req, res, performCheck);
+  }
+  return performCheck();
+};
+
+/**
  * Müşteri vitrini (store) erişim middleware'i:
- * CUSTOMER rolünün yanı sıra mağazasını önizleyen TENANT_ADMIN ve SUPER_ADMIN yetkililerine de izin verir.
+ * CUSTOMER/MUSTERI rolünün yanı sıra mağazasını önizleyen TENANT_ADMIN/BAYI ve SUPER_ADMIN/ADMIN yetkililerine de izin verir.
  */
 const checkCustomer = (req, res, next) => {
   // CORS Preflight (OPTIONS) isteklerini atla
@@ -213,7 +292,9 @@ const checkCustomer = (req, res, next) => {
     });
   }
 
-  if (req.user.role !== 'CUSTOMER' && req.user.role !== 'TENANT_ADMIN' && req.user.role !== 'SUPER_ADMIN') {
+  const role = String(req.user.role || '').toUpperCase();
+  const validRoles = ['CUSTOMER', 'MUSTERI', 'TENANT_ADMIN', 'BAYI', 'SUPER_ADMIN', 'ADMIN'];
+  if (!validRoles.includes(role)) {
     return res.status(403).json({
       success: false,
       error: "Oturum süreniz dolmuş, lütfen tekrar giriş yapın.",
@@ -297,6 +378,8 @@ const requireApprovedTenant = requireApprovedDealer;
 
 module.exports = {
   verifyToken,
+  verifyBayi,
+  verifyMusteri,
   checkSuperAdmin,
   isSuperAdmin,
   checkTenantAdmin,

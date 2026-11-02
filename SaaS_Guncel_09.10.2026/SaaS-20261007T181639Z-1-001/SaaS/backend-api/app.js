@@ -16,6 +16,7 @@ const path = require('path');
 const authRoutes = require('./routes/auth.routes');
 const superAdminRoutes = require('./routes/superAdmin');
 const tenantRoutes = require('./routes/tenant');
+const bayiRoutes = require('./routes/bayi.routes');
 const storeRoutes = require('./routes/store');
 const catalogRoutes = require('./routes/catalog.routes');
 const garageRoutes = require('./routes/garage.routes');
@@ -302,8 +303,10 @@ app.use(['/api/pending-tenants', '/pending-tenants'], (req, res, next) => {
   return superAdminRoutes(req, res, next);
 });
 
-// C. Bayi (Tenant) Operasyonları: Kendi kataloğunu yönetme, gelen siparişler, sipariş onaylama
-// POST & GET /api/tenant/catalog, GET & PATCH /api/tenant/orders
+// C. Bayi (BAYI / Tenant) Operasyonları: Kendi kataloğunu yönetme, gelen siparişler, sipariş onaylama
+// prompt.md Kural 3: /api/bayi/products CRUD izolasyonu ve verifyBayi koruması
+app.use('/api/bayi', bayiRoutes);
+app.use('/bayi', bayiRoutes);
 app.use('/api/tenant', tenantRoutes);
 
 // C.1 Bayi ve Vitrin Doğrudan Rota Köprüleri (/api/orders, /api/products, /api/customers, /api/discounts, /api/returns, /api/dashboard-stats)
@@ -330,9 +333,9 @@ directTenantBridgeRoutes.forEach(({ path: routePath, alias, target }) => {
         const jwt = require('jsonwebtoken');
         const decoded = jwt.verify(token, config.JWT_SECRET);
         if (decoded) {
-          if (decoded.role === 'TENANT_ADMIN' || decoded.role === 'SUPER_ADMIN') {
+          if (decoded.role === 'TENANT_ADMIN' || decoded.role === 'BAYI' || decoded.role === 'SUPER_ADMIN' || decoded.role === 'ADMIN') {
             isTenantAdminOrSuper = true;
-          } else if (decoded.role === 'CUSTOMER') {
+          } else if (decoded.role === 'CUSTOMER' || decoded.role === 'MUSTERI') {
             isCustomer = true;
           }
         }
@@ -342,7 +345,8 @@ directTenantBridgeRoutes.forEach(({ path: routePath, alias, target }) => {
     const subPath = req.url === '/' ? '' : req.url;
     req.url = target + subPath;
 
-    if (isCustomer && (target === '/products' || target === '/orders')) {
+    // prompt.md Kuralı: Vitrin ve kategori isteklerinde (GET /api/products) tüm ziyaretçiler ve müşteriler storeRoutes'a yönlendirilir
+    if ((isCustomer || !isTenantAdminOrSuper) && (target === '/products' || target === '/orders')) {
       return storeRoutes(req, res, next);
     }
 

@@ -44,10 +44,17 @@ async function startServer() {
 
   try {
     await activeDb.exec(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'Role') THEN
+          CREATE TYPE "Role" AS ENUM ('ADMIN', 'BAYI', 'MUSTERI', 'SUPER_ADMIN', 'TENANT_ADMIN', 'CUSTOMER');
+        END IF;
+      END$$;
       ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "customDomain" TEXT;
       ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "apiKeyHash" TEXT;
       ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'PENDING';
       ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'PENDING';
+      ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "bayiId" TEXT;
       ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "rootOEM" TEXT;
       ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "originalOEMs" JSONB;
       ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "referenceCodes" JSONB;
@@ -59,6 +66,9 @@ async function startServer() {
       ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "diagramUrl" TEXT;
       ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "diagrams" JSONB;
       CREATE INDEX IF NOT EXISTS "Product_rootOEM_idx" ON "Product"("rootOEM");
+      CREATE INDEX IF NOT EXISTS "Product_bayiId_idx" ON "Product"("bayiId");
+      ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "musteriId" TEXT;
+      CREATE INDEX IF NOT EXISTS "Order_musteriId_idx" ON "Order"("musteriId");
       CREATE TABLE IF NOT EXISTS "PartCrossReference" (
         "id" TEXT NOT NULL,
         "code" TEXT NOT NULL,

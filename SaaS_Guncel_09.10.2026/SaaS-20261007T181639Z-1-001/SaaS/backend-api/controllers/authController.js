@@ -229,7 +229,7 @@ async function register(req, res) {
       const userData = {
         email: cleanEmail,
         password: hashedPassword, // bcrypt ile hash'lenmiş şifre
-        role: 'CUSTOMER', // Herkese açık kayıtta yetki daima CUSTOMER'dır
+        role: 'MUSTERI', // prompt.md standardı: MUSTERI
         name: displayName
       };
 
@@ -427,7 +427,7 @@ async function registerBayi(req, res) {
           email: cleanEmail,
           password: hashedPassword,
           name: `${cleanAd} ${cleanSoyad}`,
-          role: 'TENANT_ADMIN',
+          role: 'BAYI',
           status: 'PENDING',
           tenantId: newTenant.id
         }

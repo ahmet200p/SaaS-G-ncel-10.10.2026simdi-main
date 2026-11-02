@@ -14,6 +14,7 @@ const { orderLimiter } = require('../middleware/rateLimiter');
 const jwt = require('jsonwebtoken');
 const authController = require('../controllers/authController');
 const { registerLimiter } = require('../middleware/rateLimiter');
+const { estimateLaborTime, getRecommendedTogether } = require('../services/partsCatalogService');
 
 // ============================================================================
 // Multi-Tenant Güvenlik Ara Yazılımı (Tenant Isolation Middleware)
@@ -173,23 +174,17 @@ router.get('/products', async (req, res) => {
     }
 
     // 2. 5. ADIM: Tenant Algılama (Subdomain/Slug Resolution)
+    // prompt.md Adım 3: Belirli bir bayi alt alanı varsa o bayiyi filtrele, yoksa TÜM aktif bayilerin ürünlerini getir
     const targetTenant = await resolveTargetTenant(req, currentUser ? currentUser.tenantId : null);
 
-    if (!targetTenant) {
-      return res.status(404).json({
-        success: false,
-        message: 'Bayi mağazası bulunamadı.'
-      });
-    }
-
-    if (!targetTenant.isActive) {
+    if (targetTenant && !targetTenant.isActive) {
       return res.status(403).json({
         success: false,
         message: 'Bu bayi Kurumumuz tarafından pasife alınmıştır lütfen müşteri temsilcisi ile iletişime geçiniz.'
       });
     }
 
-    const tenantId = targetTenant.id;
+    const tenantId = targetTenant ? targetTenant.id : null;
 
     // 3. Müşteri Profili ve İskonto Oranı (Sadece Giriş Yapılmışsa)
     let customerProfile = null;
@@ -225,29 +220,170 @@ router.get('/products', async (req, res) => {
     }
 
     // 4. REST Filtreleme, Arama ve Sayfalama Parametreleri
-    const { category, search, q, query, searchType, model, brand, vehicleBrand, partGroup, inStock, sort, page = 1, limit = 50 } = req.query;
+    const { category, categories, search, q, query, searchType, model, brand, brands, vehicleBrand, partGroup, subcategories, conditions, minPrice, maxPrice, cities, sellerTypes, shipping, inStock, sort, page = 1, limit = 50 } = req.query;
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
     const skip = (pageNum - 1) * limitNum;
 
     // REST Filtre Koşulları (AND dizisi ile çakışmasız, multi-criteria arama)
-    const andConditions = [{ tenantId: tenantId }];
+    const andConditions = [];
+
+    if (tenantId) {
+      andConditions.push({ tenantId: tenantId });
+    } else {
+      // prompt.md GÖREVİ: Sistemdeki TÜM aktif bayilerin (Ahmet Oto vb.) ürünlerini getir
+      andConditions.push({
+        tenant: { isActive: true }
+      });
+    }
 
     if (inStock === 'true' || inStock === '1') {
       andConditions.push({ stock: { gt: 0 } });
     }
 
-    if (category && category !== 'ALL' && category !== 'all') {
+    // prompt.md ADIM 3: Backend Prisma Dinamik 'Where' Kurgusu (Faceted Search)
+    // 1. Kategori & Çoklu Kategoriler (in operatörü)
+    const catList = [];
+    if (category && category !== 'ALL' && category !== 'all' && category !== 'Tüm Kategoriler') {
+      catList.push(String(category).trim());
+    }
+    if (categories) {
+      String(categories).split(',').map(c => c.trim()).filter(Boolean).forEach(c => {
+        if (!catList.includes(c)) catList.push(c);
+      });
+    }
+    if (catList.length > 0) {
       andConditions.push({
-        product: { category: { equals: category.trim(), mode: 'insensitive' } }
+        product: {
+          OR: [
+            { category: { in: catList } },
+            ...catList.map(c => ({ category: { contains: c, mode: 'insensitive' } })),
+            ...catList.map(c => ({ partGroup: { contains: c, mode: 'insensitive' } })),
+            ...catList.map(c => ({ name: { contains: c, mode: 'insensitive' } }))
+          ]
+        }
       });
     }
 
-    const brandFilter = (brand || vehicleBrand || '').trim();
-    if (brandFilter && brandFilter !== 'ALL' && brandFilter !== 'all') {
-      andConditions.push({
-        product: { vehicleBrand: { contains: brandFilter, mode: 'insensitive' } }
+    // 2. Marka & Çoklu Markalar (in operatörü: brands=Bosch,Brembo)
+    const brandList = [];
+    if (brand && brand !== 'ALL' && brand !== 'all') brandList.push(String(brand).trim());
+    if (vehicleBrand && vehicleBrand !== 'ALL' && vehicleBrand !== 'all') brandList.push(String(vehicleBrand).trim());
+    if (brands) {
+      String(brands).split(',').map(b => b.trim()).filter(Boolean).forEach(b => {
+        if (!brandList.includes(b)) brandList.push(b);
       });
+    }
+    if (brandList.length > 0) {
+      andConditions.push({
+        product: {
+          OR: [
+            { vehicleBrand: { in: brandList } },
+            ...brandList.map(b => ({ vehicleBrand: { contains: b, mode: 'insensitive' } })),
+            ...brandList.map(b => ({ name: { contains: b, mode: 'insensitive' } }))
+          ]
+        }
+      });
+    }
+
+    // 3. Alt Kategori (subcategories=Ön Fren Diski,Arka Fren Diski)
+    if (subcategories) {
+      const subList = String(subcategories).split(',').map(s => s.trim()).filter(Boolean);
+      if (subList.length > 0) {
+        andConditions.push({
+          product: {
+            OR: subList.flatMap(s => [
+              { name: { contains: s, mode: 'insensitive' } },
+              { partGroup: { contains: s, mode: 'insensitive' } },
+              { category: { contains: s, mode: 'insensitive' } }
+            ])
+          }
+        });
+      }
+    }
+
+    // 4. Ürün Durumu (conditions=Sıfır,Muadil,Çıkma)
+    if (conditions) {
+      const condList = String(conditions).split(',').map(c => c.trim().toLowerCase()).filter(Boolean);
+      if (condList.length > 0) {
+        const condOr = [];
+        if (condList.some(c => c.includes('sıfır') || c.includes('oem'))) {
+          condOr.push({ isDiscounted: false });
+          condOr.push({ product: { name: { contains: 'OEM', mode: 'insensitive' } } });
+        }
+        if (condList.some(c => c.includes('muadil') || c.includes('yan sanayi'))) {
+          condOr.push({ product: { name: { contains: 'Muadil', mode: 'insensitive' } } });
+        }
+        if (condList.some(c => c.includes('çıkma') || c.includes('revize'))) {
+          condOr.push({ product: { name: { contains: 'Revize', mode: 'insensitive' } } });
+        }
+        if (condOr.length > 0) {
+          andConditions.push({ OR: condOr });
+        }
+      }
+    }
+
+    // 5. Fiyat Aralığı (price: { gte: minPrice, lte: maxPrice })
+    const minP = parseFloat(minPrice);
+    const maxP = parseFloat(maxPrice);
+    if (!isNaN(minP) && !isNaN(maxP) && minP >= 0 && maxP >= minP) {
+      andConditions.push({
+        OR: [
+          { customPrice: { gte: minP, lte: maxP } },
+          {
+            AND: [
+              { customPrice: null },
+              { product: { defaultPrice: { gte: minP, lte: maxP } } }
+            ]
+          }
+        ]
+      });
+    } else if (!isNaN(minP) && minP >= 0) {
+      andConditions.push({
+        OR: [
+          { customPrice: { gte: minP } },
+          {
+            AND: [
+              { customPrice: null },
+              { product: { defaultPrice: { gte: minP } } }
+            ]
+          }
+        ]
+      });
+    } else if (!isNaN(maxP) && maxP > 0) {
+      andConditions.push({
+        OR: [
+          { customPrice: { lte: maxP } },
+          {
+            AND: [
+              { customPrice: null },
+              { product: { defaultPrice: { lte: maxP } } }
+            ]
+          }
+        ]
+      });
+    }
+
+    // 6. Satıcı Şehri / Tipi (İlişkili Tablo: tenant/user)
+    if (cities) {
+      const cityList = String(cities).split(',').map(c => c.trim()).filter(Boolean);
+      if (cityList.length > 0) {
+        andConditions.push({
+          tenant: {
+            OR: [
+              { users: { some: { customerProfile: { city: { in: cityList } } } } },
+              ...cityList.map(c => ({ name: { contains: c, mode: 'insensitive' } }))
+            ]
+          }
+        });
+      }
+    }
+
+    if (sellerTypes) {
+      const types = String(sellerTypes).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      if (types.includes('verified')) {
+        andConditions.push({ tenant: { status: 'APPROVED', isActive: true } });
+      }
     }
 
     const partGroupFilter = (partGroup || '').trim();
@@ -279,6 +415,17 @@ router.get('/products', async (req, res) => {
       } else if (searchType === 'name') {
         andConditions.push({
           product: { name: { contains: searchKeyword, mode: 'insensitive' } }
+        });
+      } else if (searchType === 'vin' || /^[A-HJ-NPR-Z0-9]{11,17}$/i.test(searchKeyword)) {
+        andConditions.push({
+          product: {
+            OR: [
+              { compatibleModels: { contains: searchKeyword, mode: 'insensitive' } },
+              { name: { contains: searchKeyword, mode: 'insensitive' } },
+              { oeNumber: { contains: searchKeyword, mode: 'insensitive' } },
+              { vehicleBrand: { contains: searchKeyword, mode: 'insensitive' } }
+            ]
+          }
         });
       } else {
         andConditions.push({
@@ -360,6 +507,8 @@ router.get('/products', async (req, res) => {
           attributes: item.product.attributes || [],
           diagramUrl: item.product.diagramUrl,
           diagrams: item.product.diagrams || [],
+          estimatedLaborTime: estimateLaborTime(item.product.name, item.product.category, item.product.vehicleBrand),
+          recommendedTogether: getRecommendedTogether(item.product.name, item.product.category),
           // Güvenlik Koruması: Fiyat ve stok gizlenir
           stock: null,
           isDiscounted: false,
@@ -382,9 +531,20 @@ router.get('/products', async (req, res) => {
       const finalPrice = parseFloat((listPrice * discountMultiplier).toFixed(2));
       const savedAmount = parseFloat((listPrice - finalPrice).toFixed(2));
 
+      const dealerName = (item.tenant && item.tenant.name) || (targetTenant && targetTenant.name) || 'Ahmet Oto (Yetkili Bayi)';
+      const rawPrice = (item.customPrice !== null && item.customPrice !== undefined) ? parseFloat(item.customPrice) : parseFloat(item.product.defaultPrice || 500);
+
       return {
         tenantProductId: item.id,
         productId: item.productId,
+        dealerName: dealerName,
+        tenantName: dealerName,
+        companyName: dealerName,
+        sellerName: dealerName,
+        user: {
+          companyName: dealerName,
+          name: dealerName
+        },
         oeNumber: item.product.oeNumber,
         name: item.product.name,
         category: item.product.category,
@@ -398,6 +558,8 @@ router.get('/products', async (req, res) => {
         attributes: item.product.attributes || [],
         diagramUrl: item.product.diagramUrl,
         diagrams: item.product.diagrams || [],
+        estimatedLaborTime: estimateLaborTime(item.product.name, item.product.category, item.product.vehicleBrand),
+        recommendedTogether: getRecommendedTogether(item.product.name, item.product.category),
         stock: item.stock,
         isDiscounted: item.isDiscounted,
         defaultPrice: listPrice,
@@ -442,11 +604,46 @@ router.get('/products', async (req, res) => {
       filters: {
         search: searchKeyword || null,
         category: (category && category !== 'ALL') ? category : null,
-        brand: brandFilter || null,
+        brand: (brand && brand !== 'ALL') ? brand : (vehicleBrand || null),
         model: (model && model.trim()) ? model.trim() : null,
         inStock: inStock === 'true' || inStock === '1'
       },
       count: calculatedProducts.length,
+      facets: (() => {
+        const f = { brand: {}, subcategory: {}, condition: {}, city: {}, sellerType: {}, shipping: {} };
+        calculatedProducts.forEach(item => {
+          const b = (item.brand || item.vehicleBrand || '').trim();
+          if (b) f.brand[b] = (f.brand[b] || 0) + 1;
+
+          const nm = (item.name || '').toLowerCase();
+          if (nm.includes('ön fren diski')) f.subcategory['Ön Fren Diski'] = (f.subcategory['Ön Fren Diski'] || 0) + 1;
+          if (nm.includes('arka fren diski')) f.subcategory['Arka Fren Diski'] = (f.subcategory['Arka Fren Diski'] || 0) + 1;
+          if (nm.includes('balata') || nm.includes('ön fren balatası')) f.subcategory['Ön Fren Balatası'] = (f.subcategory['Ön Fren Balatası'] || 0) + 1;
+          if (nm.includes('kaliper') || nm.includes('tamir')) f.subcategory['Fren Kaliperi & Tamir Tk.'] = (f.subcategory['Fren Kaliperi & Tamir Tk.'] || 0) + 1;
+
+          if (item.isDiscounted) {
+            f.condition['Muadil'] = (f.condition['Muadil'] || 0) + 1;
+          } else {
+            f.condition['Sıfır'] = (f.condition['Sıfır'] || 0) + 1;
+          }
+
+          const cty = item.city || 'İstanbul';
+          ['İstanbul', 'Ankara', 'İzmir', 'Bursa'].forEach(c => {
+            if (cty.toLowerCase().includes(c.toLowerCase()) || (item.dealerName && item.dealerName.toLowerCase().includes(c.toLowerCase()))) {
+              f.city[c] = (f.city[c] || 0) + 1;
+            }
+          });
+
+          if (item.stock > 5) f.shipping['sameDay'] = (f.shipping['sameDay'] || 0) + 1;
+          f.shipping['freeShipping'] = (f.shipping['freeShipping'] || 0) + 1;
+          if (item.stock > 10) f.shipping['immediateDelivery'] = (f.shipping['immediateDelivery'] || 0) + 1;
+
+          f.sellerType['verified'] = (f.sellerType['verified'] || 0) + 1;
+          f.sellerType['distributor'] = (f.sellerType['distributor'] || 0) + 1;
+          f.sellerType['wholesaler'] = (f.sellerType['wholesaler'] || 0) + 1;
+        });
+        return f;
+      })(),
       data: calculatedProducts
     });
 
@@ -713,6 +910,8 @@ router.get('/products/:id', async (req, res) => {
           attributes: item.product.attributes || [],
           diagramUrl: item.product.diagramUrl,
           diagrams: item.product.diagrams || [],
+          estimatedLaborTime: estimateLaborTime(item.product.name, item.product.category, item.product.vehicleBrand),
+          recommendedTogether: getRecommendedTogether(item.product.name, item.product.category),
           stock: null,
           isDiscounted: false,
           defaultPrice: null,
@@ -751,6 +950,8 @@ router.get('/products/:id', async (req, res) => {
         attributes: item.product.attributes || [],
         diagramUrl: item.product.diagramUrl,
         diagrams: item.product.diagrams || [],
+        estimatedLaborTime: estimateLaborTime(item.product.name, item.product.category, item.product.vehicleBrand),
+        recommendedTogether: getRecommendedTogether(item.product.name, item.product.category),
         stock: item.stock,
         isDiscounted: item.isDiscounted,
         defaultPrice: listPrice,
@@ -1001,6 +1202,8 @@ router.post('/orders', orderLimiter, async (req, res) => {
       snapshotShippingAddress = snapshotShippingAddress.substring(0, 1000);
     }
 
+    const orderVin = (req.body.vin || req.body.vinNumber || '').trim().toUpperCase() || null;
+
     // 5. Prisma Transaction (Atomik Sipariş Oluşturma, KDV, Güvenli Stok Düşme, Stok Denetimi ve Cari Bakiye Defteri)
     const createdOrder = await prisma.$transaction(async (tx) => {
       // A. Sipariş ana kaydını oluştur (KDV oran ve tutarlarıyla, shippingAddress snapshot'ı ile birlikte)
@@ -1009,6 +1212,7 @@ router.post('/orders', orderLimiter, async (req, res) => {
           orderNumber: orderNumber,
           tenantId: tenantId,
           customerId: customerProfile.id,
+          musteriId: (req.user && req.user.id) ? req.user.id : (customerProfile.userId || null),
           subtotal: subtotal,
           vatRate: vatRate,
           vatAmount: vatAmount,
@@ -1016,6 +1220,7 @@ router.post('/orders', orderLimiter, async (req, res) => {
           status: orderStatus,
           paymentMethod: paymentMethod || null,
           shippingAddress: snapshotShippingAddress,
+          vin: orderVin,
           items: {
             create: orderItemsToCreate
           }
