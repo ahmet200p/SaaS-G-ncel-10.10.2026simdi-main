@@ -27,3 +27,4 @@ router.use(verifyBayi);
 router.use('/', tenantRouter);
 
 module.exports = router;
+

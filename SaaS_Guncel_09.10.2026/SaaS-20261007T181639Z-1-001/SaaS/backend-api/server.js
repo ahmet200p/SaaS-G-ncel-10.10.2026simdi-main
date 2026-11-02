@@ -390,7 +390,7 @@ const ensureNeonTables = async () => {
           });
           try {
             await prisma.$executeRawUnsafe(`UPDATE "User" SET "status" = 'APPROVED' WHERE "email" = 'admin@sistem.com';`);
-          } catch (_) {}
+          } catch (_) { }
         } else {
           throw adminErr;
         }
@@ -422,7 +422,7 @@ const ensureNeonTables = async () => {
             });
             try {
               await prisma.$executeRawUnsafe(`UPDATE "Tenant" SET "status" = 'APPROVED' WHERE "subdomain" = 'ahmetoto';`);
-            } catch (_) {}
+            } catch (_) { }
           } else {
             throw tErr;
           }
@@ -457,7 +457,7 @@ const ensureNeonTables = async () => {
             });
             try {
               await prisma.$executeRawUnsafe(`UPDATE "User" SET "status" = 'APPROVED' WHERE "email" = 'ahmet@ahmetoto.com';`);
-            } catch (_) {}
+            } catch (_) { }
           } else {
             throw dErr;
           }
@@ -574,7 +574,7 @@ bootstrap();
 const handleShutdown = async (signal) => {
   console.log(`\n${signal} sinyali alındı, sunucu güvenli bir şekilde kapatılıyor...`);
   if (secondaryServer) {
-    try { secondaryServer.close(); } catch (e) {}
+    try { secondaryServer.close(); } catch (e) { }
   }
   server.close(async () => {
     await prisma.$disconnect();
