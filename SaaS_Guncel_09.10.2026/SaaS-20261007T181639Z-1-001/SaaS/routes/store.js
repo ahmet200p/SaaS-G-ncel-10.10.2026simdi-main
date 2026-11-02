@@ -488,25 +488,38 @@ router.get('/products', async (req, res) => {
       orderBy: orderBy
     });
 
-    // prompt.md ADIM 2: Eğer tenantProduct boşsa, Product tablosundaki tüm ürünleri vitrine yansıt (Sıfır veri kaybı)
-    if ((!tenantProducts || tenantProducts.length === 0) && andConditions.length === 0) {
-      const directProducts = await prisma.product.findMany({
+    // prompt.md ADIM 2: Eğer filtrelenmiş sonuç 0 ise, vitrinin boş kalmaması için tüm ürünleri findMany ile koşulsuz getir
+    if (!tenantProducts || tenantProducts.length === 0) {
+      tenantProducts = await prisma.tenantProduct.findMany({
+        include: {
+          product: true,
+          tenant: true
+        },
         take: limitNum,
-        skip: skip,
-        orderBy: { createdAt: 'desc' }
+        orderBy: orderBy
       });
-      if (directProducts && directProducts.length > 0) {
-        totalCount = directProducts.length;
-        tenantProducts = directProducts.map(p => ({
-          id: p.id,
-          tenantId: p.bayiId || tenantId || 'tenant-ahmet-oto',
-          productId: p.id,
-          stock: 15,
-          customPrice: p.defaultPrice,
-          isDiscounted: false,
-          product: p,
-          tenant: targetTenant || null
-        }));
+
+      if (!tenantProducts || tenantProducts.length === 0) {
+        const directProducts = await prisma.product.findMany({
+          take: limitNum,
+          orderBy: { createdAt: 'desc' }
+        });
+        if (directProducts && directProducts.length > 0) {
+          totalCount = directProducts.length;
+          tenantProducts = directProducts.map(p => ({
+            id: p.id,
+            tenantId: p.bayiId || tenantId || 'tenant-ahmet-oto',
+            productId: p.id,
+            stock: 15,
+            customPrice: p.defaultPrice,
+            isDiscounted: false,
+            product: p,
+            tenant: targetTenant || null
+          }));
+        }
+      }
+      if (tenantProducts && tenantProducts.length > 0) {
+        totalCount = tenantProducts.length;
       }
     }
 
@@ -535,6 +548,7 @@ router.get('/products', async (req, res) => {
           // Güvenlik Koruması: Fiyat ve stok gizlenir
           stock: (item.stock !== null && item.stock !== undefined) ? item.stock : 10,
           isDiscounted: false,
+          price: item.customPrice || (item.product && item.product.defaultPrice) || 500,
           defaultPrice: item.customPrice || (item.product && item.product.defaultPrice) || 500,
           customPrice: item.customPrice || (item.product && item.product.defaultPrice) || 500,
           discountedPrice: item.customPrice || (item.product && item.product.defaultPrice) || 500,
@@ -585,6 +599,7 @@ router.get('/products', async (req, res) => {
         recommendedTogether: getRecommendedTogether(item.product.name, item.product.category),
         stock: item.stock,
         isDiscounted: item.isDiscounted,
+        price: listPrice,
         defaultPrice: listPrice,
         customPrice: item.customPrice,
         discountedPrice: finalPrice,
@@ -977,6 +992,7 @@ router.get('/products/:id', async (req, res) => {
         recommendedTogether: getRecommendedTogether(item.product.name, item.product.category),
         stock: item.stock,
         isDiscounted: item.isDiscounted,
+        price: listPrice,
         defaultPrice: listPrice,
         customPrice: item.customPrice,
         discountedPrice: finalPrice,

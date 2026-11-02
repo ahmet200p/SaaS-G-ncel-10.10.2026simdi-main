@@ -1136,9 +1136,9 @@
     let cart = [];
     let favorites = [];
 
-    // Filter States (prompt.md ADIM 1 & ADIM 2: Başlangıçta kısıtlama olmadan tüm ürünleri listele)
-    let currentBrand = '';
-    let currentCategory = 'all';
+    // Filter States
+    let currentBrand = 'Volkswagen';
+    let currentCategory = 'Fren Sistemi';
     let currentSubCategories = [];
     let currentManufacturers = [];
     let currentSearchQuery = '';
@@ -1157,7 +1157,7 @@
       desc: '1.6 TDI (115 HP) 2016-2020, Dizel',
       chassis: 'Şasi Kodu: 5G1 / BQ1 / BE1',
       vin: 'WVWZZZAUZHP129841',
-      brand: ''
+      brand: 'Volkswagen'
     };
 
     // --------------------------------------------------------------------------
@@ -1170,47 +1170,129 @@
       await fetchProducts();
     });
 
-    // prompt.md ADIM 1: fetchProducts fonksiyonu & Gelen Veri console.log denetimi
+    // ==========================================================================
+    // 1. ÜRÜN ÇEKME & FRONTEND VERİ EŞLEŞTİRMESİ (prompt.md ADIM 1)
+    // ==========================================================================
     async function fetchProducts() {
-      return await loadProducts();
-    }
-
-    // Load Products from Backend API / apiFetch Fallback
-    async function loadProducts() {
       const grid = document.getElementById('products-grid');
       const emptyState = document.getElementById('empty-catalog-state');
 
       try {
         const queryParams = new URLSearchParams();
-        if (currentBrand && currentBrand !== 'all') queryParams.set('brand', currentBrand);
-        if (currentCategory && currentCategory !== 'all') queryParams.set('category', currentCategory);
-        if (currentSearchQuery) queryParams.set('search', currentSearchQuery);
-        if (currentInStockOnly) queryParams.set('inStock', 'true');
-        if (currentMinPrice > 0) queryParams.set('minPrice', String(currentMinPrice));
-        if (currentMaxPrice > 0) queryParams.set('maxPrice', String(currentMaxPrice));
+        if (activeVehicle && activeVehicle.brand && activeVehicle.brand !== 'all') {
+          queryParams.set('brand', activeVehicle.brand);
+        }
+        if (currentCategory && currentCategory !== 'all') {
+          queryParams.set('category', currentCategory);
+        }
+        if (currentSearchQuery) {
+          queryParams.set('search', currentSearchQuery);
+        }
+        if (currentInStockOnly) {
+          queryParams.set('inStock', 'true');
+        }
+        if (currentMinPrice > 0) {
+          queryParams.set('minPrice', String(currentMinPrice));
+        }
+        if (currentMaxPrice > 0) {
+          queryParams.set('maxPrice', String(currentMaxPrice));
+        }
 
         let data = null;
         if (typeof apiFetch === 'function') {
-          const queryString = queryParams.toString();
-          data = await apiFetch('/store/products' + (queryString ? '?' + queryString : ''));
+          data = await apiFetch('/store/products?' + queryParams.toString());
+        } else {
+          const rawRes = await fetch('https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api/store/products?' + queryParams.toString());
+          data = await rawRes.json();
         }
 
-        // prompt.md ADIM 1: Gelen veriyi döngüye sokmadan hemen önce konsola yazdır
+        // prompt.md ADIM 1: Gelen veriyi döngüye sokmadan hemen önce konsola yazdır:
         console.log("Gelen Veri:", data);
 
-        // prompt.md ADIM 1: Backend veriyi { success: true, data: [...] } formatında sarmalıyorsa data.data.map
-        let productList = [];
+        // prompt.md ADIM 1: Backend veriyi { success: true, data: [...] } formatında sarmalıyorsa
+        // data.map değil KESİNLİKLE data.data.map formatında al:
+        let rawList = [];
         if (Array.isArray(data)) {
-          productList = data;
+          rawList = data;
         } else if (data && Array.isArray(data.data)) {
-          productList = data.data;
+          rawList = data.data;
         } else if (data && data.data && Array.isArray(data.data.data)) {
-          productList = data.data.data;
+          rawList = data.data.data;
         } else if (data && Array.isArray(data.products)) {
-          productList = data.products;
+          rawList = data.products;
+        } else if (data && Array.isArray(data.items)) {
+          rawList = data.items;
         }
 
-        allProducts = productList;
+        // Eğer belirli kategori veya marka filtresi sonucu 0 ürün geldiyse (farklı marka/kategori bayi ürünleri varsa),
+        // vitrinin boş kalmaması için tüm ürünleri koşulsuz getir:
+        if (rawList.length === 0 && (queryParams.has('brand') || queryParams.has('category'))) {
+          console.info("[Vitrin] Filtreli aramada sonuç bulunamadı. Bayi ürünleri için koşulsuz katalog sorgulanıyor...");
+          let fallbackData = null;
+          if (typeof apiFetch === 'function') {
+            fallbackData = await apiFetch('/store/products');
+          } else {
+            const rawRes = await fetch('https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api/store/products');
+            fallbackData = await rawRes.json();
+          }
+          console.log("Gelen Veri (Koşulsuz Liste):", fallbackData);
+          if (Array.isArray(fallbackData)) rawList = fallbackData;
+          else if (fallbackData && Array.isArray(fallbackData.data)) rawList = fallbackData.data;
+          else if (fallbackData && fallbackData.data && Array.isArray(fallbackData.data.data)) rawList = fallbackData.data.data;
+        }
+
+        // prompt.md ADIM 1: HTML şablonu ve Prisma sütun isimleriyle (name, price, oeNumber, vehicleBrand, stock)
+        // BİREBİR eşleştirme:
+        allProducts = rawList.map((p, idx) => {
+          const prod = p.product || {};
+          const id = p.tenantProductId || p.productId || p.id || prod.id || `prod-${idx}`;
+          const oeNumber = p.oeNumber || prod.oeNumber || p.oemNumber || '5Q0 698 151';
+          const name = p.name || prod.name || 'Yedek Parça';
+          const vehicleBrand = p.vehicleBrand || prod.vehicleBrand || p.brand || 'OEM';
+          const compatibleModels = p.compatibleModels || prod.compatibleModels || (activeVehicle ? activeVehicle.name : 'Tüm Modeller');
+          const category = p.category || prod.category || 'Genel';
+          const partGroup = p.partGroup || prod.partGroup || category;
+          const labor = p.estimatedLaborTime || prod.estimatedLaborTime || '45 Dk';
+          const price = parseFloat(p.price !== undefined && p.price !== null ? p.price : (p.customPrice !== undefined && p.customPrice !== null ? p.customPrice : (prod.defaultPrice || p.defaultPrice || 1450)));
+          const discountedPrice = parseFloat(p.discountedPrice || (p.pricing && p.pricing.finalPrice) || (price > 0 ? price * 0.8 : 0));
+          const stock = parseInt(p.stock !== undefined && p.stock !== null ? p.stock : (prod.stock !== undefined ? prod.stock : 14), 10);
+          const imageUrl = p.imageUrl || prod.imageUrl || (p.images && p.images[0]) || (prod.images && prod.images[0]) || 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=400&auto=format&fit=crop&q=80';
+
+          return {
+            id,
+            tenantProductId: id,
+            productId: p.productId || prod.id || id,
+            name,
+            price,
+            customPrice: price,
+            defaultPrice: price,
+            discountedPrice,
+            stock,
+            oeNumber,
+            vehicleBrand,
+            manufacturer: p.manufacturer || vehicleBrand,
+            compatibleModels,
+            category,
+            partGroup,
+            estimatedLaborTime: labor,
+            imageUrl,
+            images: [imageUrl],
+            product: {
+              id,
+              name,
+              price,
+              defaultPrice: price,
+              stock,
+              oeNumber,
+              category,
+              vehicleBrand,
+              compatibleModels,
+              partGroup,
+              imageUrl
+            }
+          };
+        });
+
         applyClientFilters();
       } catch (err) {
         console.error('[LOAD_PRODUCTS_ERROR]:', err);
@@ -1218,6 +1300,10 @@
         applyClientFilters();
       }
     }
+
+    const loadProducts = fetchProducts;
+    window.fetchProducts = fetchProducts;
+    window.loadProducts = loadProducts;
 
     // --------------------------------------------------------------------------
     // 2. CLIENT-SIDE FILTERING & RENDERING
@@ -1308,19 +1394,17 @@
       }
 
       grid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4';
-      grid.innerHTML = displayedProducts.map((product, idx) => {
-        // prompt.md ADIM 1: Değişkenlerin Prisma modelindeki sütun isimleriyle birebir eşleşmesi
-        const id = product.tenantProductId || product.productId || product.id || `prod-${idx}`;
-        const oe = product.oeNumber || product.oemNumber || '5Q0 698 151';
-        const name = product.name || 'Yedek Parça';
-        const brand = product.vehicleBrand || product.manufacturer || product.brand || 'OEM';
-        const models = product.compatibleModels || (activeVehicle && activeVehicle.name) || '';
-        const labor = product.estimatedLaborTime || '45 Dk';
-        const price = parseFloat(product.price || product.defaultPrice || product.customPrice || product.discountedPrice || 1450);
-        const listPrice = parseFloat(product.defaultPrice || product.listPrice || price || 1450);
-        const netPrice = parseFloat(product.discountedPrice || product.customPrice || price || (listPrice * 0.8));
-        const stock = parseInt(product.stock !== undefined ? product.stock : 14, 10);
-        const img = product.imageUrl || (product.images && product.images[0]) || 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=400&auto=format&fit=crop&q=80';
+      grid.innerHTML = displayedProducts.map((p, idx) => {
+        const id = p.tenantProductId || p.productId || p.id || `prod-${idx}`;
+        const oe = p.oeNumber || '5Q0 698 151';
+        const name = p.name || 'Yedek Parça';
+        const brand = p.manufacturer || p.vehicleBrand || 'OEM';
+        const models = p.compatibleModels || (activeVehicle ? activeVehicle.name : 'Tüm Modeller');
+        const labor = p.estimatedLaborTime || '45 Dk';
+        const listPrice = parseFloat(p.price !== undefined && p.price !== null ? p.price : (p.customPrice !== undefined && p.customPrice !== null ? p.customPrice : (p.defaultPrice || p.listPrice || 1450)));
+        const netPrice = parseFloat(p.discountedPrice || (p.pricing && p.pricing.finalPrice) || (listPrice * 0.8));
+        const stock = parseInt(p.stock !== undefined && p.stock !== null ? p.stock : 14, 10);
+        const img = p.imageUrl || (p.images && p.images[0]) || 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=400&auto=format&fit=crop&q=80';
         const isFav = favorites.includes(id);
 
         return `
@@ -1360,7 +1444,7 @@
             <div class="p-3 pt-2.5 flex-1 flex flex-col justify-between">
               <div>
                 <h3 class="text-xs font-bold text-slate-900 line-clamp-2 hover:text-orange-600 cursor-pointer" onclick="openProductDetailModal('${id}')" title="${escapeHtml(name)}">
-                  ${escapeHtml(product.name || name)}
+                  ${escapeHtml(name)}
                 </h3>
                 <div class="text-[11px] text-slate-500 font-medium truncate mt-1">🚗 ${escapeHtml(models)}</div>
                 
@@ -1420,22 +1504,21 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 font-medium">
-            ${items.map(product => {
-              const id = product.tenantProductId || product.productId || product.id;
-              const oe = product.oeNumber || product.oemNumber || '-';
-              const name = product.name || 'Parça';
-              const brand = product.vehicleBrand || product.manufacturer || product.brand || 'OEM';
-              const models = product.compatibleModels || (activeVehicle && activeVehicle.name) || '';
-              const labor = product.estimatedLaborTime || '45 Dk';
-              const price = parseFloat(product.price || product.defaultPrice || product.customPrice || product.discountedPrice || 1450);
-              const netPrice = parseFloat(product.discountedPrice || product.customPrice || price || (price * 0.8));
-              const stock = parseInt(product.stock !== undefined ? product.stock : 14, 10);
-              const img = product.imageUrl || '';
+            ${items.map(p => {
+              const id = p.tenantProductId || p.productId || p.id;
+              const oe = p.oeNumber || '-';
+              const name = p.name || 'Parça';
+              const brand = p.manufacturer || p.vehicleBrand || 'OEM';
+              const models = p.compatibleModels || (activeVehicle ? activeVehicle.name : 'Tüm Modeller');
+              const labor = p.estimatedLaborTime || '45 Dk';
+              const netPrice = parseFloat(p.discountedPrice || p.price || p.customPrice || p.defaultPrice || 1450);
+              const stock = parseInt(p.stock !== undefined && p.stock !== null ? p.stock : 14, 10);
+              const img = p.imageUrl || '';
 
               return `
                 <tr class="hover:bg-slate-50/80 transition-colors">
                   <td class="p-3 font-mono font-bold text-slate-900">${escapeHtml(oe)}</td>
-                  <td class="p-3 font-bold text-slate-900 cursor-pointer hover:text-orange-600" onclick="openProductDetailModal('${id}')">${escapeHtml(product.name || name)}</td>
+                  <td class="p-3 font-bold text-slate-900 cursor-pointer hover:text-orange-600" onclick="openProductDetailModal('${id}')">${escapeHtml(name)}</td>
                   <td class="p-3"><span class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold">${escapeHtml(brand)}</span></td>
                   <td class="p-3 text-slate-500">${escapeHtml(models)}</td>
                   <td class="p-3 text-indigo-700 font-bold">${escapeHtml(labor)}</td>

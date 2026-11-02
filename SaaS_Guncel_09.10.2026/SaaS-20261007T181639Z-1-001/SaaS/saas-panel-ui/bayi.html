@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description"
     content="Ahmet Oto Bayi Yönetim Paneli - B2B Yedek Parça E-Ticaret ve Bayi Operasyon Sistemi">
-  <title>Ahmet Oto Yönetim | Bayi Yönetim Paneli (Tenant Admin)</title>
+  <title>AFS Systems - Bayi Paneli</title>
 
   <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,14 +15,296 @@
 
   <!-- CSS Dosyası -->
   <link rel="stylesheet" href="tenant.css">
+  <style>
+    html, body {
+      overflow-x: hidden;
+      max-width: 100vw;
+    }
+    /* Tailwind CSS Uyumlu B2B Çapraz Referans, Akıllı Galeri ve Mühendislik Tablosu Stilleri */
+    .tw-cross-container {
+      background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+      border: 1.5px solid #cbd5e1;
+      border-radius: 0.75rem;
+      padding: 1rem;
+      margin-top: 0.625rem;
+      margin-bottom: 1.125rem;
+      box-shadow: 0 2px 6px -1px rgba(15, 23, 42, 0.06);
+    }
+    .tw-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 0.45rem;
+      font-size: 0.76rem;
+      line-height: 1.1rem;
+      font-weight: 700;
+      transition: all 0.15s ease-in-out;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+    .tw-badge-oe {
+      background-color: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #93c5fd;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      letter-spacing: 0.02em;
+    }
+    .tw-badge-oe-active {
+      background-color: #dbeafe;
+      color: #1e3a8a;
+      border: 1.5px solid #2563eb;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18);
+    }
+    .tw-ref-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+      gap: 0.5rem;
+    }
+    .tw-ref-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.4rem 0.65rem;
+      background-color: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-left: 3px solid #f59e0b;
+      border-radius: 0.45rem;
+      font-size: 0.75rem;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      transition: all 0.15s ease;
+    }
+    .tw-ref-card-active {
+      background-color: #fffbeb;
+      border-color: #f59e0b;
+      border-left: 3.5px solid #d97706;
+      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.16);
+    }
+    .tw-ref-brand {
+      font-weight: 800;
+      color: #0f172a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tw-ref-code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-weight: 700;
+      color: #b45309;
+      background-color: #fef3c7;
+      border: 1px solid #fde68a;
+      padding: 0.125rem 0.45rem;
+      border-radius: 0.3rem;
+      white-space: nowrap;
+    }
+    .tw-fallback-badge {
+      position: absolute;
+      top: 6px;
+      left: 5px;
+      right: 28px;
+      z-index: 3;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+      padding: 0.2rem 0.4rem;
+      border-radius: 0.35rem;
+      background-color: rgba(254, 243, 199, 0.96);
+      color: #92400e;
+      border: 1px solid #f59e0b;
+      font-size: 0.63rem;
+      font-weight: 700;
+      line-height: 0.85rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tw-specs-table-wrap {
+      border: 1px solid #cbd5e1;
+      border-radius: 0.6rem;
+      overflow: hidden;
+      background: #ffffff;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .tw-specs-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.76rem;
+    }
+    .tw-specs-table tr {
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .tw-specs-table tr:last-child {
+      border-bottom: none;
+    }
+    .tw-specs-table tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+    .tw-specs-table th {
+      width: 44%;
+      text-align: left;
+      padding: 0.5rem 0.75rem;
+      font-weight: 700;
+      color: #475569;
+      background-color: rgba(241, 245, 249, 0.65);
+      border-right: 1px solid #e2e8f0;
+    }
+    .tw-specs-table td {
+      padding: 0.5rem 0.75rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .inline-flex { display: inline-flex; }
+    .flex { display: flex; }
+    .flex-wrap { flex-wrap: wrap; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .gap-1\.5 { gap: 0.375rem; }
+    .gap-2 { gap: 0.5rem; }
+    .px-2\.5 { padding-left: 0.625rem; padding-right: 0.625rem; }
+    .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+    .rounded-md { border-radius: 0.375rem; }
+    .rounded-lg { border-radius: 0.5rem; }
+    .rounded-full { border-radius: 9999px; }
+    .text-xs { font-size: 0.75rem; line-height: 1rem; }
+    .font-semibold { font-weight: 600; }
+    .font-bold { font-weight: 700; }
+    .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .bg-blue-50 { background-color: #eff6ff; }
+    .text-blue-700 { color: #1d4ed8; }
+    .border-blue-200 { border-color: #bfdbfe; }
+    .bg-amber-50 { background-color: #fffbeb; }
+    .text-amber-800 { color: #92400e; }
+    .border-amber-200 { border-color: #fde68a; }
+    .bg-emerald-50 { background-color: #ecfdf5; }
+    .text-emerald-700 { color: #047857; }
+    .border-emerald-200 { border-color: #a7f3d0; }
+    .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+    .max-h-64 { max-height: 16rem; }
+    .overflow-y-auto { overflow-y: auto; }
+    .cursor-pointer { cursor: pointer; }
+    .tw-vin-parts-box {
+      margin-top: 10px;
+      background: linear-gradient(180deg, #f0f9ff 0%, #f8fafc 100%);
+      border: 1.5px solid #bae6fd;
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.08);
+    }
+    .tw-vin-parts-list {
+      max-height: 16rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-right: 2px;
+    }
+    .tw-vin-parts-list::-webkit-scrollbar {
+      width: 6px;
+    }
+    .tw-vin-parts-list::-webkit-scrollbar-track {
+      background: #e0f2fe;
+      border-radius: 9999px;
+    }
+    .tw-vin-parts-list::-webkit-scrollbar-thumb {
+      background: #38bdf8;
+      border-radius: 9999px;
+    }
+    .tw-vin-part-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 11px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-left: 3.5px solid #0284c7;
+      border-radius: 8px;
+      font-size: 0.79rem;
+      font-weight: 700;
+      color: #0f172a;
+      cursor: pointer;
+      transition: all 0.16s ease;
+      user-select: none;
+    }
+    .tw-vin-part-item:hover {
+      background: #eff6ff;
+      border-color: #38bdf8;
+      border-left-color: #2563eb;
+      color: #1d4ed8;
+      transform: translateX(2px);
+      box-shadow: 0 2px 5px rgba(37, 99, 235, 0.12);
+    }
+    .tw-vin-part-item.active {
+      background: #dbeafe;
+      border-color: #2563eb;
+      border-left-color: #1d4ed8;
+      color: #1e3a8a;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.16);
+    }
+    .tw-vin-parts-list {
+      height: 300px;
+      max-height: 300px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      position: relative;
+    }
+    .tw-vin-virtual-spacer {
+      width: 100%;
+      position: relative;
+      pointer-events: none;
+    }
+    .tw-vin-virtual-content {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+    }
+    @keyframes vinPulse {
+      0% { transform: translateX(-60%); }
+      100% { transform: translateX(180%); }
+    }
+  </style>
   <!-- SweetAlert2 (Modern Dialogs & Confirm Alerts) -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <!-- jwt-decode: Topluluk standardı JWT payload çözümleme kütüphanesi -->
   <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
+  <!-- Tailwind CSS CDN (Mobile-First Architecture) -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="assets/js/api.js"></script>
 </head>
 
-<body>
+<body class="min-h-screen w-full overflow-x-hidden bg-slate-100 flex flex-col md:flex-row antialiased">
+
+  <!-- MOBİL TOPBAR (Masaüstünde Gizli - Prompt Kural 1 & 5) -->
+  <div class="mobile-topbar md:hidden flex items-center justify-between px-4 py-3 bg-white text-slate-900 sticky top-0 z-40 border-b border-slate-200 w-full shadow-sm">
+    <div class="flex items-center gap-3">
+      <button id="bayi-mobile-toggle" type="button" class="p-2 rounded-lg bg-slate-100 text-slate-700 hover:text-slate-900 hover:bg-slate-200 min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer transition border border-slate-300" aria-label="Menüyü Aç/Kapat" onclick="toggleBayiMobileSidebar()">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+      </button>
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center text-white">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </div>
+        <span class="font-bold text-sm tracking-tight text-slate-800">Bayi Portalı</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <a href="store.html" class="p-2 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 min-h-[44px] min-w-[44px] flex items-center justify-center text-xs font-semibold border border-emerald-200" title="Vitrin">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+      </a>
+      <button onclick="logout()" class="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 min-h-[44px] min-w-[44px] flex items-center justify-center text-xs font-semibold border border-red-200" title="Çıkış Yap">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- MOBİL KENAR ÇUBUĞU KARARTMA ARKA PLANI (BACKDROP) -->
+  <div id="bayi-sidebar-backdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 hidden transition-opacity md:hidden" onclick="toggleBayiMobileSidebar()"></div>
 
   <!-- ==========================================================================
        SOL YAN MENÜ: <aside class="sidebar"> (260px, Beyaz Arkaplan, Sağ Border)
@@ -750,12 +1032,12 @@
               required>
           </div>
 
-          <!-- 1.5. Şasi (VIN) Numarası (Text + Şık Sorgula Butonu) -->
+          <!-- 1.5. Şasi (VIN) Numarası (Text + Şık Sorgula Butonu + İnteraktif Şasi Kataloğu) -->
           <div class="form-group" style="margin-bottom: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
               <label class="form-label" for="prod-vin" style="margin-bottom: 0; font-weight: 600;">Şasi (VIN) Numarası</label>
               <span style="font-size: 0.74rem; color: #0284c7; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
                 Canlı VIN Doğrulama
               </span>
             </div>
@@ -769,20 +1051,44 @@
                 <span class="btn-text">Sorgula</span>
               </button>
             </div>
-            <small style="color: #64748b; font-size: 0.74rem; margin-top: 4px; display: block;">* Şasi sorgusu 'Araç Künyesi (vehicleInfo)' ve 'Komple OEM Parça Kataloğu (compatibleParts)' ağacını getirir.</small>
-            <!-- Şasiye Uyumlu OEM Parça Ağacı (compatibleParts) Seçim Kutusu -->
-            <div id="vin-compatible-parts-container" style="display: none; margin-top: 10px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 10px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px;">
-                <span style="font-size: 0.78rem; font-weight: 700; color: #0369a1; display: inline-flex; align-items: center; gap: 5px;">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
-                  Şasiye Uyumlu Parça Ağacı (Tıkla &amp; Sorgula)
-                </span>
-                <span id="vin-compatible-parts-count" style="font-size: 0.72rem; font-weight: 700; background: #fff; color: #0284c7; border: 1px solid #7dd3fc; padding: 3px 10px; border-radius: 999px; white-space: nowrap;">0 Uyumlu Parça</span>
+            <small style="color: #64748b; font-size: 0.74rem; margin-top: 4px; display: block;">* Şasi sorgusu 'Araç Markası', 'Uyumlu Modeller' ve uyumlu OEM parça ağacını otomatik getirir.</small>
+
+            <!-- Şık VIN Yükleme Durumu (UI Kilitleme & Bilgilendirme Ekranı) -->
+            <div id="vin-loading-state" style="display: none; margin-top: 10px; padding: 18px 16px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1.5px solid #7dd3fc; border-radius: 10px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.08); text-align: center;">
+              <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 6px;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.5" style="animation: spin 0.8s linear infinite; flex-shrink: 0;">
+                  <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+                  <path d="M12 2a10 10 0 0 1 10 10"></path>
+                </svg>
+                <strong style="color: #0369a1; font-size: 0.83rem; font-weight: 800; letter-spacing: 0.2px;">
+                  Kataloğa bağlanılıyor, tüm araç parçaları toplanıyor (Bu işlem birkaç saniye sürebilir)...
+                </strong>
+              </div>
+              <div style="font-size: 0.73rem; color: #0284c7; font-weight: 600;">
+                Eksiksiz OEM şasi ağacı ve teknik spesifikasyonlar derleniyor, lütfen bekleyiniz...
+              </div>
+              <div style="width: 100%; max-width: 260px; height: 4px; background: #bae6fd; border-radius: 9999px; margin: 10px auto 0; overflow: hidden; position: relative;">
+                <div style="width: 45%; height: 100%; background: #0284c7; border-radius: 9999px; animation: vinPulse 1.2s ease-in-out infinite alternate;"></div>
+              </div>
+            </div>
+
+            <!-- İNTERAKTİF ŞASİ KATALOĞU VE OTOMATİK OEM TETİKLEME (compatibleParts Parça Ağacı Listesi) -->
+            <div id="vin-compatible-parts-container" class="tw-vin-parts-box" style="display: none;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #bae6fd;">
+                <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 800; color: #0369a1;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                  </svg>
+                  <span>Şasiye Uyumlu Parça Ağacı (Tıkla &amp; Sorgula)</span>
+                </div>
+                <span id="vin-compatible-parts-badge" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700" style="border: 1px solid #93c5fd;">0 Parça</span>
               </div>
               <div style="margin-bottom: 8px;">
-                <input type="text" id="vin-compatible-parts-filter" placeholder="Parça adı veya OEM kodu filtrele (Örn: Front pad, Balata, Triger...)" style="width: 100%; padding: 7px 10px; font-size: 0.78rem; border: 1px solid #cbd5e1; border-radius: 7px; background: #fff; color: #0f172a; outline: none; box-sizing: border-box;">
+                <input type="text" id="vin-parts-filter-input" class="form-input" placeholder="Parça adı veya OEM kodu filtrele (Örn: Triger, Balata, 130C15339R)..." style="padding: 6px 10px; font-size: 0.76rem; border-radius: 6px; border: 1px solid #93c5fd; background: #ffffff;">
               </div>
-              <div id="vin-compatible-parts-list" style="max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;"></div>
+              <div id="vin-compatible-parts-list" class="tw-vin-parts-list max-h-64 overflow-y-auto">
+                <!-- Backend'den gelen compatibleParts elemanları "Parça Adı (OEM KODU)" formatında buraya dizilir -->
+              </div>
             </div>
           </div>
 
@@ -806,6 +1112,51 @@
               </button>
             </div>
             <small style="color: #64748b; font-size: 0.74rem; margin-top: 4px; display: block;">* OE sorgusu 'Parça Adı' ve 'Parça Grubu' alanlarını otomatik doldurur.</small>
+          </div>
+
+          <!-- KURAL 2: DEVASA ÇAPRAZ REFERANS AĞI (Orijinal Ekipman OEM Numaraları & Muadil / Referans Kodları) -->
+          <div class="form-group tw-cross-container" id="deep-cross-references-container" style="display: none;">
+            <div class="flex items-center justify-between" style="margin-bottom: 10px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;">
+              <div class="inline-flex items-center gap-1.5" style="font-weight: 800; color: #0f172a; font-size: 0.84rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="16 3 21 3 21 8"></polyline>
+                  <line x1="4" y1="20" x2="21" y2="3"></line>
+                  <polyline points="21 16 21 21 16 21"></polyline>
+                  <line x1="15" y1="15" x2="21" y2="21"></line>
+                  <line x1="4" y1="4" x2="9" y2="9"></line>
+                </svg>
+                <span>Derin Çapraz Referans Ağı (Deep Cross-Reference)</span>
+              </div>
+              <span id="deep-cross-ref-summary-badge" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700" style="border: 1px solid #a7f3d0;">
+                Canlı Eşleşme
+              </span>
+            </div>
+
+            <!-- Kısım A - Orijinal (OEM) Kodları Havuzu -->
+            <div id="cross-ref-original-group" style="display: none; margin-bottom: 12px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px; flex-wrap: wrap;">
+                <span style="font-size: 0.76rem; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.35px;">
+                  Orijinal Ekipman (OEM) Numaraları
+                </span>
+                <span id="cross-ref-original-summary" style="font-size: 0.72rem; font-weight: 700; color: #1d4ed8; font-family: monospace;"></span>
+              </div>
+              <div id="cross-ref-original-badges" class="flex flex-wrap gap-1.5">
+                <!-- Backend originalOEMs dizisi buraya dinamik dizilir -->
+              </div>
+            </div>
+
+            <!-- Kısım B - Muadil / Referans Kodları (Marka Bazlı) -->
+            <div id="cross-ref-aftermarket-group" style="display: none;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px; flex-wrap: wrap;">
+                <span style="font-size: 0.76rem; font-weight: 800; color: #92400e; text-transform: uppercase; letter-spacing: 0.35px;">
+                  Muadil / Referans Kodları (Marka Bazlı)
+                </span>
+                <span id="cross-ref-aftermarket-summary" style="font-size: 0.72rem; font-weight: 700; color: #b45309;"></span>
+              </div>
+              <div id="cross-ref-aftermarket-badges" class="tw-ref-grid">
+                <!-- Backend referenceCodes dizisi buraya dinamik grid halinde dizilir -->
+              </div>
+            </div>
           </div>
 
           <!-- Araç Markası (Select Box: name="vehicleBrand" id="prod-brand") -->
@@ -850,6 +1201,7 @@
             <select class="form-input" id="prod-group" name="partGroup" required>
               <option value="" disabled selected>Seçiniz</option>
               <option value="Motor &amp; Mekanik">Motor &amp; Mekanik</option>
+              <option value="Soğutma &amp; Isıtma">Soğutma &amp; Isıtma</option>
               <option value="Fren Sistemi">Fren Sistemi</option>
               <option value="Süspansiyon &amp; Alt Takım">Süspansiyon &amp; Alt Takım</option>
               <option value="Dış Aksam &amp; Kaporta">Dış Aksam &amp; Kaporta</option>
@@ -873,79 +1225,72 @@
             <input type="number" class="form-input" id="prod-stock" name="stock" min="1" placeholder="Örn: 24" required>
           </div>
 
-          <!-- Katalog Görselleri & Teknik Şemalar Önizleme Alanı -->
+          <!-- KURAL 3: AKILLI GÖRSEL GALERİSİ VE ŞEMA SUNUMU (SMART IMAGE RENDERER) -->
           <div class="form-group" id="catalog-gallery-group" style="display: none; margin-top: 14px; margin-bottom: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
               <label class="form-label" style="margin-bottom: 0; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: #1e293b;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                Katalog Görselleri & Teknik Şemalar
+                Katalog Görselleri &amp; Teknik Şemalar
               </label>
               <span id="catalog-gallery-badge" style="font-size: 0.75rem; color: #0284c7; font-weight: 600; background: #e0f2fe; padding: 2px 8px; border-radius: 12px;">0 Görsel</span>
             </div>
-            
-            <!-- Şema Bulunmadığında Gösterilecek Uyarı (KURAL 3) -->
-            <div id="catalog-gallery-empty" style="display: none; padding: 16px; text-align: center; background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 10px; color: #64748b;">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" style="margin: 0 auto 6px auto; display: block;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="15"></line><line x1="15" y1="9" x2="9" y2="15"></line></svg>
-              <span style="font-size: 0.8rem; font-weight: 600;">Bu parça için teknik şema bulunmamaktadır</span>
+            <div id="catalog-equivalent-note" style="display: none; align-items: center; gap: 6px; margin-bottom: 8px; padding: 7px 10px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; color: #92400e; font-size: 0.76rem; font-weight: 700;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              <span id="catalog-equivalent-note-text"></span>
             </div>
-
-            <div id="catalog-gallery-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(115px, 1fr)); gap: 10px; max-height: 240px; overflow-y: auto; padding: 10px; background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 10px;">
+            <div id="catalog-gallery-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 10px; max-height: 260px; overflow-y: auto; padding: 10px; background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 10px;">
               <!-- API'den dönen teknik şemalar ve fotoğraflar buraya eklenecektir -->
             </div>
-            <small id="catalog-gallery-hint" style="color: #64748b; font-size: 0.76rem; margin-top: 5px; display: block;">* Seçili şema ve fotoğraflar ürün kaydedildiğinde otomatik olarak veritabanına aktarılır.</small>
+            <small style="color: #64748b; font-size: 0.76rem; margin-top: 5px; display: block;">* Seçili şema ve fotoğraflar ürün kaydedildiğinde otomatik olarak veritabanına aktarılır.</small>
           </div>
 
-          <!-- ZENGİN VERİLER ÖNİZLEME ALANI (prompt.md: Deep Cross-Reference, OEM Havuzu, Muadiller, Uyumlu Araçlar, Teknik Özellikler) -->
-          <div class="form-group" id="enriched-data-container" style="display: none; margin-top: 14px; margin-bottom: 16px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 14px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
-              <div style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: #0f172a; font-size: 0.88rem;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                Derin Çapraz Referans & Parça Şeceresi (Deep Cross-Reference)
+          <!-- KURAL 4: DİNAMİK MÜHENDİSLİK TABLOSU (SPECIFICATIONS TABLE) & UYUMLU ARAÇLAR -->
+          <div class="form-group" id="enriched-data-container" style="display: none; margin-top: 14px; margin-bottom: 16px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+              <div style="display: inline-flex; align-items: center; gap: 6px; font-weight: 800; color: #0f172a; font-size: 0.88rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                Mühendislik Verileri &amp; Araç Uyumluluğu
               </div>
-              <span id="enriched-status-badge" style="font-size: 0.72rem; color: #1d4ed8; font-weight: 700; background: #dbeafe; padding: 2px 8px; border-radius: 10px;">Canlı Veri Doğrulandı</span>
+              <span id="enriched-status-badge" style="font-size: 0.72rem; color: #059669; font-weight: 700; background: #dcfce7; padding: 2px 8px; border-radius: 10px;">Canlı API Verisi</span>
             </div>
 
-            <!-- Kısım A: Orijinal Ekipman (OEM) Numaraları Havuzu (KURAL 2) -->
-            <div id="preview-oem-group" style="margin-bottom: 12px; display: none;">
-              <span style="font-size: 0.75rem; font-weight: 700; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.4px; display: flex; align-items: center; gap: 5px; margin-bottom: 6px;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                Orijinal Ekipman (OEM) Numaraları
+            <!-- KURAL 4: Teknik Özellikler (Specifications Table) -->
+            <div id="enriched-specs-section" style="display: none; margin-bottom: 14px;">
+              <span style="font-size: 0.76rem; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.4px; display: flex; align-items: center; gap: 5px; margin-bottom: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.3"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                <span>Teknik Özellikler</span>
               </span>
-              <div id="preview-oem-list" style="display: flex; flex-wrap: wrap; gap: 6px;">
-                <!-- OEM rozetleri dinamik olarak buraya eklenecektir -->
+              <div id="preview-attributes-table" class="tw-specs-table-wrap">
+                <!-- API'den gelen technicalSpecs objesi Object.entries ile dinamik tablo olarak buraya basılır -->
               </div>
             </div>
 
-            <!-- Kısım B: Muadil / Referans Kodları (Marka Bazlı) (KURAL 2) -->
-            <div id="preview-ref-group" style="margin-bottom: 12px; display: none;">
-              <span style="font-size: 0.75rem; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.4px; display: flex; align-items: center; gap: 5px; margin-bottom: 6px;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2.2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
-                Muadil / Referans Kodları (Marka Bazlı)
-              </span>
-              <div id="preview-cross-references" style="display: flex; flex-wrap: wrap; gap: 6px;">
-                <!-- Yan Sanayi referans kartları buraya gelecektir -->
-              </div>
+
+
+-->
             </div>
 
-            <!-- Kısım C: Uyumlu Araç Modelleri (Vehicle Fitment) -->
-            <div id="preview-fitment-group" style="margin-bottom: 12px; display: none;">
-              <span style="font-size: 0.75rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.4px; display: flex; align-items: center; gap: 5px; margin-bottom: 6px;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+            <!-- Uyumlu Araçlar (Fitment) Önizleme -->
+            <div id="enriched-fitment-section" style="display: none; margin-bottom: 12px;">
+              <span style="font-size: 0.75rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.4px; display: block; margin-bottom: 6px;">
                 Uyumlu Araç Modelleri (Vehicle Fitment):
               </span>
-              <div id="preview-fitment-list" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 120px; overflow-y: auto;">
-                <!-- Uyumlu araç rozetleri buraya gelecektir -->
+              <div id="preview-fitment-list" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 125px; overflow-y: auto;">
+                <!-- Uyumlu araç rozetleri buraya gelecek -->
               </div>
             </div>
 
-            <!-- Kısım D: Dinamik Mühendislik / Teknik Özellikler Tablosu (KURAL 4) -->
-            <div id="preview-specs-group" style="display: none;">
-              <span style="font-size: 0.75rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.4px; display: flex; align-items: center; gap: 5px; margin-bottom: 6px;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                Teknik Özellikler (Mühendislik Verileri):
+            <!-- Çapraz Referans Özeti (Senkronize Alan) -->
+            <div id="enriched-cross-section" style="display: none;">
+              <span style="font-size: 0.75rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.4px; display: block; margin-bottom: 6px;">
+                Çapraz Referans Özeti:
               </span>
-              <div id="preview-attributes-table" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px; font-size: 0.75rem;">
-                <!-- Dinamik Key-Value özellikleri buraya gelecektir -->
+              <div id="preview-cross-references" style="display: flex; flex-direction: column; gap: 8px;">
+                <!-- Muadil rozetleri buraya gelecek -->
               </div>
             </div>
           </div>
@@ -1278,19 +1623,9 @@
   <script>
     document.addEventListener('DOMContentLoaded', function () {
 
-      function getPanelApiBase() {
-        if (typeof window !== 'undefined' && window.API_BASE) {
-          return window.API_BASE.replace(/\/+$/, '');
-        }
-        if (typeof window !== 'undefined' && window.location && window.location.hostname.endsWith('.onrender.com')) {
-          return '/api';
-        }
-        // prompt.md ADIM 3: Ürünlerin canlı veritabanına kaydolması için KESİNLİKLE Render API'sine istek atılır
-        return 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api';
-      }
-
-      // 0. Oturum ve Rol Doğrulama (BAYI / TENANT_ADMIN Guard)
-      const currentUser = requireAuth(['BAYI', 'TENANT_ADMIN', 'SUPER_ADMIN', 'ADMIN']);
+      // 0. Oturum ve Rol Doğrulama (TENANT_ADMIN Guard)
+      let currentUser = requireAuth(['TENANT_ADMIN', 'SUPER_ADMIN']);
+      window.currentUser = currentUser;
       if (currentUser) {
         if (currentUser.tenantId || (currentUser.tenant && currentUser.tenant.id)) {
           localStorage.setItem('tenantId', currentUser.tenantId || currentUser.tenant.id);
@@ -1320,7 +1655,7 @@
         ? tokenPayload.role 
         : (currentUser ? currentUser.role : null);
 
-      if (verifiedRole === 'SUPER_ADMIN' || verifiedRole === 'ADMIN') {
+      if (verifiedRole === 'SUPER_ADMIN') {
         if (!localStorage.getItem('tenantId')) {
           localStorage.setItem('tenantId', '51144f71-81dd-4f24-98d5-45fac505cfc2');
         }
@@ -1353,66 +1688,190 @@
       }
 
       // ==========================================================================
-      // BAYİ ONAY DURUMU KONTROLÜ (Prompt.md: Admin Onay Mekanizması)
+      // BAYİ ONAY DURUMU KONTROLÜ (Prompt.md: Admin Onay Mekanizması & Canlı Senkronizasyon)
       // ==========================================================================
       window.isDealerPendingApproval = false;
 
       async function checkDealerApprovalStatus() {
-        let isPending = false;
-        let currentStatus = 'APPROVED';
-
-        // 1. Token ve localStorage önbelleğini kontrol et
-        if (currentUser && currentUser.status === 'PENDING') {
-          isPending = true;
-          currentStatus = 'PENDING';
-        }
-        if (tokenPayload && tokenPayload.status === 'PENDING') {
-          isPending = true;
-          currentStatus = 'PENDING';
-        }
-
-        // 2. Canlı veritabanı senkronizasyonu (/api/auth/me)
-        try {
-          const meRes = await apiFetch('/auth/me');
-          if (meRes && meRes.success && meRes.data && meRes.data.user) {
-            const liveUser = meRes.data.user;
-            const liveStatus = liveUser.status || (liveUser.tenant ? liveUser.tenant.status : 'APPROVED');
-            currentStatus = liveStatus;
-            isPending = (liveStatus === 'PENDING');
-
-            // Yerel depoyu güncelle
-            try {
-              const currentStored = JSON.parse(localStorage.getItem('user') || '{}');
-              currentStored.status = liveStatus;
-              if (liveUser.tenant) currentStored.tenant = liveUser.tenant;
-              localStorage.setItem('user', JSON.stringify(currentStored));
-            } catch (e) {}
-          }
-        } catch (err) {
-          console.warn('[CHECK_APPROVAL_STATUS_WARN]:', err);
-        }
-
-        // Süper Admin asla engellenmez
-        if (verifiedRole === 'SUPER_ADMIN' || verifiedRole === 'ADMIN') {
-          isPending = false;
-        }
-
-        window.isDealerPendingApproval = isPending;
-
         const warningCard = document.getElementById('dealer-pending-approval-card');
         const btnAddProduct = document.getElementById('btn-add-product');
         const catalogHeader = document.querySelector('#view-catalog .section-header');
 
-        if (isPending) {
+        // Süper Admin asla engellenmez
+        if (verifiedRole === 'SUPER_ADMIN') {
+          window.isDealerPendingApproval = false;
+          if (warningCard) warningCard.style.display = 'none';
+          const catBanner = document.getElementById('catalog-pending-banner');
+          if (catBanner) catBanner.remove();
+          if (btnAddProduct) {
+            btnAddProduct.style.display = 'inline-flex';
+            btnAddProduct.disabled = false;
+          }
+          return false;
+        }
+
+        let isPending = false;
+        let isApproved = false;
+
+        // 1. Mevcut tarayıcı depolama önbelleğini (localStorage) oku (Optimistik başlangıç)
+        let storedUser = null;
+        try {
+          storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        } catch (e) {
+          storedUser = currentUser || {};
+        }
+
+        if (storedUser) {
+          const sUserStatus = String(storedUser.status || '').toUpperCase();
+          const sTenantStatus = String(storedUser.tenant?.status || '').toUpperCase();
+          const sUserActive = storedUser.isActive === true || storedUser.is_active === true;
+          const sTenantActive = storedUser.tenant?.isActive === true || storedUser.tenant?.is_active === true;
+
+          if (sUserStatus === 'APPROVED' || sUserStatus === 'ACTIVE' || sTenantStatus === 'APPROVED' || sTenantStatus === 'ACTIVE' || sUserActive || sTenantActive) {
+            isApproved = true;
+            isPending = false;
+          } else if (sUserStatus === 'PENDING' || sUserStatus === 'PENDING_APPROVAL' || sTenantStatus === 'PENDING' || sTenantStatus === 'PENDING_APPROVAL' || storedUser.isActive === false || (storedUser.tenant && storedUser.tenant.isActive === false)) {
+            isPending = true;
+          }
+        }
+
+        // 2. Canlı veritabanı senkronizasyonu (/api/auth/me ve /api/tenant/status)
+        try {
+          let liveUser = null;
+          let liveTenant = null;
+
+          // 2.A: /auth/me isteği atarak kullanıcının ve bağlı firmanın en güncel durumunu backend'den çek
+          try {
+            const meRes = await apiFetch('/auth/me');
+            if (meRes && meRes.success) {
+              const resData = meRes.data || meRes;
+              liveUser = resData.user || (resData.id || resData.email ? resData : null);
+              liveTenant = (liveUser && liveUser.tenant) || resData.tenant || null;
+            }
+          } catch (errMe) {
+            console.warn('[CHECK_APPROVAL_AUTH_ME_WARN]:', errMe);
+          }
+
+          // 2.B: Eğer tenant bilgisi henüz netleşmediyse /tenant/status isteği at
+          if (!liveTenant || liveTenant.status === undefined || liveTenant.isActive === undefined) {
+            try {
+              const statusRes = await apiFetch('/tenant/status');
+              if (statusRes && statusRes.success) {
+                const tData = statusRes.data || statusRes;
+                if (tData) {
+                  liveTenant = { ...(liveTenant || {}), ...tData };
+                }
+              }
+            } catch (errTenant) {
+              console.warn('[CHECK_APPROVAL_TENANT_STATUS_WARN]:', errTenant);
+            }
+          }
+
+          // 3. Prompt.md Kontrolü: Gelen yanıtta hesap onaylı (APPROVED veya isActive: true) ise kontrolü
+          // Uyarı banner'ını gösteren if/else koşulunun doğru değişkene (status mü, isActive mi) baktığından emin olunur
+          if (liveUser || liveTenant) {
+            const userStatus = String((liveUser && liveUser.status) || '').toUpperCase();
+            const tenantStatus = String((liveTenant && liveTenant.status) || '').toUpperCase();
+
+            const userIsActive = liveUser ? (liveUser.isActive === true || liveUser.is_active === true) : false;
+            const tenantIsActive = liveTenant ? (liveTenant.isActive === true || liveTenant.is_active === true) : false;
+
+            const isConfirmedApproved = Boolean(
+              userStatus === 'APPROVED' ||
+              userStatus === 'ACTIVE' ||
+              tenantStatus === 'APPROVED' ||
+              tenantStatus === 'ACTIVE' ||
+              userIsActive === true ||
+              tenantIsActive === true
+            );
+
+            const isExplicitlyPending = !isConfirmedApproved && Boolean(
+              userStatus === 'PENDING' ||
+              userStatus === 'PENDING_APPROVAL' ||
+              tenantStatus === 'PENDING' ||
+              tenantStatus === 'PENDING_APPROVAL' ||
+              (liveUser && (liveUser.isActive === false || liveUser.is_active === false)) ||
+              (liveTenant && (liveTenant.isActive === false || liveTenant.is_active === false))
+            );
+
+            if (isConfirmedApproved) {
+              isApproved = true;
+              isPending = false;
+            } else if (isExplicitlyPending) {
+              isApproved = false;
+              isPending = true;
+            }
+
+            // 4. Prompt.md: LocalStorage üzerindeki eski onay bekliyor durumunu ezerek güncelle
+            try {
+              const currentStored = JSON.parse(localStorage.getItem('user') || '{}');
+              if (isConfirmedApproved) {
+                currentStored.status = 'APPROVED';
+                currentStored.isActive = true;
+                if (currentStored.tenant || liveTenant) {
+                  currentStored.tenant = {
+                    ...(currentStored.tenant || {}),
+                    ...(liveTenant || {}),
+                    status: 'APPROVED',
+                    isActive: true
+                  };
+                }
+              } else if (isExplicitlyPending) {
+                currentStored.status = 'PENDING';
+                currentStored.isActive = false;
+                if (currentStored.tenant || liveTenant) {
+                  currentStored.tenant = {
+                    ...(currentStored.tenant || {}),
+                    ...(liveTenant || {}),
+                    status: 'PENDING',
+                    isActive: false
+                  };
+                }
+              }
+              localStorage.setItem('user', JSON.stringify(currentStored));
+              currentUser = currentStored;
+              window.currentUser = currentStored;
+
+              // Başlık ve kullanıcı profil metinlerini canlı verilerle güncelle
+              if (liveUser && liveUser.email) {
+                const userNameEl = document.querySelector('.user-name');
+                if (userNameEl) userNameEl.textContent = liveUser.email.split('@')[0].toUpperCase();
+              }
+              if (liveTenant && liveTenant.name) {
+                const brandEl = document.querySelector('.brand-name');
+                if (brandEl) brandEl.textContent = liveTenant.name + ' Yönetim';
+              }
+            } catch (e) {
+              console.warn('[STORAGE_UPDATE_ERR]:', e);
+            }
+          }
+        } catch (err) {
+          console.warn('[CHECK_APPROVAL_STATUS_ERROR]:', err);
+        }
+
+        window.isDealerPendingApproval = isPending;
+
+        // 5. DOM Güncellemesi ve Uyarı Banner'ının Kaldırılması/Gösterilmesi
+        if (!isPending) {
+          // Onaylı Hesap: Uyarı banner'ını kaldır ve ürün ekleme butonunu aktif et
+          if (warningCard) warningCard.style.display = 'none';
+
+          if (btnAddProduct) {
+            btnAddProduct.style.display = 'inline-flex';
+            btnAddProduct.disabled = false;
+          }
+
+          const catBanner = document.getElementById('catalog-pending-banner');
+          if (catBanner) catBanner.remove();
+        } else {
+          // Onay Bekleyen Hesap: Uyarı banner'ını göster ve ürün eklemeyi engelle
           if (warningCard) warningCard.style.display = 'block';
 
-          // Ürün ekleme butonunu gizle / devre dışı bırak
           if (btnAddProduct) {
             btnAddProduct.style.display = 'none';
             btnAddProduct.disabled = true;
           }
 
-          // Katalog sayfasında bilgilendirme rozeti/kartı
           if (catalogHeader && !document.getElementById('catalog-pending-banner')) {
             const banner = document.createElement('div');
             banner.id = 'catalog-pending-banner';
@@ -1426,19 +1885,25 @@
             `;
             catalogHeader.parentNode.insertBefore(banner, catalogHeader.nextSibling);
           }
-        } else {
-          if (warningCard) warningCard.style.display = 'none';
-          if (btnAddProduct) {
-            btnAddProduct.style.display = 'inline-flex';
-            btnAddProduct.disabled = false;
-          }
-          const catBanner = document.getElementById('catalog-pending-banner');
-          if (catBanner) catBanner.remove();
         }
 
         return isPending;
       }
       window.checkDealerApprovalStatus = checkDealerApprovalStatus;
+
+      // Sayfa/Sekme odağı geri geldiğinde veya başka sekmede onaylandığında otomatik senkronize et
+      window.addEventListener('focus', function () {
+        if (typeof checkDealerApprovalStatus === 'function') {
+          checkDealerApprovalStatus();
+        }
+      });
+      window.addEventListener('storage', function (e) {
+        if (!e || e.key === 'user' || e.key === 'mock_store' || e.key === 'token') {
+          if (typeof checkDealerApprovalStatus === 'function') {
+            checkDealerApprovalStatus();
+          }
+        }
+      });
 
       // 0. Güvenli HTML Kaçırma Yardımcısı (XSS Koruması)
       function escapeHtml(str) {
@@ -1537,7 +2002,10 @@
           if (viewId === 'view-catalog' && typeof loadProducts === 'function') loadProducts();
           if (viewId === 'view-customers' && typeof loadCustomers === 'function') loadCustomers();
           if (viewId === 'view-discount' && typeof loadDiscounts === 'function') loadDiscounts();
-          if (viewId === 'view-dashboard' && typeof loadDashboardStats === 'function') loadDashboardStats();
+          if (viewId === 'view-dashboard') {
+            if (typeof loadDashboard === 'function') loadDashboard();
+            else if (typeof loadDashboardStats === 'function') loadDashboardStats();
+          }
           if (viewId === 'view-orders' && typeof loadOrdersTab === 'function') loadOrdersTab();
           if (viewId === 'view-returns' && typeof loadReturnsTab === 'function') loadReturnsTab();
         });
@@ -1569,7 +2037,10 @@
         if (viewId === 'view-catalog' && typeof loadProducts === 'function') loadProducts();
         if (viewId === 'view-customers' && typeof loadCustomers === 'function') loadCustomers();
         if (viewId === 'view-discount' && typeof loadDiscounts === 'function') loadDiscounts();
-        if (viewId === 'view-dashboard' && typeof loadDashboardStats === 'function') loadDashboardStats();
+        if (viewId === 'view-dashboard') {
+          if (typeof loadDashboard === 'function') loadDashboard();
+          else if (typeof loadDashboardStats === 'function') loadDashboardStats();
+        }
         if (viewId === 'view-orders' && typeof loadOrdersTab === 'function') loadOrdersTab();
         if (viewId === 'view-returns' && typeof loadReturnsTab === 'function') loadReturnsTab();
       }
@@ -1578,7 +2049,11 @@
       // Fonksiyon isim köprüleri (Alias)
       window.loadProducts = function () { if (typeof loadCatalog === 'function') loadCatalog(); };
       window.loadDiscounts = function () { if (typeof loadDiscountsTab === 'function') loadDiscountsTab(); };
-      window.loadDashboard = function () { if (typeof loadDashboardStats === 'function') loadDashboardStats(); };
+      window.loadDashboard = function () {
+        if (typeof checkDealerApprovalStatus === 'function') checkDealerApprovalStatus();
+        if (typeof loadDashboardStats === 'function') loadDashboardStats();
+        if (typeof loadRecentOrders === 'function') loadRecentOrders();
+      };
       window.loadReturns = function () { if (typeof loadReturnsTab === 'function') loadReturnsTab(); };
 
       // Sayfa ilk yüklendiğinde URL hash'ine göre sekme aç
@@ -1836,8 +2311,13 @@
       }
 
       async function loadDashboard() {
-        await Promise.all([loadDashboardStats(), loadRecentOrders()]);
+        await Promise.all([
+          (typeof checkDealerApprovalStatus === 'function' ? checkDealerApprovalStatus() : Promise.resolve()),
+          loadDashboardStats(),
+          loadRecentOrders()
+        ]);
       }
+      window.loadDashboard = loadDashboard;
 
       window.approveOrder = async function (orderId, orderNum) {
         try {
@@ -3081,11 +3561,13 @@
           const hint = document.getElementById('prod-images-hint');
           if (hint) hint.textContent = 'İsteğe bağlı: Kendi deponuzdan 1 veya daha fazla parça görseli ekleyebilirsiniz.';
           formAddProduct.reset();
-          // Katalog galeri alanını sıfırla
-          const galleryGrid = document.getElementById('catalog-gallery-grid');
-          if (galleryGrid) galleryGrid.innerHTML = '';
-          const galleryGroup = document.getElementById('catalog-gallery-group');
-          if (galleryGroup) galleryGroup.style.display = 'none';
+          // Katalog galeri alanını, şasi parça ağacını ve zengin verileri sıfırla
+          clearCatalogGallery();
+          if (typeof clearVinCompatibleParts === 'function') clearVinCompatibleParts();
+          const enrichedBox = document.getElementById('enriched-data-container');
+          if (enrichedBox) enrichedBox.style.display = 'none';
+          window.currentEnrichedData = null;
+          window.currentVehicleContext = null;
           const selectedFilesList = document.getElementById('selected-files-list');
           if (selectedFilesList) {
             selectedFilesList.style.display = 'none';
@@ -3114,29 +3596,124 @@
       // =========================================================================
       let currentCatalogImages = [];
 
+      function ensureManualUploadActive() {
+        const dropzoneEl = document.getElementById('image-dropzone');
+        const fileInputEl = document.getElementById('prod-images');
+        if (fileInputEl) {
+          fileInputEl.disabled = false;
+        }
+        if (dropzoneEl) {
+          dropzoneEl.style.display = 'block';
+          dropzoneEl.style.pointerEvents = 'auto';
+          dropzoneEl.style.opacity = '1';
+        }
+      }
+
+      function clearDeepCrossReferences() {
+        const deepBox = document.getElementById('deep-cross-references-container');
+        const origGroup = document.getElementById('cross-ref-original-group');
+        const afterGroup = document.getElementById('cross-ref-aftermarket-group');
+        const origBadges = document.getElementById('cross-ref-original-badges');
+        const afterBadges = document.getElementById('cross-ref-aftermarket-badges');
+        const origSummary = document.getElementById('cross-ref-original-summary');
+        const afterSummary = document.getElementById('cross-ref-aftermarket-summary');
+        const summaryBadge = document.getElementById('deep-cross-ref-summary-badge');
+        if (deepBox) deepBox.style.display = 'none';
+        if (origGroup) origGroup.style.display = 'none';
+        if (afterGroup) afterGroup.style.display = 'none';
+        if (origBadges) origBadges.innerHTML = '';
+        if (afterBadges) afterBadges.innerHTML = '';
+        if (origSummary) origSummary.textContent = '';
+        if (afterSummary) afterSummary.textContent = '';
+        if (summaryBadge) summaryBadge.textContent = '';
+      }
+
       function clearCatalogGallery() {
         currentCatalogImages = [];
         const galleryGrid = document.getElementById('catalog-gallery-grid');
         const galleryGroup = document.getElementById('catalog-gallery-group');
         const galleryBadge = document.getElementById('catalog-gallery-badge');
-        const galleryEmpty = document.getElementById('catalog-gallery-empty');
-        const galleryHint = document.getElementById('catalog-gallery-hint');
-        if (galleryGrid) {
-          galleryGrid.innerHTML = '';
-          galleryGrid.style.display = 'grid';
-        }
-        if (galleryEmpty) galleryEmpty.style.display = 'none';
-        if (galleryHint) galleryHint.style.display = 'block';
+        const eqNote = document.getElementById('catalog-equivalent-note');
+        const eqNoteText = document.getElementById('catalog-equivalent-note-text');
+        if (galleryGrid) galleryGrid.innerHTML = '';
         if (galleryGroup) galleryGroup.style.display = 'none';
-        if (galleryBadge) galleryBadge.textContent = '0 Görsel';
+        if (eqNote) eqNote.style.display = 'none';
+        if (eqNoteText) eqNoteText.textContent = '';
+        if (galleryBadge) {
+          galleryBadge.textContent = '0 Görsel';
+          galleryBadge.style.background = '#e0f2fe';
+          galleryBadge.style.color = '#0284c7';
+        }
+        clearDeepCrossReferences();
+        ensureManualUploadActive();
       }
 
-      function renderCatalogGallery(newItems, replace = true) {
+      /**
+       * sanitize (BÖLÜM 1 & BÖLÜM 2):
+       * Gelen her OE / Referans kodundaki tüm boşluk, tire ve özel karakterleri
+       * arındırarak Parts Catalog servisinin beklediği saf alfanümerik formata çevirir.
+       */
+      function sanitize(rawCode) {
+        return String(rawCode || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+      }
+      window.sanitize = sanitize;
+
+      function normalizeRefCode(raw) {
+        return sanitize(raw);
+      }
+
+      function renderCatalogEmptyState(message = 'Bu parça için teknik şema bulunmamaktadır') {
+        currentCatalogImages = [];
         const galleryGroup = document.getElementById('catalog-gallery-group');
         const galleryGrid = document.getElementById('catalog-gallery-grid');
         const galleryBadge = document.getElementById('catalog-gallery-badge');
-        const galleryEmpty = document.getElementById('catalog-gallery-empty');
-        const galleryHint = document.getElementById('catalog-gallery-hint');
+        const eqNote = document.getElementById('catalog-equivalent-note');
+        const eqNoteText = document.getElementById('catalog-equivalent-note-text');
+
+        if (eqNote) eqNote.style.display = 'none';
+        if (eqNoteText) eqNoteText.textContent = '';
+
+        if (galleryBadge) {
+          galleryBadge.textContent = '0 Görsel';
+          galleryBadge.style.background = '#fee2e2';
+          galleryBadge.style.color = '#dc2626';
+        }
+
+        if (galleryGroup) {
+          galleryGroup.style.display = 'block';
+        }
+
+        if (galleryGrid) {
+          galleryGrid.innerHTML = `
+            <div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 26px 18px; text-align: center; background: linear-gradient(180deg, #fff5f5 0%, #fef2f2 100%); border: 1.5px dashed #fca5a5; border-radius: 10px; color: #991b1b;">
+              <div style="width: 40px; height: 40px; border-radius: 9999px; background: #fee2e2; display: flex; align-items: center; justify-content: center; color: #dc2626; box-shadow: 0 1px 2px rgba(220,38,38,0.12);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                  <line x1="2" y1="2" x2="22" y2="22"></line>
+                </svg>
+              </div>
+              <div style="font-size: 0.85rem; font-weight: 700; color: #991b1b; line-height: 1.4;">
+                ${escapeHtml(message)}
+              </div>
+              <div style="font-size: 0.72rem; color: #7f1d1d; opacity: 0.9;">
+                İsteğe bağlı olarak aşağıdan 'Manuel Görsel Yükle' alanını kullanarak kendi fotoğrafınızı yükleyebilirsiniz.
+              </div>
+            </div>
+          `;
+        }
+
+        ensureManualUploadActive();
+      }
+
+      function renderCatalogGallery(newItems, replace = true, equivalentSourceCode = null) {
+        const galleryGroup = document.getElementById('catalog-gallery-group');
+        const galleryGrid = document.getElementById('catalog-gallery-grid');
+        const galleryBadge = document.getElementById('catalog-gallery-badge');
+        const eqNote = document.getElementById('catalog-equivalent-note');
+        const eqNoteText = document.getElementById('catalog-equivalent-note-text');
+        ensureManualUploadActive();
         if (!galleryGrid) return;
 
         if (replace) {
@@ -3144,36 +3721,56 @@
           galleryGrid.innerHTML = '';
         }
 
-        const validItems = Array.isArray(newItems) ? newItems : [];
+        if (!newItems || !Array.isArray(newItems) || newItems.length === 0) {
+          if (currentCatalogImages.length === 0) {
+            renderCatalogEmptyState('Bu parça için teknik şema bulunmamaktadır');
+          }
+          return;
+        }
 
-        validItems.forEach(item => {
-          const url = typeof item === 'string' ? item : (item && item.url);
+        newItems.forEach(item => {
+          const url = typeof item === 'string' ? item : (item && (item.url || item.imageUrl || item.schemaUrl));
           if (!url) return;
-          if (!currentCatalogImages.some(x => (typeof x === 'string' ? x : x.url) === url)) {
+          if (!currentCatalogImages.some(x => (typeof x === 'string' ? x : (x.url || x.imageUrl || x.schemaUrl)) === url)) {
             currentCatalogImages.push(item);
           }
         });
 
-        // KURAL 3: Görsel dizisi tamamen boşsa, kesinlikle sahte resim gösterme!
-        // Ortalanmış şık bir ikon ile "Bu parça veya muadilleri için teknik şema bulunmamaktadır." uyarısı bas.
         if (currentCatalogImages.length === 0) {
-          if (galleryGroup) galleryGroup.style.display = 'block';
-          if (galleryGrid) galleryGrid.style.display = 'none';
-          if (galleryBadge) galleryBadge.textContent = '0 Şema';
-          if (galleryEmpty) galleryEmpty.style.display = 'block';
-          if (galleryHint) galleryHint.style.display = 'none';
+          renderCatalogEmptyState('Bu parça için teknik şema bulunmamaktadır');
           return;
         }
 
         if (galleryGroup) galleryGroup.style.display = 'block';
-        if (galleryGrid) galleryGrid.style.display = 'grid';
-        if (galleryEmpty) galleryEmpty.style.display = 'none';
-        if (galleryHint) galleryHint.style.display = 'block';
-        if (galleryBadge) galleryBadge.textContent = `${currentCatalogImages.length} Görsel/Şema`;
+
+        // KURAL 3 & BÖLÜM 2.3: Eşdeğer Görsel Bildirimi (isFallback & sourceCode kontrolü)
+        const firstFallbackItem = currentCatalogImages.find(
+          it => typeof it === 'object' && it !== null && (it.isFallback === true || Boolean(it.sourceCode))
+        );
+        const resolvedFallbackSource =
+          (firstFallbackItem && firstFallbackItem.isFallback === true && firstFallbackItem.sourceCode) ||
+          equivalentSourceCode ||
+          null;
+
+        if (eqNote && eqNoteText) {
+          if (resolvedFallbackSource) {
+            eqNoteText.textContent = `Görsel eşdeğer parçadan (${resolvedFallbackSource}) alınmıştır`;
+            eqNote.style.display = 'flex';
+          } else {
+            eqNoteText.textContent = '';
+            eqNote.style.display = 'none';
+          }
+        }
+
+        if (galleryBadge) {
+          galleryBadge.textContent = `${currentCatalogImages.length} Görsel/Şema`;
+          galleryBadge.style.background = '#e0f2fe';
+          galleryBadge.style.color = '#0284c7';
+        }
 
         galleryGrid.innerHTML = '';
         currentCatalogImages.forEach((item, idx) => {
-          const rawUrl = typeof item === 'string' ? item : (item && item.url);
+          let rawUrl = typeof item === 'string' ? item : (item && (item.url || item.imageUrl || item.schemaUrl));
           if (!rawUrl) return;
 
           let url = rawUrl;
@@ -3181,30 +3778,24 @@
             url = 'https:' + url;
           }
 
-          const isFallback = typeof item === 'object' && Boolean(item.isFallback);
-          const sourceCode = typeof item === 'object' && (item.sourceCode || (window.currentEnrichedData && window.currentEnrichedData.schemaSourceCode));
-          const title = typeof item === 'object' && item.name
-            ? item.name
-            : (isFallback && sourceCode ? `Şema (${sourceCode})` : `Teknik Çizim / Şema #${idx + 1}`);
+          const title = typeof item === 'object' && (item.name || item.title) ? (item.name || item.title) : `Teknik Şema #${idx + 1}`;
+          const itemIsFallback = (typeof item === 'object' && item !== null && item.isFallback === true) || Boolean(equivalentSourceCode);
+          const itemSourceCode = (typeof item === 'object' && item !== null && item.sourceCode) ? item.sourceCode : equivalentSourceCode;
+          const fallbackBadgeHtml = (itemIsFallback && itemSourceCode)
+            ? `<div class="tw-fallback-badge" title="Görsel eşdeğer parçadan (${escapeHtml(itemSourceCode)}) alınmıştır">Görsel eşdeğer parçadan (${escapeHtml(itemSourceCode)}) alınmıştır</div>`
+            : '';
 
           const card = document.createElement('div');
           card.className = 'catalog-img-card active';
-          card.style.cssText = 'position: relative; border: 2px solid #2563eb; border-radius: 8px; overflow: hidden; background: #fff; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; flex-direction: column;';
+          card.style.cssText = 'position: relative; border: 2px solid #2563eb; border-radius: 8px; overflow: hidden; background: #fff; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.08);';
           card.dataset.url = url;
-
-          // KURAL 3: Eğer görsel kardeş/eşdeğer OEM kodundan çekildiyse (isFallback: true), köşesine belirgin bilgi rozeti ekle!
-          const fallbackBadgeHtml = isFallback && sourceCode
-            ? `<div style="position: absolute; top: 4px; left: 4px; right: 24px; background: rgba(30, 41, 59, 0.92); color: #f8fafc; font-size: 0.58rem; line-height: 1.25; padding: 3px 6px; border-radius: 4px; backdrop-filter: blur(4px); font-weight: 700; z-index: 3; box-shadow: 0 1px 3px rgba(0,0,0,0.3);" title="Görsel eşdeğer parçadan (${escapeHtml(sourceCode)}) alınmıştır">
-                 Görsel eşdeğer parçadan (<span style="font-family: monospace; color: #93c5fd;">${escapeHtml(sourceCode)}</span>) alınmıştır
-               </div>`
-            : '';
 
           card.innerHTML = `
             ${fallbackBadgeHtml}
-            <div style="width: 100%; height: 95px; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 4px; position: relative;">
-              <img src="${url}" alt="${escapeHtml(title)}" loading="eager" style="width: 100%; height: 100%; object-fit: contain; pointer-events: none;" onerror="if (!this.dataset.retried) { this.dataset.retried = '1'; this.src = '/api/catalog/image-proxy?url=' + encodeURIComponent('${url}'); }">
+            <div style="width: 100%; height: 110px; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 6px;">
+              <img src="${escapeHtml(url)}" alt="${escapeHtml(title)}" loading="eager" style="width: 100%; height: 100%; object-fit: contain; pointer-events: none;" onerror="if (!this.dataset.retried) { this.dataset.retried = '1'; this.src = '/api/catalog/image-proxy?url=' + encodeURIComponent('${escapeHtml(url)}'); }">
             </div>
-            <div style="padding: 6px 4px; font-size: 0.68rem; color: #1e293b; font-weight: 600; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; text-align: center; border-top: 1px solid #f1f5f9; background: #f8fafc;" title="${escapeHtml(title)}">
+            <div style="padding: 6px 6px; font-size: 0.68rem; color: #1e293b; font-weight: 600; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; text-align: center; border-top: 1px solid #f1f5f9;" title="${escapeHtml(title)}">
               ${escapeHtml(title)}
             </div>
             <div class="card-check-badge" style="position: absolute; top: 4px; right: 4px; background: #2563eb; color: #fff; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 11px; z-index: 4;">
@@ -3224,36 +3815,6 @@
         });
       }
 
-      function sanitize(raw) {
-        if (!raw) return '';
-        return String(raw).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-      }
-      window.sanitize = sanitize;
-
-      function extractOeFromText(rawText, fallbackOe = '') {
-        const str = String(rawText || '').trim();
-        const parenMatch = str.match(/\(([A-Za-z0-9\s\-_./]{4,25})\)\s*$/);
-        if (parenMatch && parenMatch[1]) {
-          return sanitize(parenMatch[1]);
-        }
-        if (fallbackOe) {
-          return sanitize(fallbackOe);
-        }
-        return sanitize(str);
-      }
-
-      window.triggerQuickOeSearch = function (rawCode) {
-        const cleanCode = sanitize(rawCode);
-        if (!cleanCode) return;
-        const oeInput = document.getElementById('prod-oe');
-        if (oeInput) {
-          oeInput.value = cleanCode;
-          if (typeof handleOeSearch === 'function') {
-            handleOeSearch();
-          }
-        }
-      };
-
       function getSelectedCatalogImageUrls() {
         const galleryGrid = document.getElementById('catalog-gallery-grid');
         if (!galleryGrid) return [];
@@ -3266,22 +3827,472 @@
       }
 
       // =========================================================================
-      // 1. ŞASİ (VIN) SORGULAMA ENTEGRASYONU (GET /api/catalog/search-vin/:vin)
-      // Mantık: 'Araç Markası' ve 'Uyumlu Modeller' doldurulur, teknik şemalar çekilir.
-      // Liste Fiyatı ve Stok Miktarına KESİNLİKLE dokunulmaz.
+      // 1. ŞASİ (VIN) SORGULAMA ENTEGRASYONU & İNTERAKTİF ŞASİ KATALOĞU
+      //    (GET /api/catalog/search-vin/:vin)
       // =========================================================================
       const btnSearchVin = document.getElementById('btn-search-vin');
       const inputProdVin = document.getElementById('prod-vin');
+      const vinPartsFilterInput = document.getElementById('vin-parts-filter-input');
+      window.currentVinNormalizedParts = [];
+      window.currentSelectedVinPart = null;
+
+      function mapCategoryGroupToSelectValue(rawCategory = '', rawPartName = '') {
+        const combined = `${rawCategory} ${rawPartName}`.toLowerCase();
+        if (/soğutma|ısıtma|radyatör|termostat|devirdaim|klima|kondenser|cooling|radiator|condenser|heater/i.test(combined)) return 'Soğutma & Isıtma';
+        if (/fren|balata|disk|kaliper|brake/i.test(combined)) return 'Fren Sistemi';
+        if (/filtre|filter|bakım/i.test(combined)) return 'Filtre & Bakım';
+        if (/yağ|lubricant|oil|sıvı|antifriz/i.test(combined)) return 'Madeni Yağ & Sıvılar';
+        if (/motor|triger|kayış|eksantrik|clutch|debriyaj|cylinder|head|manifold|engine|piston|conta|seal|gasket|takoz/i.test(combined)) return 'Motor & Mekanik';
+        if (/tekerlek|rulman|süspansiyon|amortisör|salıncak|rot|aks|wheel|bearing|suspension|spacer/i.test(combined)) return 'Süspansiyon & Alt Takım';
+        if (/far|stop|lamba|sis|aydınlatma|ampul|buji|kızdırma|akü|alternatör|şarj dinamo|marş motoru|ateşleme/i.test(combined)) return 'Elektrik & Aydınlatma';
+        if (/elektrik|sensör/i.test(combined)) return 'Elektrik & Aydınlatma';
+        if (/kaporta|karoser|tampon|çamurluk|izgara|ayna|cam|kapı|splash|body|under floor|fairing/i.test(combined)) return 'Dış Aksam & Kaporta';
+        if (/iç aksam|trim|pedal|koltuk|seat|cover|cubby|accessories/i.test(combined)) return 'İç Aksam & Trim';
+        return rawCategory || '';
+      }
+
+      function clearVinCompatibleParts() {
+        const container = document.getElementById('vin-compatible-parts-container');
+        const listEl = document.getElementById('vin-compatible-parts-list');
+        const badgeEl = document.getElementById('vin-compatible-parts-badge');
+        const loadingEl = document.getElementById('vin-loading-state');
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (container) container.style.display = 'none';
+        if (listEl) listEl.innerHTML = '';
+        if (badgeEl) badgeEl.textContent = '0 Parça';
+        if (vinPartsFilterInput) vinPartsFilterInput.value = '';
+        window.currentVinNormalizedParts = [];
+        window.currentSelectedVinPart = null;
+      }
+      window.clearVinCompatibleParts = clearVinCompatibleParts;
+
+      function extractVinSearchPayload(json) {
+        if (!json || typeof json !== 'object') return null;
+        const vehInfo = (json.vehicleInfo && typeof json.vehicleInfo === 'object') ? json.vehicleInfo : {};
+        const dataObj = (json.data && typeof json.data === 'object') ? json.data : {};
+        const nestedVehInfo = (dataObj.vehicleInfo && typeof dataObj.vehicleInfo === 'object') ? dataObj.vehicleInfo : {};
+
+        const base = {
+          ...json,
+          ...nestedVehInfo,
+          ...vehInfo,
+          ...dataObj
+        };
+
+        if (!base.vehicleBrand && base.brand) {
+          base.vehicleBrand = base.brand;
+        }
+        if (!base.compatibleModels && base.model) {
+          base.compatibleModels = base.model;
+        }
+        const candParts = json.compatibleParts || dataObj.compatibleParts || json.parts || dataObj.parts || json.partTree || dataObj.partTree || json.categories || dataObj.categories || json.items || dataObj.items;
+        base.compatibleParts = candParts || base.compatibleParts;
+
+        if (
+          json.success === true ||
+          Boolean(base.vehicleBrand) ||
+          Boolean(base.compatibleModels) ||
+          Array.isArray(base.compatibleParts)
+        ) {
+          return base;
+        }
+        return null;
+      }
+
+      /**
+       * normalizeVinCompatibleParts:
+       * - Backend'den gelen `compatibleParts` listesindeki her OE numarasını `sanitize()` ile temizler.
+       * - Aynı `partName` altındaki tüm kardeş OEM revizyonlarını (Örn: Triger Kayışı için 6 OEM kodu)
+       *   ve metin içindeki `Replacement:XXXX` kodlarını `siblingOEMs` dizisinde toplar.
+       * - Her elemanı tam olarak `Parça Adı (OEM KODU)` formatında hazırlar.
+       */
+      function normalizeVinCompatibleParts(rawParts) {
+        if (!rawParts) return [];
+        let list = [];
+        if (Array.isArray(rawParts)) {
+          rawParts.forEach(it => { if (!it) return; if (Array.isArray(it.parts)) { it.parts.forEach(s => { if (s && typeof s === 'object') list.push({ ...s, categoryGroup: s.categoryGroup || s.group || it.categoryName || it.name || '' }); else if (s) list.push(s); }); } else if (Array.isArray(it.items)) { it.items.forEach(s => { if (s && typeof s === 'object') list.push({ ...s, categoryGroup: s.categoryGroup || s.group || it.categoryName || it.name || '' }); else if (s) list.push(s); }); } else { list.push(it); } });
+        } else if (typeof rawParts === 'object') {
+          if (Array.isArray(rawParts.compatibleParts)) return normalizeVinCompatibleParts(rawParts.compatibleParts); if (Array.isArray(rawParts.parts)) return normalizeVinCompatibleParts(rawParts.parts); if (Array.isArray(rawParts.categories)) return normalizeVinCompatibleParts(rawParts.categories); if (rawParts.partTree && typeof rawParts.partTree === 'object') return normalizeVinCompatibleParts(rawParts.partTree); Object.entries(rawParts).forEach(([catKey, val]) => {
+            if (Array.isArray(val)) val.forEach(s => { if (s && typeof s === 'object') list.push({ ...s, categoryGroup: s.categoryGroup || s.group || catKey }); else if (s) list.push(s); });
+          });
+        }
+
+        const rawItems = [];
+        const siblingsByName = new Map();
+
+        list.forEach(item => {
+          if (!item) return;
+          let partName = '';
+          let oemCode = '';
+          let categoryGroup = '';
+          let extraOEMs = [];
+          let referenceCodes = [];
+          let technicalSpecs = {};
+          let images = [];
+
+          if (typeof item === 'string') {
+            const trimmed = item.trim();
+            if (!trimmed) return;
+            const parenMatch = trimmed.match(/^(.*?)\s*\(([^()]+)\)\s*$/);
+            if (parenMatch && /[0-9]/.test(parenMatch[2])) {
+              partName = parenMatch[1].trim() || 'Uyumlu Parça';
+              oemCode = sanitize(parenMatch[2]);
+            } else {
+              partName = trimmed;
+            }
+          } else if (typeof item === 'object') {
+            const rawName = String(
+              item.partName || item.name || item.title || item.label || item.description || ''
+            ).trim();
+            const rawCode = String(
+              item.oemCode || item.oeNumber || item.oem || item.oe || item.code || item.rootOEM || ''
+            ).trim();
+            categoryGroup = String(item.categoryGroup || item.partGroup || item.category || item.group || '').trim();
+
+            if (Array.isArray(item.originalOEMs)) {
+              extraOEMs.push(...item.originalOEMs.map(sanitize).filter(Boolean));
+            }
+            if (Array.isArray(item.equivalentOEs)) {
+              extraOEMs.push(...item.equivalentOEs.map(sanitize).filter(Boolean));
+            }
+            if (Array.isArray(item.referenceCodes)) {
+              referenceCodes = item.referenceCodes;
+            }
+            if (item.technicalSpecs && typeof item.technicalSpecs === 'object') {
+              technicalSpecs = item.technicalSpecs;
+            }
+            if (Array.isArray(item.images)) {
+              images = item.images;
+            }
+
+            // Metin içinde "Replacement:997919363R" gibi revizyon kodu varsa ayıkla
+            const repMatch = rawName.match(/Replacement\s*:\s*([A-Z0-9\-_./]+)/i);
+            if (repMatch && repMatch[1]) {
+              const repClean = sanitize(repMatch[1]);
+              if (repClean) extraOEMs.push(repClean);
+            }
+
+            if (rawCode) { partName = rawName || 'Uyumlu Parça'; oemCode = sanitize(rawCode); } else { const parenMatch = rawName.match(/^(.*?)\s*\(([^()]+)\)\s*$/);
+            if (parenMatch && /[0-9]/.test(parenMatch[2])) {
+              partName = parenMatch[1].trim() || rawName;
+              oemCode = sanitize(rawCode || parenMatch[2]);
+            } else {
+              partName = rawName || 'Uyumlu Parça';
+              oemCode = ''; }
+            }
+          }
+
+          if (!partName && !oemCode) return;
+          const nameKey = partName.toLowerCase().trim();
+          if (!siblingsByName.has(nameKey)) {
+            siblingsByName.set(nameKey, new Set());
+          }
+          const sibSet = siblingsByName.get(nameKey);
+          if (oemCode) sibSet.add(oemCode);
+          extraOEMs.forEach(c => {
+            if (c) sibSet.add(c);
+          });
+
+          rawItems.push({
+            partName,
+            oemCode,
+            categoryGroup,
+            nameKey,
+            referenceCodes,
+            technicalSpecs,
+            images
+          });
+        });
+
+        const normalized = [];
+        const seen = new Set();
+
+        rawItems.forEach(entry => {
+          const formattedLabel = entry.oemCode
+            ? `${entry.partName} (${entry.oemCode})`
+            : entry.partName;
+          const dedupeKey = `${entry.partName.toUpperCase()}_${entry.oemCode.toUpperCase()}`;
+          if (seen.has(dedupeKey)) return;
+          seen.add(dedupeKey);
+
+          const siblingSet = siblingsByName.get(entry.nameKey);
+          const siblingOEMs = siblingSet ? Array.from(siblingSet) : (entry.oemCode ? [entry.oemCode] : []);
+
+          normalized.push({
+            partName: entry.partName,
+            oemCode: entry.oemCode,
+            categoryGroup: entry.categoryGroup,
+            siblingOEMs,
+            originalOEMs: siblingOEMs,
+            referenceCodes: entry.referenceCodes || [],
+            technicalSpecs: entry.technicalSpecs || {},
+            images: entry.images || [],
+            formattedLabel
+          });
+        });
+
+        console.log(`[PARTS_CATALOG_STRICT_MAPPED]: Toplam ${normalized.length} parça 1:1 gerçek OEM koduyla başarıyla eşlendi.`);
+        return normalized;
+      }
+
+      /**
+       * renderVinCompatibleParts:
+       * Şasi sorgusundan dönen `compatibleParts` listesini VIN inputunun hemen altında
+       * kaydırılabilir (`max-h-64`, `overflow-y-auto`) menü olarak basar ve tıklandığında
+       * 3 adımlı Zincirleme Reaksiyonu (A -> B -> C) `sanitize()` ile milisaniyeler içinde çalıştırır.
+       */
+      // =========================================================================
+      // SANAL KAYDIRMA (VIRTUAL SCROLLING / WINDOWING) MOTORU:
+      // Devasa parça dizilerini (örn. 4835 parça) DOM'u kilitlemeden 60 FPS hızla
+      // render eder. DOM'da sadece ekranda o an görünen ~18 eleman tutulur.
+      // =========================================================================
+      const VIRTUAL_ITEM_HEIGHT = 44;
+      const VIRTUAL_BUFFER = 8;
+      let virtualScrollHandlerAttached = false;
+      let activeVirtualPartsList = [];
+
+      function createVinPartElement(part, isSelected) {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'tw-vin-part-item cursor-pointer' + (isSelected ? ' active' : '');
+        itemEl.setAttribute('role', 'button');
+        itemEl.setAttribute('tabindex', '0');
+        itemEl.title = `${part.formattedLabel} — Tıklayarak Derin Çapraz Referans & Şema Sorgula`;
+        itemEl.style.boxSizing = 'border-box';
+
+        itemEl.innerHTML = `
+          <span class="tw-vin-part-label" style="display: inline-flex; align-items: center; gap: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: none;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            <span>${escapeHtml(part.formattedLabel)}</span>
+          </span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; opacity: 0.75; pointer-events: none;">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        `;
+
+        itemEl.addEventListener('click', () => triggerVinPartSelection(part));
+        itemEl.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter' || ev.key === ' ') {
+            ev.preventDefault();
+            triggerVinPartSelection(part);
+          }
+        });
+
+        return itemEl;
+      }
+
+      async function triggerVinPartSelection(part) {
+        if (!part) return;
+
+        // A) Parantez içindeki OE numarasını ayıkla & sanitize et
+        const directOEM = sanitize(part.oemCode); const fallbackMatch = String(part.formattedLabel || '').match(/\(([A-Za-z0-9\-_./\s]{3,30})\)\s*$/); const sanitizedOEM = directOEM || ((fallbackMatch && /[0-9]/.test(fallbackMatch[1])) ? sanitize(fallbackMatch[1]) : '');
+        // Direct OEM extracted from part node
+        const rawExtractedOEM = sanitizedOEM;
+          // validated OEM
+
+        // sanitizedOEM ready
+        if (!sanitizedOEM) {
+          showToast('Seçilen parçada geçerli bir OEM numarası bulunamadı.', 'warning');
+          return;
+        }
+
+        window.currentSelectedVinPart = {
+          ...part,
+          oemCode: sanitizedOEM
+        };
+
+        // B) Form alanlarını doldur
+        const oeInput = document.getElementById('prod-oe');
+        if (oeInput) oeInput.value = sanitizedOEM;
+
+        const nameInput = document.getElementById('prod-name');
+        if (nameInput && part.partName) nameInput.value = part.partName;
+
+        const mappedGroup = mapCategoryGroupToSelectValue(part.categoryGroup, part.partName);
+        const groupSelect = document.getElementById('prod-group');
+        if (groupSelect && mappedGroup) {
+          for (let i = 0; i < groupSelect.options.length; i++) {
+            if (groupSelect.options[i].value.toLowerCase() === mappedGroup.toLowerCase()) {
+              groupSelect.selectedIndex = i;
+              break;
+            }
+          }
+        }
+
+        renderVirtualWindow();
+
+        // C) OE sorgusunu tetikle
+        if (typeof fetchOEMData === 'function') {
+          await fetchOEMData();
+        } else if (typeof handleOeSearch === 'function') {
+          await handleOeSearch();
+        }
+      }
+
+      function renderVirtualWindow() {
+        const listEl = document.getElementById('vin-compatible-parts-list');
+        if (!listEl) return;
+
+        const spacer = document.getElementById('vin-virtual-spacer');
+        const content = document.getElementById('vin-virtual-content');
+        if (!spacer || !content) return;
+
+        const totalItems = activeVirtualPartsList.length;
+        const totalHeight = totalItems * VIRTUAL_ITEM_HEIGHT;
+        spacer.style.height = `${totalHeight}px`;
+
+        if (totalItems === 0) {
+          content.innerHTML = '';
+          return;
+        }
+
+        const scrollTop = listEl.scrollTop || 0;
+        const clientHeight = listEl.clientHeight || 300;
+
+        const rawStart = Math.floor(scrollTop / VIRTUAL_ITEM_HEIGHT);
+        const rawEnd = Math.ceil((scrollTop + clientHeight) / VIRTUAL_ITEM_HEIGHT);
+
+        const startIndex = Math.max(0, rawStart - VIRTUAL_BUFFER);
+        const endIndex = Math.min(totalItems, rawEnd + VIRTUAL_BUFFER);
+
+        content.innerHTML = '';
+        const fragment = document.createDocumentFragment();
+        const selCode = window.currentSelectedVinPart ? window.currentSelectedVinPart.oemCode : null;
+
+        for (let i = startIndex; i < endIndex; i++) {
+          const part = activeVirtualPartsList[i];
+          if (!part) continue;
+          const isSelected = Boolean(selCode && part.oemCode === selCode);
+          const itemEl = createVinPartElement(part, isSelected);
+          itemEl.style.position = 'absolute';
+          itemEl.style.top = `${i * VIRTUAL_ITEM_HEIGHT}px`;
+          itemEl.style.left = '0';
+          itemEl.style.right = '0';
+          itemEl.style.height = `${VIRTUAL_ITEM_HEIGHT - 6}px`;
+          fragment.appendChild(itemEl);
+        }
+
+        content.appendChild(fragment);
+      }
+
+      function renderVinCompatibleParts(rawParts, filterQuery = '') {
+        const container = document.getElementById('vin-compatible-parts-container');
+        const listEl = document.getElementById('vin-compatible-parts-list');
+        const badgeEl = document.getElementById('vin-compatible-parts-badge');
+        const loadingEl = document.getElementById('vin-loading-state');
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (!container || !listEl) return;
+
+        if (rawParts !== null && rawParts !== undefined) {
+          window.currentVinNormalizedParts = normalizeVinCompatibleParts(rawParts);
+        }
+
+        const allParts = Array.isArray(window.currentVinNormalizedParts) ? window.currentVinNormalizedParts : [];
+
+        if (allParts.length === 0) {
+          container.style.display = 'none';
+          listEl.innerHTML = '';
+          if (badgeEl) badgeEl.textContent = '0 Parça';
+          return;
+        }
+
+        const q = String(filterQuery || '').trim().toLowerCase();
+        const qSanitized = sanitize(filterQuery);
+        activeVirtualPartsList = q
+          ? allParts.filter(p =>
+              p.formattedLabel.toLowerCase().includes(q) ||
+              p.partName.toLowerCase().includes(q) ||
+              (p.categoryGroup && p.categoryGroup.toLowerCase().includes(q)) ||
+              (qSanitized && p.oemCode.includes(qSanitized))
+            )
+          : allParts;
+
+        if (badgeEl) {
+          badgeEl.textContent = q
+            ? `${activeVirtualPartsList.length} / ${allParts.length} Parça`
+            : `${allParts.length} Uyumlu Parça`;
+        }
+
+        listEl.innerHTML = '';
+
+        if (activeVirtualPartsList.length === 0) {
+          listEl.innerHTML = `
+            <div style="padding: 14px; text-align: center; font-size: 0.76rem; color: #64748b; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 8px;">
+              "${escapeHtml(filterQuery)}" aramasına uygun şasi parçası bulunamadı.
+            </div>
+          `;
+          container.style.display = 'block';
+          return;
+        }
+
+        // =====================================================================
+        // SANAL KAYDIRMA (VIRTUAL SCROLLING / WINDOWING):
+        // Spacer (toplam yükseklik) ve Content (viewport) katmanlarını oluştur
+        // =====================================================================
+        let spacer = document.getElementById('vin-virtual-spacer');
+        let content = document.getElementById('vin-virtual-content');
+
+        if (!spacer || !content) {
+          listEl.innerHTML = `
+            <div id="vin-virtual-spacer" class="tw-vin-virtual-spacer"></div>
+            <div id="vin-virtual-content" class="tw-vin-virtual-content"></div>
+          `;
+          spacer = document.getElementById('vin-virtual-spacer');
+          content = document.getElementById('vin-virtual-content');
+        }
+
+        if (!virtualScrollHandlerAttached) {
+          let scrollTicking = false;
+          listEl.addEventListener('scroll', () => {
+            if (!scrollTicking) {
+              window.requestAnimationFrame(() => {
+                renderVirtualWindow();
+                scrollTicking = false;
+              });
+              scrollTicking = true;
+            }
+          }, { passive: true });
+          virtualScrollHandlerAttached = true;
+        }
+
+        if (filterQuery) {
+          listEl.scrollTop = 0;
+        }
+
+        renderVirtualWindow();
+        container.style.display = 'block';
+      }
+      window.renderVinCompatibleParts = renderVinCompatibleParts;
+
+      if (vinPartsFilterInput) {
+        vinPartsFilterInput.addEventListener('input', (e) => {
+          renderVinCompatibleParts(null, e.target.value);
+        });
+        vinPartsFilterInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+          }
+        });
+      }
 
       async function handleVinSearch() {
         if (!inputProdVin) return;
-        const rawVin = inputProdVin.value.trim().toUpperCase();
+        const rawVin = sanitize(inputProdVin.value);
+        inputProdVin.value = rawVin;
 
         if (!rawVin) {
           showToast('Lütfen sorgulamak için bir Şasi (VIN) numarası giriniz.', 'warning');
           inputProdVin.focus();
           return;
         }
+
+        // Yeni şasi sorgusu başlarken önceki şasi parça ağacını temizle
+        clearVinCompatibleParts();
+        const loadingEl = document.getElementById('vin-loading-state');
+        if (loadingEl) loadingEl.style.display = 'block';
 
         const origContent = btnSearchVin ? btnSearchVin.innerHTML : '';
         if (btnSearchVin) {
@@ -3296,89 +4307,28 @@
           `;
         }
 
-        const apiBase = getPanelApiBase();
-
-        const token = localStorage.getItem('token');
-        const headers = { 'Accept': 'application/json' };
-        if (token) headers['Authorization'] = 'Bearer ' + token;
-
-        // prompt.md Kural 2: Ağ hatası veya zaman aşımında sessizce bitirme; retry mechanism (3 deneme) kur.
-        const MAX_VIN_ATTEMPTS = 3;
-        let attempt = 0;
-        let finalJson = null;
-        let finalRes = null;
-        let lastError = null;
-
         try {
-          while (attempt < MAX_VIN_ATTEMPTS) {
-            attempt++;
-            const controller = new AbortController();
-            // prompt.md Kural 2: Zaman aşımı (timeout) süresi en az 60 saniye (60000ms)
-            const timeoutId = setTimeout(() => controller.abort(), 60000);
+          // Backend Güvenli Proxy: /api/catalog/search-vin/{sasi_numarasi}
+          const json = await apiFetch(`/catalog/search-vin/${encodeURIComponent(rawVin)}`, {
+            method: 'GET'
+          });
 
-            try {
-              if (attempt > 1) {
-                showToast(`Veri tam çekilemedi, tekrar deneniyor... (${attempt}/${MAX_VIN_ATTEMPTS})`, 'info');
-                if (btnSearchVin) {
-                  btnSearchVin.innerHTML = `
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation: spin 0.8s linear infinite;">
-                      <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
-                      <path d="M12 2a10 10 0 0 1 10 10"></path>
-                    </svg>
-                    <span>Tekrar deneniyor (${attempt}/${MAX_VIN_ATTEMPTS})...</span>
-                  `;
-                }
-                await new Promise((r) => setTimeout(r, 1200));
-              }
+          console.log('[PARTS_CATALOG_RAW_JSON]:', json); const data = extractVinSearchPayload(json);
 
-              const res = await fetch(`${apiBase}/catalog/search-vin/${encodeURIComponent(rawVin)}`, {
-                method: 'GET',
-                headers,
-                signal: controller.signal
-              });
-              clearTimeout(timeoutId);
-
-              const json = await res.json();
-              finalRes = res;
-              finalJson = json;
-
-              if (res.ok && json.success) {
-                break;
-              }
-
-              if (res.status === 400 || res.status === 404) {
-                break;
-              }
-            } catch (fetchErr) {
-              clearTimeout(timeoutId);
-              lastError = fetchErr;
-              console.warn(`[VIN_SEARCH_ATTEMPT_${attempt}_FAILED]:`, fetchErr.message || fetchErr);
-              if (attempt >= MAX_VIN_ATTEMPTS) {
-                throw fetchErr;
-              }
-            }
-          }
-
-          if (finalRes && finalRes.ok && finalJson && finalJson.success && (finalJson.vehicleInfo || finalJson.data)) {
-            const data = finalJson.vehicleInfo || finalJson.data || {};
-            const compatibleParts = Array.isArray(finalJson.compatibleParts)
-              ? finalJson.compatibleParts
-              : (Array.isArray(finalJson.data?.compatibleParts) ? finalJson.data.compatibleParts : []);
-            const resolvedBrand = data.vehicleBrand || data.brand || '';
-
+          if (data) {
             // 1. Araç Markası (Select Box)
             const brandSelect = document.getElementById('prod-brand');
-            if (brandSelect && resolvedBrand) {
+            if (brandSelect && data.vehicleBrand) {
               let matched = false;
               for (let i = 0; i < brandSelect.options.length; i++) {
-                if (brandSelect.options[i].value.toLowerCase() === resolvedBrand.toLowerCase()) {
+                if (brandSelect.options[i].value.toLowerCase() === data.vehicleBrand.toLowerCase()) {
                   brandSelect.selectedIndex = i;
                   matched = true;
                   break;
                 }
               }
               if (!matched) {
-                const opt = new Option(resolvedBrand, resolvedBrand, true, true);
+                const opt = new Option(data.vehicleBrand, data.vehicleBrand, true, true);
                 brandSelect.add(opt);
               }
             }
@@ -3392,139 +4342,44 @@
                 modelsInput.value = data.modelList.join(', ');
               } else if (typeof data.compatibleModels === 'string') {
                 modelsInput.value = data.compatibleModels;
-              } else if (typeof data.model === 'string') {
-                modelsInput.value = data.model;
               }
             }
 
-            // 3. Kural: Şasi (VIN) sorgusundan ASLA galeriye görüntü gelmez!
-            // Galeri tamamen temizlenir ve gizlenir. Sadece OEM / OE aramasında parça çizimi / görseli gelir.
+            // 3. Galeri ve zengin veri alanlarını yeni parça seçimi için sıfırla
             clearCatalogGallery();
             const enrichedBox = document.getElementById('enriched-data-container');
             if (enrichedBox) enrichedBox.style.display = 'none';
 
-            // 4. Şasiye Uyumlu OEM Parça Ağacı (compatibleParts) Gösterimi (Boşsa gizle, sahte veri asla gösterme)
-            const vinPartsContainer = document.getElementById('vin-compatible-parts-container');
-            const vinPartsList = document.getElementById('vin-compatible-parts-list');
-            const vinPartsCount = document.getElementById('vin-compatible-parts-count');
-            const vinPartsFilter = document.getElementById('vin-compatible-parts-filter');
-
-            if (vinPartsContainer && vinPartsList) {
-              vinPartsList.innerHTML = '';
-              if (vinPartsFilter) vinPartsFilter.value = '';
-
-              // Tek bir event delegation listener ile tüm satırlar (4835 parça) anında ve sıfır gecikmeyle çalışır
-              if (!vinPartsList._hasVinClickListener) {
-                vinPartsList.addEventListener('click', (e) => {
-                  const btn = e.target.closest('button[data-oem-code]');
-                  if (!btn) return;
-                  const oem = btn.dataset.oemCode || '';
-                  const name = btn.dataset.partName || '';
-                  const extractedOe = extractOeFromText(btn.dataset.rowLabel || btn.textContent, oem);
-                  const oeInput = document.getElementById('prod-oe');
-                  const nameInput = document.getElementById('prod-name');
-                  if (oeInput) oeInput.value = extractedOe;
-                  if (nameInput && name) nameInput.value = name;
-                  if (typeof handleOeSearch === 'function') {
-                    handleOeSearch();
-                  }
-                });
-                vinPartsList._hasVinClickListener = true;
-              }
-
-              if (compatibleParts.length > 0) {
-                if (vinPartsCount) vinPartsCount.textContent = `${compatibleParts.length} Uyumlu Parça`;
-
-                const renderVinPartRows = (filterQuery = '') => {
-                  vinPartsList.innerHTML = '';
-                  const q = String(filterQuery || '').trim().toLowerCase();
-                  const qSanitized = sanitize(filterQuery || '').toLowerCase();
-
-                  const filtered = compatibleParts.filter((p) => {
-                    if (!p || !p.oemCode || !p.partName) return false;
-                    if (!q) return true;
-                    const pName = String(p.partName || '').toLowerCase();
-                    const pOem = String(p.oemCode || '').toLowerCase();
-                    const pCat = String(p.categoryGroup || '').toLowerCase();
-                    return (
-                      pName.includes(q) ||
-                      pCat.includes(q) ||
-                      pOem.includes(q) ||
-                      (qSanitized && sanitize(p.oemCode).toLowerCase().includes(qSanitized))
-                    );
-                  });
-
-                  // DocumentFragment ile toplu ekleme: 4835 DOM elemanı dahi tek seferde render edilir (<15ms)
-                  const fragment = document.createDocumentFragment();
-                  for (let i = 0; i < filtered.length; i++) {
-                    const p = filtered[i];
-                    const cleanOem = sanitize(p.oemCode);
-                    if (!cleanOem) continue;
-                    const rowLabel = `${p.partName} (${cleanOem})`;
-
-                    const row = document.createElement('button');
-                    row.type = 'button';
-                    row.dataset.rowLabel = rowLabel;
-                    row.dataset.oemCode = cleanOem;
-                    row.dataset.partName = p.partName;
-                    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 10px;background:#fff;border:1px solid #cbd5e1;border-left:3px solid #0284c7;border-radius:7px;cursor:pointer;text-align:left;transition:all 0.15s ease;width:100%;box-sizing:border-box;margin-bottom:4px;';
-                    row.innerHTML = `
-                      <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
-                        <span class="vin-part-row-title" style="font-size:0.8rem;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">⚙ ${escapeHtml(rowLabel)}</span>
-                        <span style="font-size:0.7rem;color:#64748b;">${escapeHtml(p.categoryGroup || '')}</span>
-                      </div>
-                      <span style="font-family:monospace;font-size:0.78rem;font-weight:700;color:#0284c7;background:#f0f9ff;padding:2px 7px;border-radius:5px;border:1px solid #bae6fd;flex-shrink:0;">→</span>
-                    `;
-                    fragment.appendChild(row);
-                  }
-                  vinPartsList.appendChild(fragment);
-                };
-
-                renderVinPartRows('');
-
-                // Debounce ile filtreleme performansı
-                let filterDebounceTimer = null;
-                if (vinPartsFilter) {
-                  vinPartsFilter.oninput = (ev) => {
-                    clearTimeout(filterDebounceTimer);
-                    filterDebounceTimer = setTimeout(() => {
-                      renderVinPartRows(ev.target.value);
-                    }, 150);
-                  };
-                }
-                vinPartsContainer.style.display = 'block';
-              } else {
-                vinPartsContainer.style.display = 'none';
-              }
-            }
-
-            // Şasi bağlamını kaydet (OE sorgusunda OEM şemalarını anında eşleştirmek için carId, criteria saklanır)
+            // 4. Şasi bağlamını kaydet (modelId, catalogId, carId, criteria dahil)
             window.currentVehicleContext = {
-              vin: data.vin,
-              vehicleBrand: resolvedBrand,
-              compatibleModels: data.compatibleModels || data.model,
+              vin: data.vin || rawVin,
+              vehicleBrand: data.vehicleBrand,
+              compatibleModels: data.compatibleModels,
               catalogId: data.catalogId,
               carId: data.carId,
+              modelId: data.modelId,
               criteria: data.criteria,
-              compatibleParts
+              year: data.year,
+              engine: data.engine
             };
 
-            const partsSuffix = compatibleParts.length > 0 ? ` • ${compatibleParts.length} uyumlu OEM parça listelendi` : '';
-            showToast(`Şasi (VIN) doğrulandı: ${resolvedBrand} ${data.compatibleModels || data.model || ''}${partsSuffix}`, 'success');
+            // 5. İNTERAKTİF ŞASİ KATALOĞU: compatibleParts parça listesini VIN altında aç
+            const rawCompatibleParts = data.compatibleParts || data.parts || data.partTree || []; console.log('[PARTS_CATALOG_COMPATIBLE_PARTS_RAW]:', rawCompatibleParts);
+            renderVinCompatibleParts(rawCompatibleParts);
+
+            const partsCount = Array.isArray(window.currentVinNormalizedParts) ? window.currentVinNormalizedParts.length : 0;
+            const toastSuffix = partsCount > 0 ? ` • ${partsCount} uyumlu parça listelendi.` : '';
+            showToast(`Şasi (VIN) doğrulandı: ${data.vehicleBrand || ''} ${data.compatibleModels || ''}${toastSuffix}`, 'success');
           } else {
-            const msg = (finalJson && finalJson.message) || `"${rawVin}" Şasi (VIN) numarası katalogda bulunamadı.`;
+            const msg = (json && json.message) || `"${rawVin}" Şasi (VIN) numarası katalogda bulunamadı.`;
             showToast(msg, 'warning');
-            // prompt.md Kural 2: Kayıp Arama (No-Hit) kaydını sessizce ilet
-            fetch(`${apiBase}/analytics/no-hit`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-              body: JSON.stringify({ searchTerm: rawVin, searchType: 'VIN' })
-            }).catch(() => {});
           }
         } catch (err) {
           console.error('[VIN_SEARCH_ERROR]:', err);
-          showToast('Şasi (VIN) sorgusu gerçekleştirilirken bağlantı hatası oluştu. Lütfen tekrar deneyiniz.', 'warning');
+          showToast('Şasi (VIN) sorgusu gerçekleştirilirken bağlantı hatası oluştu.', 'warning');
         } finally {
+          const loadingEl = document.getElementById('vin-loading-state');
+          if (loadingEl) loadingEl.style.display = 'none';
           if (btnSearchVin) {
             btnSearchVin.disabled = false;
             btnSearchVin.style.opacity = '1';
@@ -3546,167 +4401,396 @@
       }
 
       // =========================================================================
-      // 2. OE NUMARASI SORGULAMA ENTEGRASYONU (GET /api/catalog/search-oe/:oeNumber)
-      // Mantık: Deep Cross-Reference (Çift Yönlü Çapraz Eşleştirme)
-      // KURAL 1, 2, 3, 4: OEM Havuzu, Muadil Referanslar, Mühendislik Tablosu
-      // Liste Fiyatı ve Stok Miktarına KESİNLİKLE dokunulmaz.
+      // 2. OE NUMARASI SORGULAMA & DERİN ÇAPRAZ EŞLEŞTİRME MOTORU
+      //    (GET /api/catalog/search-oe/:oeNumber)
       // =========================================================================
-      const FORBIDDEN_SPEC_UI_PATTERN = /(garanti|sertifika|kalite\s*onay|warranty|certificate|iso\s*9001|tse|onayl[ıi]\s*[üu]r[üu]n|iade\s*ko[şs]ul)/i;
 
-      function renderEnrichedData(data) {
+      /**
+       * extractOeSearchPayload:
+       * Backend Strict Payload formatını (`searchedCode` / `searchedQuery`, `originalOEMs`,
+       * `referenceCodes`, `technicalSpecs`, `images`) hem kök objeden hem `json.data` altından ayrıştırır.
+       */
+      function extractOeSearchPayload(json) {
+        if (!json || typeof json !== 'object') return null;
+        if (json.data && typeof json.data === 'object' && Object.keys(json.data).length > 0) {
+          return { ...json, ...json.data };
+        }
+        if (
+          json.success === true ||
+          Boolean(json.searchedCode) ||
+          Boolean(json.searchedQuery) ||
+          Array.isArray(json.originalOEMs) ||
+          Array.isArray(json.referenceCodes) ||
+          Array.isArray(json.images) ||
+          (json.technicalSpecs && typeof json.technicalSpecs === 'object') ||
+          Boolean(json.partName) ||
+          Boolean(json.rootOEM)
+        ) {
+          return { ...json };
+        }
+        return null;
+      }
+
+      /**
+       * extractEquivalencePool (BÖLÜM 2 - Madde 2):
+       * Kısım A - Orijinal Ekipman (OEM) Numaraları (`originalOEMs`, `rootOEM`, `originalCodes`, `equivalentOEs`)
+       * Kısım B - Muadil / Referans Kodları (Marka Bazlı) (`referenceCodes`, `aftermarketCodes`, `crossReferences`)
+       */
+      function extractEquivalencePool(data, searchedCode = '') {
+        if (!data || typeof data !== 'object') {
+          return { originalCodes: [], aftermarketItems: [] };
+        }
+
+        const rawOriginals = [
+          ...(Array.isArray(data.originalOEMs) ? data.originalOEMs : []),
+          ...(Array.isArray(data.originalCodes) ? data.originalCodes : []),
+          ...(Array.isArray(data.equivalentOEs) ? data.equivalentOEs : [])
+        ];
+
+        const rawAftermarket = [
+          ...(Array.isArray(data.referenceCodes) ? data.referenceCodes : []),
+          ...(Array.isArray(data.aftermarketCodes) ? data.aftermarketCodes : []),
+          ...(Array.isArray(data.crossReferences) ? data.crossReferences : [])
+        ];
+
+        const originalList = [];
+        const originalNormSet = new Set();
+
+        const addOriginal = (rawCode) => {
+          if (!rawCode) return;
+          const clean = sanitize(rawCode);
+          if (!clean || originalNormSet.has(clean)) return;
+          if (/^(TRW|AYD|BOSCH|VALEO|BREMBO|FERODO|MANN|MAHLE|SACHS|LUK|FEBI|INA|NGK|DELPHI|TEXTAR|ATE|ZIMMERMANN|MEYLE|LEMFORDER)\b/i.test(String(rawCode).trim())) {
+            return;
+          }
+          originalNormSet.add(clean);
+          originalList.push(clean);
+        };
+
+        if (data.rootOEM) addOriginal(data.rootOEM);
+        if (data.primaryOe) addOriginal(data.primaryOe);
+
+        rawOriginals.forEach(item => {
+          const c = typeof item === 'string' ? item : (item && (item.oeNumber || item.code || item.oe));
+          addOriginal(c);
+        });
+
+        const aftermarketItems = [];
+        const afterNormSet = new Set();
+
+        rawAftermarket.forEach(item => {
+          if (!item) return;
+          let brand = '';
+          let code = '';
+
+          if (typeof item === 'string') {
+            const rawStr = item.trim();
+            if (rawStr.includes(':')) {
+              const idx = rawStr.indexOf(':');
+              brand = rawStr.slice(0, idx).trim();
+              code = rawStr.slice(idx + 1).trim();
+            } else {
+              code = rawStr;
+            }
+          } else if (typeof item === 'object') {
+            brand = String(item.brand || item.manufacturer || item.make || '').trim();
+            code = String(item.code || item.referenceCode || item.oeNumber || item.oe || '').trim();
+          }
+
+          if (!code) return;
+          const normCode = sanitize(code);
+          const normBrandCode = sanitize(brand + code);
+
+          if (/^(oem|orijinal|oe)$/i.test(brand) || originalNormSet.has(normCode)) {
+            addOriginal(code);
+            return;
+          }
+
+          if (!normCode || afterNormSet.has(normBrandCode) || (!brand && afterNormSet.has(normCode))) return;
+          afterNormSet.add(normCode);
+          afterNormSet.add(normBrandCode);
+
+          let shortCode = code;
+          if (brand && code.toUpperCase().startsWith(brand.toUpperCase() + ' ')) {
+            shortCode = code.slice(brand.length).trim();
+          } else if (!brand && code.includes(' ')) {
+            const parts = code.split(/\s+/);
+            brand = parts[0];
+            shortCode = parts.slice(1).join(' ');
+          }
+
+          const displayBrand = brand || 'Muadil';
+          const fullLabel = `${displayBrand}: ${shortCode}`;
+
+          aftermarketItems.push({
+            brand: displayBrand,
+            code: shortCode,
+            shortCode: shortCode,
+            sanitizedCode: sanitize(shortCode),
+            fullLabel: fullLabel
+          });
+        });
+
+        return {
+          originalCodes: originalList,
+          aftermarketItems: aftermarketItems
+        };
+      }
+
+      /**
+       * renderDeepCrossReferences (BÖLÜM 2 - Madde 2):
+       * - "Orijinal Ekipman (OEM) Numaraları"
+       * - "Muadil / Referans Kodları (Marka Bazlı)"
+       * Her rozet aynı zamanda tıklanabilir (`cursor-pointer`) olup tıklandığında
+       * kodu `sanitize()` ederek otomatik derin arama başlatır.
+       */
+      function renderDeepCrossReferences(data, searchedCode = '') {
+        const deepBox = document.getElementById('deep-cross-references-container');
+        const origGroupEl = document.getElementById('cross-ref-original-group');
+        const afterGroupEl = document.getElementById('cross-ref-aftermarket-group');
+        const origBadgesEl = document.getElementById('cross-ref-original-badges');
+        const afterBadgesEl = document.getElementById('cross-ref-aftermarket-badges');
+        const origSummaryEl = document.getElementById('cross-ref-original-summary');
+        const afterSummaryEl = document.getElementById('cross-ref-aftermarket-summary');
+        const summaryBadgeEl = document.getElementById('deep-cross-ref-summary-badge');
+
+        const { originalCodes, aftermarketItems } = extractEquivalencePool(data, searchedCode);
+
+        if (originalCodes.length === 0 && aftermarketItems.length === 0) {
+          if (deepBox) deepBox.style.display = 'none';
+          if (origGroupEl) origGroupEl.style.display = 'none';
+          if (afterGroupEl) afterGroupEl.style.display = 'none';
+          return '';
+        }
+
+        const normSearch = sanitize(searchedCode || (data && (data.searchedCode || data.searchedQuery || data.oeNumber)) || '');
+
+        if (summaryBadgeEl) {
+          const parts = [];
+          if (originalCodes.length > 0) parts.push(`${originalCodes.length} OEM`);
+          if (aftermarketItems.length > 0) parts.push(`${aftermarketItems.length} Muadil Referans`);
+          summaryBadgeEl.textContent = parts.join(' • ');
+        }
+
+        // Kısım A: Orijinal Ekipman (OEM) Numaraları
+        let origBadgesHtml = '';
+        if (originalCodes.length > 0) {
+          if (origGroupEl) origGroupEl.style.display = 'block';
+          if (origSummaryEl) {
+            origSummaryEl.textContent = `${originalCodes.length} Adet OEM Kodu`;
+          }
+          origBadgesHtml = originalCodes.map(oeCode => {
+            const isSearched = normSearch && sanitize(oeCode) === normSearch;
+            return `
+              <span class="tw-badge ${isSearched ? 'tw-badge-oe-active' : 'tw-badge-oe'} cursor-pointer" data-trigger-code="${escapeHtml(sanitize(oeCode))}" title="Orijinal Ekipman (OEM) Numarası: ${escapeHtml(oeCode)} (Sorgulamak için tıklayın)">
+                <span style="width: 6px; height: 6px; border-radius: 9999px; background: ${isSearched ? '#1d4ed8' : '#3b82f6'}; display: inline-block; flex-shrink: 0;"></span>
+                <span>${escapeHtml(oeCode)}</span>
+              </span>
+            `;
+          }).join('');
+          if (origBadgesEl) {
+            origBadgesEl.innerHTML = origBadgesHtml;
+            origBadgesEl.querySelectorAll('[data-trigger-code]').forEach(badge => {
+              badge.addEventListener('click', async () => {
+                const targetCode = sanitize(badge.getAttribute('data-trigger-code'));
+                if (!targetCode || !inputProdOe) return;
+                inputProdOe.value = targetCode;
+                await fetchOEMData();
+              });
+            });
+          }
+        } else {
+          if (origGroupEl) origGroupEl.style.display = 'none';
+          if (origBadgesEl) origBadgesEl.innerHTML = '';
+          if (origSummaryEl) origSummaryEl.textContent = '';
+        }
+
+        // Kısım B: Muadil / Referans Kodları (Marka Bazlı)
+        let afterBadgesHtml = '';
+        if (aftermarketItems.length > 0) {
+          if (afterGroupEl) afterGroupEl.style.display = 'block';
+          if (afterSummaryEl) {
+            afterSummaryEl.textContent = `${aftermarketItems.length} Marka Referansı`;
+          }
+          afterBadgesHtml = aftermarketItems.map(item => {
+            const normFull = sanitize(item.brand + item.shortCode);
+            const normShort = sanitize(item.shortCode);
+            const isSearched = normSearch && (normSearch === normFull || normSearch === normShort || normFull.endsWith(normSearch));
+            return `
+              <div class="tw-ref-card ${isSearched ? 'tw-ref-card-active' : ''} cursor-pointer" data-trigger-code="${escapeHtml(normShort)}" title="${escapeHtml(item.brand)}: ${escapeHtml(item.shortCode)} (Sorgulamak için tıklayın)">
+                <strong class="tw-ref-brand">${escapeHtml(item.brand)}:</strong>
+                <span class="tw-ref-code">${escapeHtml(item.shortCode)}</span>
+              </div>
+            `;
+          }).join('');
+          if (afterBadgesEl) {
+            afterBadgesEl.innerHTML = afterBadgesHtml;
+            afterBadgesEl.querySelectorAll('[data-trigger-code]').forEach(card => {
+              card.addEventListener('click', async () => {
+                const targetCode = sanitize(card.getAttribute('data-trigger-code'));
+                if (!targetCode || !inputProdOe) return;
+                inputProdOe.value = targetCode;
+                await fetchOEMData();
+              });
+            });
+          }
+        } else {
+          if (afterGroupEl) afterGroupEl.style.display = 'none';
+          if (afterBadgesEl) afterBadgesEl.innerHTML = '';
+          if (afterSummaryEl) afterSummaryEl.textContent = '';
+        }
+
+        if (deepBox) deepBox.style.display = 'block';
+        return origBadgesHtml || afterBadgesHtml;
+      }
+      window.renderDeepCrossReferences = renderDeepCrossReferences;
+
+      /**
+       * formatTechnicalSpecKey:
+       * Backend `technicalSpecs` objesinde `kalinlik`, `montajTarafi` gibi ham anahtarlar
+       * geldiğinde okunaklı mühendislik etiketlerine dönüştürür.
+       */
+      function formatTechnicalSpecKey(rawKey) {
+        const k = String(rawKey || '').trim();
+        const map = {
+          kalinlik: 'Kalınlık',
+          genislik: 'Genişlik',
+          yukseklik: 'Yükseklik',
+          uzunluk: 'Uzunluk',
+          agirlik: 'Ağırlık',
+          cap: 'Çap',
+          dis_sayisi: 'Diş Sayısı',
+          dissayisi: 'Diş Sayısı',
+          montaj_tarafi: 'Montaj Tarafı',
+          montajtarafi: 'Montaj Tarafı',
+          fren_sistemi: 'Fren Sistemi',
+          frensistemi: 'Fren Sistemi',
+          asinma_ikazi: 'Aşınma İkazı',
+          asinmaikazi: 'Aşınma İkazı'
+        };
+        const lower = k.toLowerCase();
+        if (map[lower]) return map[lower];
+        const splitWords = k.replace(/([A-Z])/g, ' $1').trim();
+        return splitWords.charAt(0).toUpperCase() + splitWords.slice(1);
+      }
+
+      /**
+       * extractTechnicalSpecsEntries (BÖLÜM 2 - Madde 3):
+       * API'den gelen `technicalSpecs` objesini (`Object.entries` kullanarak)
+       * veya kaydedilmiş ürün `attributes` dizisini okur; sahte/statik garanti veya TSE
+       * metinlerini kesin olarak filtreler.
+       */
+      function extractTechnicalSpecsEntries(data) {
+        if (!data || typeof data !== 'object') return [];
+        const entries = [];
+        const seenKeys = new Set();
+
+        const isFakeBoilerplate = (k, v) => {
+          const combined = `${k} ${v}`.toLowerCase();
+          return (
+            combined.includes('12 ay / 20.000 km') ||
+            combined.includes('tse / ce') ||
+            combined.includes('garanti kapsamı')
+          );
+        };
+
+        if (data.technicalSpecs && typeof data.technicalSpecs === 'object' && !Array.isArray(data.technicalSpecs)) {
+          Object.entries(data.technicalSpecs).forEach(([rawKey, rawVal]) => {
+            const key = formatTechnicalSpecKey(rawKey);
+            const val = rawVal !== null && rawVal !== undefined ? String(rawVal).trim() : '';
+            if (!key || !val || isFakeBoilerplate(key, val)) return;
+            const normKey = key.toLowerCase();
+            if (seenKeys.has(normKey)) return;
+            seenKeys.add(normKey);
+            entries.push([key, val]);
+          });
+        }
+
+        if (Array.isArray(data.attributes)) {
+          data.attributes.forEach(attr => {
+            if (!attr || typeof attr !== 'object') return;
+            const key = formatTechnicalSpecKey(attr.name || attr.key || '');
+            const val = attr.value !== null && attr.value !== undefined ? String(attr.value).trim() : '';
+            if (!key || !val || isFakeBoilerplate(key, val)) return;
+            const normKey = key.toLowerCase();
+            if (seenKeys.has(normKey)) return;
+            seenKeys.add(normKey);
+            entries.push([key, val]);
+          });
+        }
+
+        return entries;
+      }
+
+      /**
+       * renderEnrichedData (BÖLÜM 2):
+       * - Çapraz referans ağını (`renderDeepCrossReferences`) günceller.
+       * - Sağ panelde "Teknik Özellikler" (`technicalSpecs` -> `Object.entries`) tablosunu oluşturur.
+       * - "Uyumlu Araçlar" listesini oluşturur.
+       * - Verisi boş olan tüm alt konteynerleri gizler (`display: none`).
+       */
+      function renderEnrichedData(data, searchedCode = '') {
         const container = document.getElementById('enriched-data-container');
+        const specsSection = document.getElementById('enriched-specs-section');
+        const fitmentSection = document.getElementById('enriched-fitment-section');
+        const crossSection = document.getElementById('enriched-cross-section');
+        const crossesBox = document.getElementById('preview-cross-references');
+        const fitmentBox = document.getElementById('preview-fitment-list');
+        const attrsBox = document.getElementById('preview-attributes-table');
+
+        renderDeepCrossReferences(data, searchedCode);
+
+        if (crossSection) crossSection.style.display = 'none';
+        if (crossesBox) crossesBox.innerHTML = '';
+
         if (!container) return;
 
-        const oemGroup = document.getElementById('preview-oem-group');
-        const oemList = document.getElementById('preview-oem-list');
-        const refGroup = document.getElementById('preview-ref-group');
-        const refList = document.getElementById('preview-cross-references');
-        const fitmentGroup = document.getElementById('preview-fitment-group');
-        const fitmentList = document.getElementById('preview-fitment-list');
-        const specsGroup = document.getElementById('preview-specs-group');
-        const specsTable = document.getElementById('preview-attributes-table');
-
-        // KURAL 1, 2, 4: Deep Cross-Reference Alanları
-        const rootOEM = data && data.rootOEM ? String(data.rootOEM).trim().toUpperCase() : null;
-        const originalOEMs = (data && Array.isArray(data.originalOEMs)) ? data.originalOEMs : [];
-        const referenceCodes = (data && Array.isArray(data.referenceCodes)) ? data.referenceCodes : [];
-        const legacyCrosses = (data && Array.isArray(data.crossReferences)) ? data.crossReferences : [];
-        const fitments = (data && Array.isArray(data.compatibleVehicles)) ? data.compatibleVehicles : [];
-
-        // KURAL 4: Dinamik Mühendislik / Teknik Özellikler Tablosu (Key-Value, statik garanti/sertifika yazıları tamamen temizlenir)
-        let specEntries = [];
-        if (data && data.technicalSpecs && typeof data.technicalSpecs === 'object' && !Array.isArray(data.technicalSpecs)) {
-          specEntries = Object.entries(data.technicalSpecs)
-            .map(([key, val]) => ({
-              key: String(key || '').trim(),
-              val: typeof val === 'object' ? JSON.stringify(val) : String(val || '').trim()
-            }))
-            .filter(item => item.key && item.val && !FORBIDDEN_SPEC_UI_PATTERN.test(item.key) && !FORBIDDEN_SPEC_UI_PATTERN.test(item.val));
-        } else if (data && Array.isArray(data.attributes) && data.attributes.length > 0) {
-          specEntries = data.attributes
-            .map(a => ({
-              key: String(a.name || a.key || 'Özellik').trim(),
-              val: `${a.value || ''}${a.unit ? ' ' + a.unit : ''}`.trim()
-            }))
-            .filter(item => item.key && item.val && !FORBIDDEN_SPEC_UI_PATTERN.test(item.key) && !FORBIDDEN_SPEC_UI_PATTERN.test(item.val));
+        // Dinamik Mühendislik Tablosu (Specifications Table - Object.entries(technicalSpecs))
+        const specEntries = extractTechnicalSpecsEntries(data);
+        if (specEntries.length > 0 && attrsBox && specsSection) {
+          specsSection.style.display = 'block';
+          attrsBox.innerHTML = `
+            <table class="tw-specs-table">
+              <tbody>
+                ${specEntries.map(([specKey, specVal]) => `
+                  <tr>
+                    <th>${escapeHtml(specKey)}</th>
+                    <td>${escapeHtml(specVal)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `;
+        } else {
+          if (specsSection) specsSection.style.display = 'none';
+          if (attrsBox) attrsBox.innerHTML = '';
         }
 
-        const hasOems = rootOEM || originalOEMs.length > 0;
-        const hasRefs = referenceCodes.length > 0 || legacyCrosses.length > 0;
-        const hasFitments = fitments.length > 0;
-        const hasSpecs = specEntries.length > 0;
+        // Uyumlu Araçlar (Fitment)
+        const fitments = (data && Array.isArray(data.compatibleVehicles))
+          ? data.compatibleVehicles.filter(f => f && (f.make || f.model || f.years || f.engine))
+          : [];
 
-        // KURAL 1: Veri yoksa o HTML bloğu gizlenecektir (Zero Mock Data Tolerance)
-        if (!hasOems && !hasRefs && !hasFitments && !hasSpecs) {
+        if (fitments.length > 0 && fitmentBox && fitmentSection) {
+          fitmentSection.style.display = 'block';
+          fitmentBox.innerHTML = fitments.map(f => {
+            const detailParts = [f.years, f.engine].filter(Boolean).join(' • ');
+            return `
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 10px; font-size: 0.75rem; color: #1e293b; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                <strong style="font-weight: 700; color: #0f172a;">${escapeHtml([f.make, f.model].filter(Boolean).join(' '))}</strong>
+                ${detailParts ? `<span style="color: #64748b; font-size: 0.71rem; font-weight: 500;">${escapeHtml(detailParts)}</span>` : ''}
+              </div>
+            `;
+          }).join('');
+        } else {
+          if (fitmentSection) fitmentSection.style.display = 'none';
+          if (fitmentBox) fitmentBox.innerHTML = '';
+        }
+
+        if (specEntries.length === 0 && fitments.length === 0) {
           container.style.display = 'none';
-          return;
-        }
-
-        container.style.display = 'block';
-
-        // --- KISIM A: ORİJİNAL EKİPMAN (OEM) NUMARALARI HAVUZU (KURAL 2) ---
-        if (oemGroup && oemList) {
-          if (hasOems) {
-            oemGroup.style.display = 'block';
-            const oemBadges = [];
-            const seenOems = new Set();
-
-            if (rootOEM) {
-              seenOems.add(rootOEM);
-              oemBadges.push(`
-                <button type="button" onclick="window.triggerQuickOeSearch('${escapeHtml(rootOEM)}')" title="Bu OEM koduyla sorgula" style="background: linear-gradient(135deg, #1d4ed8, #1e40af); color: #ffffff; border: none; border-radius: 6px; padding: 4px 10px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 700; cursor: pointer; box-shadow: 0 1px 3px rgba(30,64,175,0.3);">
-                  <span style="background: rgba(255,255,255,0.2); padding: 1px 5px; border-radius: 4px; font-size: 0.65rem; letter-spacing: 0.5px;">KÖK OEM</span>
-                  <span style="font-family: monospace; letter-spacing: 0.5px;">${escapeHtml(rootOEM)}</span>
-                </button>
-              `);
-            }
-
-            originalOEMs.forEach(oe => {
-              const cleanOe = String(oe).trim().toUpperCase();
-              if (cleanOe && !seenOems.has(cleanOe)) {
-                seenOems.add(cleanOe);
-                oemBadges.push(`
-                  <button type="button" onclick="window.triggerQuickOeSearch('${escapeHtml(cleanOe)}')" title="Bu OEM koduyla sorgula" style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; border-radius: 6px; padding: 4px 8px; display: inline-flex; align-items: center; gap: 5px; font-size: 0.76rem; font-weight: 600; cursor: pointer;">
-                    <span style="color: #60a5fa; font-size: 0.68rem;">OEM:</span>
-                    <span style="font-family: monospace; font-weight: 700;">${escapeHtml(cleanOe)}</span>
-                  </button>
-                `);
-              }
-            });
-
-            oemList.innerHTML = oemBadges.join('');
-          } else {
-            oemGroup.style.display = 'none';
-            oemList.innerHTML = '';
-          }
-        }
-
-        // --- KISIM B: MUADİL / REFERANS KODLARI (MARKA BAZLI) (KURAL 2) ---
-        if (refGroup && refList) {
-          if (hasRefs) {
-            refGroup.style.display = 'block';
-            const refBadges = [];
-
-            if (referenceCodes.length > 0) {
-              referenceCodes.forEach(r => {
-                const brand = r.brand || 'Üretici';
-                const code = r.code || '';
-                refBadges.push(`
-                  <button type="button" onclick="window.triggerQuickOeSearch('${escapeHtml(code)}')" title="${escapeHtml(brand)} ${escapeHtml(code)} ile çapraz sorgula" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 5px 9px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-                    <span style="font-weight: 800; color: #0f172a; text-transform: uppercase;">${escapeHtml(brand)} :</span>
-                    <span style="font-family: monospace; color: #2563eb; font-weight: 700; letter-spacing: 0.3px;">${escapeHtml(code)}</span>
-                  </button>
-                `);
-              });
-            } else if (legacyCrosses.length > 0) {
-              legacyCrosses.forEach(c => {
-                const cCode = c.code || c.oeNumber || '';
-                refBadges.push(`
-                  <button type="button" onclick="window.triggerQuickOeSearch('${escapeHtml(cCode)}')" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 5px 9px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-                    <span style="font-weight: 800; color: #0f172a; text-transform: uppercase;">${escapeHtml(c.brand || 'Üretici')} :</span>
-                    <span style="font-family: monospace; color: #2563eb; font-weight: 700;">${escapeHtml(cCode)}</span>
-                  </button>
-                `);
-              });
-            }
-
-            refList.innerHTML = refBadges.join('');
-          } else {
-            refGroup.style.display = 'none';
-            refList.innerHTML = '';
-          }
-        }
-
-        // --- KISIM C: UYUMLU ARAÇLAR (VEHICLE FITMENT) ---
-        if (fitmentGroup && fitmentList) {
-          if (hasFitments) {
-            fitmentGroup.style.display = 'block';
-            fitmentList.innerHTML = fitments.map(f => `
-              <div style="background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 8px; font-size: 0.74rem; color: #334155;">
-                <strong>${escapeHtml(f.make || '')} ${escapeHtml(f.model || '')}</strong>
-                <span style="color: #64748b;">(${escapeHtml(f.years || '')} - ${escapeHtml(f.engine || '')})</span>
-              </div>
-            `).join('');
-          } else {
-            fitmentGroup.style.display = 'none';
-            fitmentList.innerHTML = '';
-          }
-        }
-
-        // --- KISIM D: DİNAMİK MÜHENDİSLİK / TEKNİK ÖZELLİKLER TABLOSU (KURAL 4) ---
-        if (specsGroup && specsTable) {
-          if (hasSpecs) {
-            specsGroup.style.display = 'block';
-            specsTable.innerHTML = specEntries.map(s => `
-              <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 10px;">
-                <span style="color: #64748b; font-size: 0.68rem; display: block; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">${escapeHtml(s.key)}</span>
-                <span style="color: #0f172a; font-weight: 700; font-size: 0.8rem;">${escapeHtml(s.val)}</span>
-              </div>
-            `).join('');
-          } else {
-            specsGroup.style.display = 'none';
-            specsTable.innerHTML = '';
-          }
+        } else {
+          container.style.display = 'block';
         }
       }
       window.renderEnrichedData = renderEnrichedData;
@@ -3714,29 +4798,132 @@
       const btnSearchOe = document.getElementById('btn-search-oe');
       const inputProdOe = document.getElementById('prod-oe');
 
+      /**
+       * mergeDeepCrossTreeData:
+       * İkincil OEM sorgularından dönen originalOEMs, referenceCodes ve technicalSpecs
+       * verilerini ana veri objesiyle eksiksiz birleştirir.
+       */
+      function mergeDeepCrossTreeData(targetData, sourceData) {
+        if (!targetData || !sourceData) return targetData;
+
+        if (!targetData.rootOEM && (sourceData.rootOEM || sourceData.primaryOe || sourceData.oeNumber)) {
+          targetData.rootOEM = sourceData.rootOEM || sourceData.primaryOe || sourceData.oeNumber;
+        }
+
+        const mergedPool = extractEquivalencePool({
+          rootOEM: targetData.rootOEM || sourceData.rootOEM,
+          primaryOe: targetData.primaryOe || sourceData.primaryOe,
+          originalOEMs: [
+            ...(Array.isArray(targetData.originalOEMs) ? targetData.originalOEMs : []),
+            ...(Array.isArray(sourceData.originalOEMs) ? sourceData.originalOEMs : []),
+            ...(Array.isArray(targetData.originalCodes) ? targetData.originalCodes : []),
+            ...(Array.isArray(sourceData.originalCodes) ? sourceData.originalCodes : [])
+          ],
+          referenceCodes: [
+            ...(Array.isArray(targetData.referenceCodes) ? targetData.referenceCodes : []),
+            ...(Array.isArray(sourceData.referenceCodes) ? sourceData.referenceCodes : []),
+            ...(Array.isArray(targetData.crossReferences) ? targetData.crossReferences : []),
+            ...(Array.isArray(sourceData.crossReferences) ? sourceData.crossReferences : [])
+          ]
+        });
+
+        targetData.originalOEMs = mergedPool.originalCodes;
+        targetData.originalCodes = mergedPool.originalCodes;
+        targetData.referenceCodes = mergedPool.aftermarketItems.map(item => ({
+          brand: item.brand,
+          code: item.shortCode
+        }));
+        targetData.crossReferences = targetData.referenceCodes;
+
+        if (
+          (!targetData.technicalSpecs || Object.keys(targetData.technicalSpecs).length === 0) &&
+          sourceData.technicalSpecs &&
+          typeof sourceData.technicalSpecs === 'object'
+        ) {
+          targetData.technicalSpecs = { ...sourceData.technicalSpecs };
+        } else if (
+          targetData.technicalSpecs &&
+          sourceData.technicalSpecs &&
+          typeof sourceData.technicalSpecs === 'object'
+        ) {
+          targetData.technicalSpecs = { ...sourceData.technicalSpecs, ...targetData.technicalSpecs };
+        }
+
+        if (!targetData.partName && sourceData.partName) {
+          targetData.partName = sourceData.partName;
+        }
+        if (!targetData.partGroup && sourceData.partGroup) {
+          targetData.partGroup = sourceData.partGroup;
+        }
+        if (!targetData.vehicleBrand && (sourceData.vehicleBrand || sourceData.brand)) {
+          targetData.vehicleBrand = sourceData.vehicleBrand || sourceData.brand;
+        }
+        if (!targetData.compatibleModels && sourceData.compatibleModels) {
+          targetData.compatibleModels = sourceData.compatibleModels;
+        }
+        if ((!targetData.compatibleVehicles || targetData.compatibleVehicles.length === 0) && Array.isArray(sourceData.compatibleVehicles)) {
+          targetData.compatibleVehicles = sourceData.compatibleVehicles;
+        }
+
+        return targetData;
+      }
+
       async function handleOeSearch() {
         if (!inputProdOe) return;
-        let rawOe = inputProdOe.value.trim();
+        const rawInputVal = inputProdOe.value.trim();
+        const sanitizedOe = sanitize(rawInputVal);
 
-        if (!rawOe) {
-          showToast('Lütfen sorgulamak için bir OE veya Yan Sanayi kodu giriniz.', 'warning');
+        if (!sanitizedOe) {
+          showToast('Lütfen sorgulamak için bir OE veya Muadil numarası giriniz.', 'warning');
           inputProdOe.focus();
           return;
         }
 
-        // Eğer kullanıcı "Eksantrik dişlisi (130255586R)" gibi parantezli metin girdiyse
-        // parantez içindeki OE numarasını RegEx ile çıkar ve sanitize() et
-        if (/\([A-Za-z0-9\s\-_./]{4,25}\)\s*$/.test(rawOe)) {
-          rawOe = extractOeFromText(rawOe);
-          inputProdOe.value = rawOe;
-        } else if (!/\s/.test(rawOe)) {
-          rawOe = sanitize(rawOe);
-          inputProdOe.value = rawOe;
+        // BÖLÜM 2 - Madde 1: OE Numarası inputuna sanitize() edilmiş temiz kodu yaz
+        inputProdOe.value = sanitizedOe;
+
+        // 1. STATE TEMİZLİĞİ
+        currentCatalogImages = [];
+        window.currentEnrichedData = null;
+        clearDeepCrossReferences();
+        ensureManualUploadActive();
+
+        const galleryGroup = document.getElementById('catalog-gallery-group');
+        const galleryGrid = document.getElementById('catalog-gallery-grid');
+        const galleryBadge = document.getElementById('catalog-gallery-badge');
+        const eqNote = document.getElementById('catalog-equivalent-note');
+        const eqNoteText = document.getElementById('catalog-equivalent-note-text');
+
+        if (eqNote) eqNote.style.display = 'none';
+        if (eqNoteText) eqNoteText.textContent = '';
+
+        if (galleryBadge) {
+          galleryBadge.textContent = '0 Görsel';
+          galleryBadge.style.background = '#e0f2fe';
+          galleryBadge.style.color = '#0284c7';
         }
 
-        // 1. Araç Markası (prod-brand) verisini al (Örn: Renault, Fiat)
-        const brandInput = document.getElementById('prod-brand');
-        const rawBrand = brandInput ? brandInput.value.trim() : '';
+        if (galleryGroup && galleryGrid) {
+          galleryGroup.style.display = 'block';
+          galleryGrid.innerHTML = `
+            <div style="grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 22px; color: #64748b; font-size: 0.82rem; font-weight: 500;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" style="animation: spin 0.8s linear infinite;">
+                <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+                <path d="M12 2a10 10 0 0 1 10 10"></path>
+              </svg>
+              <span>Derin çapraz referans ağı, teknik özellikler ve şemalar taranıyor...</span>
+            </div>
+          `;
+        }
+
+        const enrichedBox = document.getElementById('enriched-data-container');
+        if (enrichedBox) enrichedBox.style.display = 'none';
+        const crossesBox = document.getElementById('preview-cross-references');
+        if (crossesBox) crossesBox.innerHTML = '';
+        const fitmentBox = document.getElementById('preview-fitment-list');
+        if (fitmentBox) fitmentBox.innerHTML = '';
+        const attrsBox = document.getElementById('preview-attributes-table');
+        if (attrsBox) attrsBox.innerHTML = '';
 
         const origContent = btnSearchOe ? btnSearchOe.innerHTML : '';
         if (btnSearchOe) {
@@ -3752,37 +4939,171 @@
         }
 
         try {
-          const apiBase = getPanelApiBase();
+          const brandInput = document.getElementById('prod-brand');
+          const rawBrand = brandInput ? brandInput.value.trim() : '';
 
-          const token = localStorage.getItem('token');
-          const headers = { 'Accept': 'application/json' };
-          if (token) headers['Authorization'] = 'Bearer ' + token;
+          const queryParams = {};
+          if (rawBrand) queryParams.brand = rawBrand;
 
-          let searchUrl = `${apiBase}/catalog/search-oe/${encodeURIComponent(rawOe)}`;
-          const params = new URLSearchParams();
-          if (rawBrand) params.append('brand', rawBrand);
-
-          // Şasi bağlamı varsa (aracın carId, criteria, catalogId) parametre olarak ekle
           if (window.currentVehicleContext) {
             const ctx = window.currentVehicleContext;
-            if (ctx.vin) params.append('vin', ctx.vin);
-            if (ctx.carId) params.append('carId', ctx.carId);
-            if (ctx.criteria) params.append('criteria', ctx.criteria);
-            if (ctx.catalogId) params.append('catalogId', ctx.catalogId);
+            if (ctx.vin) queryParams.vin = ctx.vin;
+            if (ctx.carId) queryParams.carId = ctx.carId;
+            if (ctx.modelId) queryParams.modelId = ctx.modelId;
+            if (ctx.criteria) queryParams.criteria = ctx.criteria;
+            if (ctx.catalogId) queryParams.catalogId = ctx.catalogId;
           }
 
-          const qs = params.toString();
-          if (qs) searchUrl += `?${qs}`;
+          // Seçilen parça Şasi (VIN) parça ağacından geldiyse veya listede eşleşiyorsa bul
+          const matchedVinPart =
+            (window.currentSelectedVinPart &&
+              (window.currentSelectedVinPart.oemCode === sanitizedOe ||
+                (Array.isArray(window.currentSelectedVinPart.siblingOEMs) &&
+                  window.currentSelectedVinPart.siblingOEMs.includes(sanitizedOe))))
+              ? window.currentSelectedVinPart
+              : (Array.isArray(window.currentVinNormalizedParts)
+                  ? window.currentVinNormalizedParts.find(
+                      p => p.oemCode === sanitizedOe || (Array.isArray(p.siblingOEMs) && p.siblingOEMs.includes(sanitizedOe))
+                    )
+                  : null);
 
-          const res = await fetch(searchUrl, {
+          if (matchedVinPart && matchedVinPart.partName) {
+            queryParams.partName = matchedVinPart.partName;
+          }
+
+          // =========================================================================
+          // CANLI API SORGUSU: GET /api/catalog/search-oe/:sanitizedOe
+          // =========================================================================
+          const json = await apiFetch(`/catalog/search-oe/${encodeURIComponent(sanitizedOe)}`, {
             method: 'GET',
-            headers
+            params: queryParams
           });
-          const json = await res.json();
 
-          if (res.ok && json.success && (json.data || json.searchedQuery || json.rootOEM || json.originalOEMs)) {
-            const data = json.data || json;
+          let data = extractOeSearchPayload(json);
 
+          // Eğer şasi ağacından bilinen kardeş OEM revizyonları varsa mevcut sonuçla birleştir
+          if (matchedVinPart) {
+            if (!data) {
+              data = {
+                success: true,
+                searchedCode: sanitizedOe,
+                originalOEMs: matchedVinPart.siblingOEMs || [sanitizedOe],
+                referenceCodes: [],
+                technicalSpecs: {},
+                images: []
+              };
+            } else {
+              const existingOriginals = Array.isArray(data.originalOEMs) ? data.originalOEMs : [];
+              const mergedOriginals = new Set([
+                ...existingOriginals.map(sanitize).filter(Boolean),
+                ...(Array.isArray(matchedVinPart.siblingOEMs) ? matchedVinPart.siblingOEMs : [sanitizedOe])
+              ]);
+              data.originalOEMs = Array.from(mergedOriginals);
+            }
+
+            if (!data.partName && matchedVinPart.partName) {
+              data.partName = matchedVinPart.partName;
+            }
+            if (!data.partGroup && matchedVinPart.categoryGroup) {
+              data.partGroup = mapCategoryGroupToSelectValue(matchedVinPart.categoryGroup, matchedVinPart.partName);
+            }
+            if (Array.isArray(matchedVinPart.referenceCodes) && matchedVinPart.referenceCodes.length > 0) {
+              const existingRefs = Array.isArray(data.referenceCodes) ? data.referenceCodes : [];
+              const refMap = new Map();
+              existingRefs.forEach(r => {
+                const k = sanitize((r.brand || '') + (r.code || ''));
+                if (k) refMap.set(k, r);
+              });
+              matchedVinPart.referenceCodes.forEach(r => {
+                const k = sanitize((r.brand || '') + (r.code || ''));
+                if (k && !refMap.has(k)) refMap.set(k, r);
+              });
+              data.referenceCodes = Array.from(refMap.values());
+            }
+            if (matchedVinPart.technicalSpecs && (!data.technicalSpecs || Object.keys(data.technicalSpecs).length === 0)) {
+              data.technicalSpecs = { ...matchedVinPart.technicalSpecs };
+            }
+          }
+
+          const schemas = (data && Array.isArray(data.schemas)) ? data.schemas : [];
+          const images = (data && Array.isArray(data.images)) ? data.images : [];
+          let allItems = schemas.length > 0
+            ? [...schemas, ...images.filter(img => !schemas.some(s => (typeof s === 'string' ? s : (s && s.url)) === (typeof img === 'string' ? img : (img && img.url))))]
+            : [...images];
+
+          let matchedEquivalentCode = null;
+          const firstFallbackObj = allItems.find(it => typeof it === 'object' && it !== null && it.isFallback === true && it.sourceCode);
+          if (firstFallbackObj) {
+            matchedEquivalentCode = firstFallbackObj.sourceCode;
+          } else if (data && data.schemaSourceCode && sanitize(data.schemaSourceCode) !== sanitizedOe) {
+            matchedEquivalentCode = data.schemaSourceCode;
+          }
+
+          // =========================================================================
+          // BÖLÜM 1 - Madde 3: AGRESİF GÖRSEL VE ŞEMA TARAMASI (FALLBACK IMAGE ENGINE)
+          // Aranan spesifik kodda görsel yoksa veya çapraz referans havuzu eksikse,
+          // kardeş OEM revizyonları ve muadil kodlar sırayla taranır; görseli olan
+          // ilk kardeş kodun şeması isFallback: true ve sourceCode ile ödünç alınır.
+          // =========================================================================
+          if (data && allItems.length === 0) {
+            const candidateCodes = [];
+            const pushCandidate = (rawCode) => {
+              const cleanCode = sanitize(rawCode);
+              if (!cleanCode || cleanCode === sanitizedOe) return;
+              if (!candidateCodes.includes(cleanCode)) {
+                candidateCodes.push(cleanCode);
+              }
+            };
+
+            if (data.rootOEM) pushCandidate(data.rootOEM);
+            if (data.primaryOe) pushCandidate(data.primaryOe);
+            if (Array.isArray(data.originalOEMs)) {
+              data.originalOEMs.forEach(item => pushCandidate(typeof item === 'string' ? item : (item && (item.oeNumber || item.code || item.oe))));
+            }
+            if (Array.isArray(data.originalCodes)) {
+              data.originalCodes.forEach(item => pushCandidate(typeof item === 'string' ? item : (item && (item.oeNumber || item.code || item.oe))));
+            }
+            if (Array.isArray(data.referenceCodes)) {
+              data.referenceCodes.forEach(item => pushCandidate(typeof item === 'string' ? item : (item && item.code)));
+            }
+
+            if (candidateCodes.length > 0) {
+              for (const eqCode of candidateCodes.slice(0, 4)) {
+                try {
+                  const eqJson = await apiFetch(`/catalog/search-oe/${encodeURIComponent(eqCode)}`, {
+                    method: 'GET',
+                    params: queryParams
+                  });
+                  const eqData = extractOeSearchPayload(eqJson);
+                  if (eqData) {
+                    mergeDeepCrossTreeData(data, eqData);
+                    const eqSchemas = Array.isArray(eqData.schemas) ? eqData.schemas : [];
+                    const eqImages = Array.isArray(eqData.images) ? eqData.images : [];
+                    const rawEqItems = eqSchemas.length > 0 ? eqSchemas : eqImages;
+                    if (rawEqItems.length > 0) {
+                      const resolvedSource = eqData.rootOEM || eqData.searchedCode || eqData.searchedQuery || eqCode;
+                      allItems = rawEqItems.map(imgItem => {
+                        if (typeof imgItem === 'string') {
+                          return { url: imgItem, isFallback: true, sourceCode: resolvedSource };
+                        }
+                        return {
+                          ...imgItem,
+                          isFallback: true,
+                          sourceCode: imgItem.sourceCode || resolvedSource
+                        };
+                      });
+                      matchedEquivalentCode = resolvedSource;
+                      break;
+                    }
+                  }
+                } catch (fallbackErr) {
+                  console.warn(`[EQUIVALENT_OE_FALLBACK_WARN] (${eqCode}):`, fallbackErr);
+                }
+              }
+            }
+          }
+
+          if (data) {
             // 1. Parça Adı
             const nameInput = document.getElementById('prod-name');
             if (nameInput && data.partName) {
@@ -3791,26 +5112,27 @@
 
             // 2. Parça Grubu (Select Box)
             const groupSelect = document.getElementById('prod-group');
-            if (groupSelect && data.partGroup) {
+            const resolvedGroup = data.partGroup ? mapCategoryGroupToSelectValue(data.partGroup, data.partName) : '';
+            if (groupSelect && resolvedGroup) {
               let matched = false;
               for (let i = 0; i < groupSelect.options.length; i++) {
                 const optVal = groupSelect.options[i].value.toLowerCase();
-                const targetVal = data.partGroup.toLowerCase();
-                if (optVal.includes(targetVal) || targetVal.includes(optVal)) {
+                const targetVal = resolvedGroup.toLowerCase();
+                if (optVal === targetVal || optVal.includes(targetVal) || targetVal.includes(optVal)) {
                   groupSelect.selectedIndex = i;
                   matched = true;
                   break;
                 }
               }
               if (!matched) {
-                const opt = new Option(data.partGroup, data.partGroup, true, true);
+                const opt = new Option(resolvedGroup, resolvedGroup, true, true);
                 groupSelect.add(opt);
               }
             }
 
-            // 3. Araç Markası (prod-brand) - OE sorgusunda otomatik doldur
+            // 3. Araç Markası (prod-brand)
             const brandSelect = document.getElementById('prod-brand');
-            const targetBrand = data.vehicleBrand || data.brand;
+            const targetBrand = data.vehicleBrand || data.brand || (window.currentVehicleContext && window.currentVehicleContext.vehicleBrand);
             if (brandSelect && targetBrand) {
               let matched = false;
               for (let i = 0; i < brandSelect.options.length; i++) {
@@ -3826,59 +5148,50 @@
               }
             }
 
-            // 4. Uyumlu Modeller (prod-models) - OE hangi marka/modellerle uyumluysa doldur
+            // 4. Uyumlu Modeller (prod-models)
             const modelsInput = document.getElementById('prod-models');
-            if (modelsInput && data.compatibleModels) {
-              if (Array.isArray(data.compatibleModels)) {
-                modelsInput.value = data.compatibleModels.filter(Boolean).join(', ');
+            const targetModels = data.compatibleModels || (window.currentVehicleContext && window.currentVehicleContext.compatibleModels);
+            if (modelsInput && targetModels) {
+              if (Array.isArray(targetModels)) {
+                modelsInput.value = targetModels.filter(Boolean).join(', ');
               } else {
-                modelsInput.value = data.compatibleModels;
+                modelsInput.value = targetModels;
               }
             }
 
-            // 5. KURAL 2 & 3: Akıllı Görsel Galerisi ve Şema Sunumu (Smart Image Renderer)
-            const rawImages = Array.isArray(data.images) ? data.images : [];
-            const mappedImages = rawImages.map(item => {
-              if (typeof item === 'string') return { url: item, isFallback: false };
-              if (item && item.url) {
-                return {
-                  url: item.url,
-                  isFallback: Boolean(item.isFallback),
-                  sourceCode: item.sourceCode || data.schemaSourceCode || null,
-                  name: item.isFallback ? `Şema (${item.sourceCode || data.schemaSourceCode || 'Kardeş Kod'})` : undefined
-                };
-              }
-              return null;
-            }).filter(Boolean);
+            // =====================================================================
+            // BÖLÜM 2 - Madde 3: DÜRÜST EMPTY STATE VE BİLGİ ROZETLERİ
+            // =====================================================================
+            if (allItems.length > 0) {
+              renderCatalogGallery(allItems, true, matchedEquivalentCode);
+              const successMsg = matchedEquivalentCode
+                ? `Görsel eşdeğer parçadan (${matchedEquivalentCode}) alınmıştır`
+                : ((json && json.message) || 'Parça OEM havuzu, muadil referansları, teknik özellikleri ve şemaları getirildi.');
+              showToast(successMsg, 'success');
+            } else {
+              renderCatalogEmptyState('Bu parça için teknik şema bulunmamaktadır');
+              showToast('Bu parça için teknik şema bulunmamaktadır', 'warning');
+            }
 
-            const diagrams = Array.isArray(data.diagrams) ? data.diagrams : [];
-            const allItems = [...diagrams, ...mappedImages.filter(img => !diagrams.some(d => d.url === img.url))];
-
-            renderCatalogGallery(allItems, true);
-
-            // 6. Zengin Verileri Sakla ve Arayüzde Önizle (KURAL 1, 2, 4 Deep Cross-Reference)
+            // Çapraz Referans Ağı + Teknik Özellikler Tablosunu Ekrana Bas
             window.currentEnrichedData = data;
             if (typeof renderEnrichedData === 'function') {
-              renderEnrichedData(data);
+              renderEnrichedData(data, sanitizedOe);
             }
 
             // KRİTİK KURAL: Fiyat ve Stok inputlarına ASLA DOKUNULMAZ!
 
-            showToast(json.message || 'Parça OE bilgileri ve derin çapraz referans ağı başarıyla getirildi!', 'success');
           } else {
-            const msg = (json && json.message) || `"${rawOe}" OE veya referans numarasına ait parça katalogda bulunamadı.`;
+            renderCatalogEmptyState('Bu parça için teknik şema bulunmamaktadır');
+            const msg = (json && json.message) || 'Bu parça için teknik şema bulunmamaktadır';
             showToast(msg, 'warning');
-            // prompt.md Kural 2: Kayıp Arama (No-Hit) kaydını sessizce ilet
-            fetch(`${apiBase}/analytics/no-hit`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-              body: JSON.stringify({ searchTerm: rawOe, searchType: 'OEM' })
-            }).catch(() => {});
           }
         } catch (err) {
           console.error('[OE_SEARCH_ERROR]:', err);
+          renderCatalogEmptyState('Bu parça için teknik şema bulunmamaktadır');
           showToast('OE sorgusu gerçekleştirilirken bağlantı hatası oluştu.', 'warning');
         } finally {
+          ensureManualUploadActive();
           if (btnSearchOe) {
             btnSearchOe.disabled = false;
             btnSearchOe.style.opacity = '1';
@@ -3886,6 +5199,9 @@
           }
         }
       }
+      const fetchOEMData = handleOeSearch;
+      window.fetchOEMData = handleOeSearch;
+      window.handleOeSearch = handleOeSearch;
 
       if (btnSearchOe) {
         btnSearchOe.addEventListener('click', handleOeSearch);
@@ -4003,6 +5319,13 @@
 
           try {
             const token = localStorage.getItem('token');
+            // prompt.md ADIM 3: Ürün ekleme isteğinin KESİNLİKLE Render üzerindeki canlı API'ye gitmesini sağla (Ortak DB)
+            const LIVE_API_URL = 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api';
+            function getPanelApiBase() {
+              return (typeof window !== 'undefined' && window.API_BASE)
+                ? window.API_BASE
+                : LIVE_API_URL;
+            }
             const apiBase = getPanelApiBase();
 
             if (editId) {
@@ -4020,39 +5343,6 @@
 
               if (selectedCatalogImages.length > 0) {
                 editFormData.append('catalogImages', JSON.stringify(selectedCatalogImages));
-              }
-
-              if (window.currentEnrichedData) {
-                if (window.currentEnrichedData.rootOEM) {
-                  editFormData.append('rootOEM', window.currentEnrichedData.rootOEM);
-                }
-                if (window.currentEnrichedData.originalOEMs) {
-                  editFormData.append('originalOEMs', JSON.stringify(window.currentEnrichedData.originalOEMs));
-                }
-                if (window.currentEnrichedData.referenceCodes) {
-                  editFormData.append('referenceCodes', JSON.stringify(window.currentEnrichedData.referenceCodes));
-                }
-                if (window.currentEnrichedData.technicalSpecs) {
-                  editFormData.append('technicalSpecs', JSON.stringify(window.currentEnrichedData.technicalSpecs));
-                }
-                if (window.currentEnrichedData.schemaSourceCode) {
-                  editFormData.append('schemaSourceCode', window.currentEnrichedData.schemaSourceCode);
-                }
-                if (window.currentEnrichedData.crossReferences) {
-                  editFormData.append('crossReferences', JSON.stringify(window.currentEnrichedData.crossReferences));
-                }
-                if (window.currentEnrichedData.compatibleVehicles) {
-                  editFormData.append('compatibleVehicles', JSON.stringify(window.currentEnrichedData.compatibleVehicles));
-                }
-                if (window.currentEnrichedData.attributes) {
-                  editFormData.append('attributes', JSON.stringify(window.currentEnrichedData.attributes));
-                }
-                if (window.currentEnrichedData.diagramUrl) {
-                  editFormData.append('diagramUrl', window.currentEnrichedData.diagramUrl);
-                }
-                if (window.currentEnrichedData.diagrams) {
-                  editFormData.append('diagrams', JSON.stringify(window.currentEnrichedData.diagrams));
-                }
               }
 
               if (files && files.length > 0) {
@@ -4117,28 +5407,22 @@
             }
 
             if (window.currentEnrichedData) {
-              if (window.currentEnrichedData.rootOEM) {
-                formData.append('rootOEM', window.currentEnrichedData.rootOEM);
+              const refList = window.currentEnrichedData.referenceCodes || window.currentEnrichedData.crossReferences;
+              if (refList) {
+                formData.append('referenceCodes', JSON.stringify(refList));
+                formData.append('crossReferences', JSON.stringify(refList));
               }
               if (window.currentEnrichedData.originalOEMs) {
                 formData.append('originalOEMs', JSON.stringify(window.currentEnrichedData.originalOEMs));
               }
-              if (window.currentEnrichedData.referenceCodes) {
-                formData.append('referenceCodes', JSON.stringify(window.currentEnrichedData.referenceCodes));
-              }
-              if (window.currentEnrichedData.technicalSpecs) {
-                formData.append('technicalSpecs', JSON.stringify(window.currentEnrichedData.technicalSpecs));
-              }
-              if (window.currentEnrichedData.schemaSourceCode) {
-                formData.append('schemaSourceCode', window.currentEnrichedData.schemaSourceCode);
-              }
-              if (window.currentEnrichedData.crossReferences) {
-                formData.append('crossReferences', JSON.stringify(window.currentEnrichedData.crossReferences));
-              }
               if (window.currentEnrichedData.compatibleVehicles) {
                 formData.append('compatibleVehicles', JSON.stringify(window.currentEnrichedData.compatibleVehicles));
               }
-              if (window.currentEnrichedData.attributes) {
+              if (window.currentEnrichedData.technicalSpecs && typeof window.currentEnrichedData.technicalSpecs === 'object') {
+                formData.append('technicalSpecs', JSON.stringify(window.currentEnrichedData.technicalSpecs));
+                const specAttrs = Object.entries(window.currentEnrichedData.technicalSpecs).map(([key, value]) => ({ name: key, value }));
+                formData.append('attributes', JSON.stringify(specAttrs));
+              } else if (window.currentEnrichedData.attributes) {
                 formData.append('attributes', JSON.stringify(window.currentEnrichedData.attributes));
               }
               if (window.currentEnrichedData.diagramUrl) {
@@ -5417,6 +6701,7 @@
         loadCatalog();
         loadDashboard();
         loadDiscountsTab();
+
       });
 
       // Üst Genel Arama Çubuğu
@@ -5732,9 +7017,39 @@
         <button type="button" class="btn-cancel" id="btn-cancel-order-modal">Kapat</button>
       </div>
     </div>
-  </div>
 
+  <script>
+    // Mobil Kenar Çubuğu Açma / Kapatma (Prompt.md Kural 1 & 5)
+    function toggleBayiMobileSidebar() {
+      const sidebar = document.querySelector('.sidebar');
+      const backdrop = document.getElementById('bayi-sidebar-backdrop');
+      if (sidebar) {
+        sidebar.classList.toggle('mobile-open');
+        if (backdrop) {
+          if (sidebar.classList.contains('mobile-open')) {
+            backdrop.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+          } else {
+            backdrop.classList.add('hidden');
+            document.body.style.overflow = '';
+          }
+        }
+      }
+    }
+    window.toggleBayiMobileSidebar = toggleBayiMobileSidebar;
 
+    document.querySelectorAll('.sidebar-menu .menu-item a').forEach(function(item) {
+      item.addEventListener('click', function() {
+        if (window.innerWidth <= 768) {
+          const sidebar = document.querySelector('.sidebar');
+          const backdrop = document.getElementById('bayi-sidebar-backdrop');
+          if (sidebar) sidebar.classList.remove('mobile-open');
+          if (backdrop) backdrop.classList.add('hidden');
+          document.body.style.overflow = '';
+        }
+      });
+    });
+  </script>
 </body>
 
 </html>

@@ -286,7 +286,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     };
 
     // prompt.md ADIM 2: Kullanıcının rolüne göre yönlendirme URL'i (redirectUrl) ve standart rolü belirle
-    let redirectUrl = '/store.html';
+    redirectUrl = '/store.html';
     let outputRole = user.role;
     const uRoleUpper = String(user.role || '').toUpperCase();
     if (uRoleUpper === 'SUPER_ADMIN' || uRoleUpper === 'ADMIN') {

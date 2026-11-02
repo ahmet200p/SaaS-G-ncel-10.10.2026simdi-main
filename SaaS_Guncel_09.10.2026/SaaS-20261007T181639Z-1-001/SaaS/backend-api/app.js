@@ -412,9 +412,9 @@ app.use((err, req, res, next) => {
   });
 });
 
+module.exports = app;
+
 // Doğrudan 'node app.js' ile başlatıldığında sunucuyu dinlemeye al
 if (require.main === module) {
   require('./server');
 }
-
-module.exports = app;
