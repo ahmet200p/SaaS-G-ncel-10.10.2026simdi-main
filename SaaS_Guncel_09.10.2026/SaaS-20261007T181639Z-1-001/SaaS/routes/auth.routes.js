@@ -144,262 +144,6 @@ router.post('/register', registerLimiter, async (req, res) => {
     );
 
     const userPayload = {
-      id: result.user.id,
-      email: result.user.email,
-      name: result.user.name,
-      role: result.user.role,
-      tenantId: effectiveTenantId,
-      customerProfile: result.profile
-    };
-
-    return res.status(201).json({
-      success: true,
-      message: isMechanic
-        ? 'Otoservis kayıt başvurunuz başarıyla alındı. Bayi onayının ardından iskontolu toptan alışveriş yapabilirsiniz.'
-        : 'Bireysel müşteri kaydınız başarıyla tamamlandı. Şimdi giriş yapabilirsiniz.',
-      customerType: assignedCustomerType,
-      token,
-      user: userPayload,
-      data: {
-        token,
-        customerType: assignedCustomerType,
-        user: userPayload
-      }
-    });
-
-  } catch (error) {
-    console.error('[AUTH_REGISTER_ERROR]:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Kayıt işlemi sırasında bir sunucu hatası oluştu.',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
-
-// ============================================================================
-// 3. ADIM: YETKİLİ OLUŞTURMA ROTALARININ (ADMIN CREATION) GÜVENLİĞE ALINMASI
-// ============================================================================
-/**
- * @route   POST /api/auth/register-admin
- * @desc    Yeni yetkili (TENANT_ADMIN / SUPER_ADMIN) oluşturma rotası.
- *          KESİNLİKLE geçerli bir Süper Admin token'ı (verifyToken, isSuperAdmin) gerektirir.
- * @access  Protected (SUPER_ADMIN)
- */
-router.post('/register-admin', verifyToken, isSuperAdmin, async (req, res) => {
-  try {
-    const { email, password, role = 'TENANT_ADMIN', tenantId, name, fullName } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Yönetici e-posta ve şifre alanları zorunludur.'
-      });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: 'Şifre en az 6 karakter uzunluğunda olmalıdır.'
-      });
-    }
-
-    const cleanEmail = email.toLowerCase().trim();
-    const existingUser = await prisma.user.findUnique({
-      where: { email: cleanEmail }
-    });
-
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: 'Bu e-posta adresi ile kayıtlı bir kullanıcı zaten mevcut.'
-      });
-    }
-
-    const validAdminRoles = ['SUPER_ADMIN', 'TENANT_ADMIN'];
-    const targetRole = validAdminRoles.includes(role) ? role : 'TENANT_ADMIN';
-
-    if (targetRole === 'TENANT_ADMIN' && !tenantId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Bayi yöneticisi (TENANT_ADMIN) için yetkilendirilecek bayi kimliği (tenantId) zorunludur.'
-      });
-    }
-
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-    const displayName = (fullName || name || cleanEmail.split('@')[0]).trim();
-
-    const newAdmin = await prisma.user.create({
-      data: {
-        email: cleanEmail,
-        password: hashedPassword,
-        role: targetRole,
-        name: displayName,
-        tenantId: targetRole === 'TENANT_ADMIN' ? tenantId : null
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        tenantId: true,
-        createdAt: true
-      }
-    });
-
-    return res.status(201).json({
-      success: true,
-      message: `${targetRole === 'SUPER_ADMIN' ? 'Süper Admin' : 'Bayi Yöneticisi'} hesabı başarıyla oluşturuldu.`,
-      data: newAdmin
-    });
-  } catch (error) {
-    console.error('[AUTH_REGISTER_ADMIN_ERROR]:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Yetkili kullanıcı oluşturulurken sunucu hatası oluştu.',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
-
-/**
- * @route   POST /api/auth/login
- * @desc    Kullanıcı kimlik doğrulama, bcrypt şifre kontrolü ve JWT üretimi
- * @access  Public
- */
-router.post('/login', loginLimiter, async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    // 1. Girdi Kontrolleri
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Lütfen e-posta ve şifrenizi eksiksiz giriniz.'
-      });
-    }
-
-    const cleanEmail = email.toLowerCase().trim();
-
-    // 2. Prisma ile User tablosunda e-posta sorgusu (Tenant ve CustomerProfile ilişkileriyle)
-    let user;
-    try {
-      user = await prisma.user.findUnique({
-        where: { email: cleanEmail },
-        include: {
-          tenant: true,
-          customerProfile: {
-            include: { tenant: true }
-          }
-        }
-      });
-    } catch (queryErr) {
-      if (queryErr.code === 'P2022' || (queryErr.message && queryErr.message.includes('does not exist'))) {
-        console.warn('⚠️ [AUTH_LOGIN_QUERY_FALLBACK]:', queryErr.message);
-        user = await prisma.user.findUnique({
-          where: { email: cleanEmail },
-          include: { tenant: true }
-        });
-      } else {
-        throw queryErr;
-      }
-    }
-
-    // 2.1 Doğrudan bulunamadıysa ve SystemSettings'teki dinamik adminEmail ile eşleşiyorsa Süper Admin'i getir
-    if (!user) {
-      try {
-        const settings = await prisma.systemSettings.findUnique({ where: { id: 1 } });
-        const currentAdminEmail = (settings && settings.adminEmail) ? settings.adminEmail.toLowerCase().trim() : null;
-        if (currentAdminEmail && cleanEmail === currentAdminEmail) {
-          user = await prisma.user.findFirst({
-            where: { role: 'SUPER_ADMIN' },
-            include: {
-              tenant: true
-            }
-          });
-        }
-      } catch (settingsErr) {
-        console.warn('⚠️ [AUTH_SETTINGS_QUERY_WARN]:', settingsErr.message);
-      }
-    }
-
-    // 3. Kullanıcı mevcut değilse hata dön
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Hatalı e-posta adresi veya şifre!'
-      });
-    }
-
-    // 4. Şifre doğrulaması (bcrypt.compare)
-    const isPasswordMatch = await bcrypt.compare(password, user.password);
-    if (!isPasswordMatch) {
-      return res.status(401).json({
-        success: false,
-        message: 'Hatalı e-posta adresi veya şifre!'
-      });
-    }
-
-    // 5. CUSTOMER Rol Kontrolü ve CustomerProfile / tenantId İlişkisi
-    if (user.role === 'CUSTOMER') {
-      if (!user.customerProfile) {
-        user.customerProfile = await prisma.customerProfile.findUnique({
-          where: { userId: user.id },
-          include: { tenant: true }
-        });
-      }
-
-      // CustomerProfile hala bulunamadıysa açıklayıcı hata dön
-      if (!user.customerProfile) {
-        return res.status(404).json({
-          success: false,
-          message: 'Müşteri hesabı bulunamadı. Lütfen bayiniz ile iletişime geçiniz.'
-        });
-      }
-
-      // Kullanıcının tenantId bilgisi eksikse profilinden eşitle
-      if (!user.tenantId && user.customerProfile.tenantId) {
-        user.tenantId = user.customerProfile.tenantId;
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { tenantId: user.customerProfile.tenantId }
-        }).catch(err => console.warn('[AUTH_SYNC_TENANT_ID_WARN]:', err));
-      }
-    }
-
-    const effectiveTenantId = user.tenantId || (user.customerProfile ? user.customerProfile.tenantId : null);
-
-    // 6. Bayi aktiflik kontrolü (SUPER_ADMIN hariç, TENANT_ADMIN ve CUSTOMER için)
-    if (user.role !== 'SUPER_ADMIN' && effectiveTenantId) {
-      const tenant = user.tenant || await prisma.tenant.findUnique({
-        where: { id: effectiveTenantId }
-      });
-
-      if (!tenant || !tenant.isActive) {
-        return res.status(403).json({
-          success: false,
-          message: 'Bu bayi Kurumumuz tarafından pasife alınmıştır lütfen müşteri temsilcisi ile iletişime geçiniz.'
-        });
-      }
-      user.tenant = tenant;
-    }
-
-    // 7. JWT Payload hazırlığı (id, email, role, tenantId eksiksiz eklenir)
-    const payload = {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      tenantId: user.tenantId || effectiveTenantId
-    };
-
-    // 8. JWT İmzalanması
-    const secret = config.JWT_SECRET;
-    const expiresIn = config.JWT_EXPIRES_IN;
-    const token = jwt.sign(payload, secret, { expiresIn });
-
-    // 9. Başarılı giriş yanıtı
-    const userPayload = {
       id: user.id,
       email: user.email,
       name: user.name || (user.customerProfile ? user.customerProfile.companyName : null),
@@ -409,15 +153,38 @@ router.post('/login', loginLimiter, async (req, res) => {
       customerProfile: user.customerProfile || null
     };
 
+    // prompt.md ADIM 2: Kullanıcının rolüne göre yönlendirme URL'i (redirectUrl) ve standart rolü belirle
+    let redirectUrl = '/store.html';
+    let outputRole = user.role;
+    const uRoleUpper = String(user.role || '').toUpperCase();
+    if (uRoleUpper === 'SUPER_ADMIN' || uRoleUpper === 'ADMIN') {
+      outputRole = 'SUPER_ADMIN';
+      redirectUrl = '/admin.html';
+    } else if (uRoleUpper === 'BAYI' || uRoleUpper === 'TENANT_ADMIN') {
+      outputRole = 'BAYI';
+      redirectUrl = '/bayi.html';
+    } else if (uRoleUpper === 'MUSTERI' || uRoleUpper === 'CUSTOMER') {
+      outputRole = 'MUSTERI';
+      redirectUrl = '/store.html';
+    }
+
+    userPayload.role = outputRole;
+    userPayload.rawRole = user.role;
+
+    // prompt.md Kuralı: res.status(200).json({ token: token, role: user.role, redirectUrl: ... })
     return res.status(200).json({
       success: true,
       message: 'Giriş başarılı.',
       token,
-      role: user.role,
+      role: outputRole,
+      rawRole: user.role,
+      redirectUrl,
       user: userPayload,
       data: {
         token,
-        role: user.role,
+        role: outputRole,
+        rawRole: user.role,
+        redirectUrl,
         user: userPayload
       }
     });

@@ -248,6 +248,17 @@ router.post('/login', loginLimiter, async (req, res) => {
       standardRole = 'MUSTERI';
     }
 
+    // ADIM 2: Prompt Yönergesi - Rol Bazlı Dinamik Hedef URL (redirectUrl) Belirleme
+    let redirectUrl = '/store.html';
+    const rawRoleUpper = String(user.role || '').toUpperCase();
+    if (rawRoleUpper === 'SUPER_ADMIN' || rawRoleUpper === 'ADMIN' || standardRole === 'ADMIN') {
+      redirectUrl = '/admin.html';
+    } else if (rawRoleUpper === 'BAYI' || rawRoleUpper === 'TENANT_ADMIN' || standardRole === 'BAYI') {
+      redirectUrl = '/bayi.html';
+    } else if (rawRoleUpper === 'MUSTERI' || rawRoleUpper === 'CUSTOMER' || standardRole === 'MUSTERI') {
+      redirectUrl = '/store.html';
+    }
+
     // JWT Payload hazırlığı (id, email, role, status, tenantId eksiksiz eklenir)
     const payload = {
       id: user.id,
@@ -263,28 +274,49 @@ router.post('/login', loginLimiter, async (req, res) => {
     const expiresIn = config.JWT_EXPIRES_IN;
     const token = jwt.sign(payload, secret, { expiresIn });
 
-    // 9. Başarılı giriş yanıtı
+    // 9. Başarılı giriş yanıtı (Prompt ADIM 2: token, role: user.role, redirectUrl)
     const userPayload = {
       id: user.id,
       email: user.email,
       name: user.name || (user.customerProfile ? user.customerProfile.companyName : null),
-      role: standardRole,
-      legacyRole: user.role,
-      status: user.status || 'APPROVED',
+      role: user.role,
       tenantId: effectiveTenantId,
       tenant: user.tenant || null,
       customerProfile: user.customerProfile || null
     };
 
+    // prompt.md ADIM 2: Kullanıcının rolüne göre yönlendirme URL'i (redirectUrl) ve standart rolü belirle
+    let redirectUrl = '/store.html';
+    let outputRole = user.role;
+    const uRoleUpper = String(user.role || '').toUpperCase();
+    if (uRoleUpper === 'SUPER_ADMIN' || uRoleUpper === 'ADMIN') {
+      outputRole = 'SUPER_ADMIN';
+      redirectUrl = '/admin.html';
+    } else if (uRoleUpper === 'BAYI' || uRoleUpper === 'TENANT_ADMIN') {
+      outputRole = 'BAYI';
+      redirectUrl = '/bayi.html';
+    } else if (uRoleUpper === 'MUSTERI' || uRoleUpper === 'CUSTOMER') {
+      outputRole = 'MUSTERI';
+      redirectUrl = '/store.html';
+    }
+
+    userPayload.role = outputRole;
+    userPayload.rawRole = user.role;
+
+    // prompt.md Kuralı: res.status(200).json({ token: token, role: user.role, redirectUrl: ... })
     return res.status(200).json({
       success: true,
       message: 'Giriş başarılı.',
       token,
-      role: standardRole,
+      role: outputRole,
+      rawRole: user.role,
+      redirectUrl,
       user: userPayload,
       data: {
         token,
-        role: standardRole,
+        role: outputRole,
+        rawRole: user.role,
+        redirectUrl,
         user: userPayload
       }
     });

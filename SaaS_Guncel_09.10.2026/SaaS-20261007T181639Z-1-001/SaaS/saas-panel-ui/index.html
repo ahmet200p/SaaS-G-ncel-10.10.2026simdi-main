@@ -347,6 +347,8 @@
 
   <!-- API İstemcisi & Kimlik Doğrulama Köprüsü -->
   <script src="assets/js/api.js"></script>
+  <!-- Dinamik Login & Rol Bazlı Routing Motoru (prompt.md ADIM 1) -->
+  <script src="assets/js/login.js"></script>
 
   <!-- JavaScript Backend Entegrasyonu -->
   <script>
@@ -646,19 +648,20 @@
                 localStorage.setItem('user', JSON.stringify(res.user));
               }
 
-              // 5. Kullanıcının rolüne göre yönlendirme yap (window.location.href)
-              const userRole = (res.user && res.user.role) || res.role;
-              if (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN') {
-                // Role 'SUPER_ADMIN' / 'ADMIN' ise admin.html'e git
-                window.location.href = 'admin.html';
-              } else if (userRole === 'TENANT_ADMIN' || userRole === 'BAYI') {
-                // Role 'TENANT_ADMIN' / 'BAYI' ise bayi.html'e git
-                window.location.href = 'bayi.html';
-              } else if (userRole === 'CUSTOMER' || userRole === 'MUSTERI') {
-                // Role 'CUSTOMER' / 'MUSTERI' ise storefront vitrinine git (3-katmanlı mimari konumu)
-                window.location.href = '../storefront-ui/store.html';
+              // 5. Prompt ADIM 1: Dinamik Routing (if/else veya switch bloğu)
+              // JWT token ve role bilgisine göre doğru hedefe yönlendirme:
+              const role = String((res.user && res.user.role) || res.role || res.standardRole || '').toUpperCase().trim();
+              
+              if (role === 'SUPER_ADMIN' || role === 'ADMIN') {
+                window.location.href = '/admin.html';
+              } else if (role === 'BAYI' || role === 'TENANT_ADMIN') {
+                window.location.href = '/bayi.html';
+              } else if (role === 'MUSTERI' || role === 'CUSTOMER') {
+                window.location.href = '/store.html';
+              } else if (res.redirectUrl) {
+                window.location.href = res.redirectUrl;
               } else {
-                window.location.href = 'admin.html';
+                window.location.href = '/bayi.html';
               }
             } else {
               // 6. Eğer giriş hatalıysa, arayüzdeki hata div'ini (#error-msg) görünür yapıp hata mesajını bas

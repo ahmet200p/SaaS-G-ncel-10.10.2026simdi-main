@@ -1846,19 +1846,29 @@
     }
 
     if (allowedRoles && allowedRoles.length > 0) {
-      if (!allowedRoles.includes(user.role)) {
+      const userRole = String(user.role || '').toUpperCase();
+      const matchesRole = allowedRoles.some(r => {
+        const expected = String(r || '').toUpperCase();
+        if (expected === userRole) return true;
+        if ((expected === 'BAYI' || expected === 'TENANT_ADMIN') && (userRole === 'BAYI' || userRole === 'TENANT_ADMIN')) return true;
+        if ((expected === 'SUPER_ADMIN' || expected === 'ADMIN') && (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN')) return true;
+        if ((expected === 'MUSTERI' || expected === 'CUSTOMER') && (userRole === 'MUSTERI' || userRole === 'CUSTOMER')) return true;
+        return false;
+      });
+
+      if (!matchesRole) {
         alert(`Bu alana erişim yetkiniz bulunmamaktadır. (Gereken Rol: ${allowedRoles.join(', ')})`);
-        if (user.role === 'SUPER_ADMIN') {
-          window.location.href = 'admin.html';
-        } else if (user.role === 'TENANT_ADMIN') {
-          window.location.href = 'bayi.html';
-        } else if (user.role === 'CUSTOMER') {
+        if (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN') {
+          window.location.href = '/admin.html';
+        } else if (userRole === 'TENANT_ADMIN' || userRole === 'BAYI') {
+          window.location.href = '/bayi.html';
+        } else if (userRole === 'CUSTOMER' || userRole === 'MUSTERI') {
           const storeUrl = (typeof window !== 'undefined' && window.location && window.location.pathname.includes('/saas-panel-ui'))
             ? '../storefront-ui/store.html'
-            : 'store.html';
+            : '/store.html';
           window.location.href = storeUrl;
         } else {
-          window.location.href = 'login.html';
+          window.location.href = '/login.html';
         }
         return null;
       }

@@ -1031,9 +1031,9 @@
   <!-- Süper Admin Paneli Etkileşim Scripti -->
   <script>
     // ==========================================================================
-    // 0. OTURUM VE YETKİ KONTROLÜ (SUPER_ADMIN GUARD)
+    // 0. OTURUM VE YETKİ KONTROLÜ (SUPER_ADMIN / ADMIN GUARD)
     // ==========================================================================
-    const currentUser = requireAuth(['SUPER_ADMIN']);
+    const currentUser = requireAuth(['SUPER_ADMIN', 'ADMIN']);
     if (currentUser) {
       const adminNameEl = document.querySelector('.admin-name');
       if (adminNameEl && currentUser.email) {

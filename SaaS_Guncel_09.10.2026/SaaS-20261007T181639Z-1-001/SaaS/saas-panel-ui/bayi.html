@@ -1297,8 +1297,8 @@
         return 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api';
       }
 
-      // 0. Oturum ve Rol Doğrulama (TENANT_ADMIN Guard)
-      const currentUser = requireAuth(['TENANT_ADMIN', 'SUPER_ADMIN']);
+      // 0. Oturum ve Rol Doğrulama (BAYI / TENANT_ADMIN Guard)
+      const currentUser = requireAuth(['BAYI', 'TENANT_ADMIN', 'SUPER_ADMIN', 'ADMIN']);
       if (currentUser) {
         if (currentUser.tenantId || (currentUser.tenant && currentUser.tenant.id)) {
           localStorage.setItem('tenantId', currentUser.tenantId || currentUser.tenant.id);

@@ -1,11 +1,21 @@
-# GÖREV: AFS Systems Merkezi Backend Mimarisi (Çoklu Rol ve CORS)
+# KRİTİK GÖREV: Login Yönlendirme (Routing) Hatası ve Rol Bazlı Erişim Düzeltmesi
 
-Lütfen Backend (Node.js/Express ve Prisma) altyapısını "Tek Çatı, Çift Kapı" (Headless) modeline göre yeniden yapılandır. Şu adımları uygula:
+**HATA TESPİTİ:**
+Frontend'deki ortak login ekranından giriş yapıldığında, kullanıcı 'BAYI' rolüne sahip olsa bile sistem onu yanlışlıkla Admin paneline (`admin.html`) yönlendirmeye çalışıyor ve bu yüzden yetki hatası patlıyor. 
 
-1. PRISMA SCHEMA & ROLLER: `User` modeline `role` (Enum: `ADMIN`, `BAYI`, `MUSTERI`) ekle. `Product` modelini `BAYI` ile, `Order` modelini `MUSTERI` ile ilişkilendir.
-2. GÜVENLİK (JWT): `POST /api/auth/login` endpoint'ini güncelle. Üretilen JWT payload'una kullanıcının `role` bilgisini kesinlikle ekle. `verifyBayi` ve `verifyMusteri` adında role özel middleware'ler yaz.
-3. ROUTE İZOLASYONU: Endpointleri ayır.
-   - `/api/store/products` (Müşteri vitrini için filtrelemeye uygun GET).
-   - `/api/store/orders` (Müşteri sipariş alımı POST).
-   - `/api/bayi/products` (Sadece yetkili bayilerin kendi ürünlerini ekleyip/silebileceği CRUD işlemleri).
-4. CORS AYARI: `server.js` içine `cors` middleware'ini ekle. `origin: '*'` (veya spesifik Netlify/Frontend URL'leri) iznini tanımla.
+Lütfen Login fonksiyonunu (`login.js` veya ilgili JS dosyası) ve Backend yetki kontrolünü şu şekilde düzelt:
+
+### ADIM 1: FRONTEND DİNAMİK YÖNLENDİRME (ROUTING)
+- Login formunun `submit` event'ini kontrol et. `fetch` isteği başarılı olduğunda Backend'den dönen JWT token'ı ve `role` bilgisini al.
+- `if/else` veya `switch` bloğu ile rol bazlı yönlendirme kurgula:
+  - Eğer `role === 'SUPER_ADMIN'` ise `window.location.href = '/admin.html'` (veya admin klasör yolu).
+  - Eğer `role === 'BAYI'` ise `window.location.href = '/bayi.html'`.
+  - Eğer `role === 'MUSTERI'` ise `window.location.href = '/store.html'` (veya vitrin ana sayfası).
+
+### ADIM 2: BACKEND LOGIN YANITI (PAYLOAD GÜNCELLEMESİ)
+- Backend'de (Render'da) `POST /api/auth/login` endpoint'ini kontrol et. 
+- Sadece `token` dönmek yetmez; Frontend'in doğru yönlendirme yapabilmesi için yanıtın (response) içine kullanıcının rolünü de açıkça ekle:
+  `res.status(200).json({ token: token, role: user.role, redirectUrl: ... })`
+
+**UYARI (TEHLİKELİ SİTE İÇİN):**
+Google'ın "Tehlikeli Site" uyarısı, login sayfasındaki form yapısından dolayı geçici olarak devam edebilir. Testleri sürdürmek için uyarı ekranındaki "Ayrıntılar" -> "Bu güvenli olmayan siteye git" linkini kullanmaya devam et.

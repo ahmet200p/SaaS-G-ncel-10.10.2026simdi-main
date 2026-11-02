@@ -79,6 +79,14 @@ const frontendServer = http.createServer((req, res) => {
   // Kök adrese (/) gelindiğinde varsayılan olarak Vitrin Portalı'na yönlendir
   if (reqPath === '/' || reqPath === '') {
     reqPath = '/storefront-ui/store.html';
+  } else if (reqPath === '/admin.html' || reqPath === '/admin') {
+    reqPath = '/saas-panel-ui/admin.html';
+  } else if (reqPath === '/bayi.html' || reqPath === '/bayi') {
+    reqPath = '/saas-panel-ui/bayi.html';
+  } else if (reqPath === '/store.html' || reqPath === '/store') {
+    reqPath = '/storefront-ui/store.html';
+  } else if (reqPath === '/login.html' || reqPath === '/login') {
+    reqPath = '/saas-panel-ui/index.html';
   }
 
   // /quote/:id veya /quotes/:id isteklerini doğrudan müşteri teklifi arayüzüne yönlendir
