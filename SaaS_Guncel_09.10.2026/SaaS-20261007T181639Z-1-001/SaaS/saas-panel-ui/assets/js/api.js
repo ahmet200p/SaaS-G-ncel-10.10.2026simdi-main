@@ -16,19 +16,14 @@
 (function (window) {
   'use strict';
 
-  // Sunucu Adresi Yapılandırması:
-  const isLocalHost = (typeof window !== 'undefined' && window.location) ? (
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1' ||
-    window.location.port === '5000' ||
-    window.location.port === '5500' ||
-    window.location.hostname.endsWith('.onrender.com')
-  ) : false;
+  // Sunucu Adresi Yapılandırması (prompt.md ADIM 3: Bayi ve Vitrin aynı canlı Render API'sine bağlanır):
+  const LIVE_RENDER_API = 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api';
+  const isRenderDirectHost = (typeof window !== 'undefined' && window.location && window.location.hostname.endsWith('.onrender.com'));
 
   const API_BASE = (typeof window !== 'undefined' && window.API_BASE)
     ? window.API_BASE
-    : (isLocalHost ? '/api' : 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api');
-  const isDirectExpress = isLocalHost;
+    : (isRenderDirectHost ? '/api' : LIVE_RENDER_API);
+  const isDirectExpress = isRenderDirectHost;
 
   // ----------------------------------------------------------------------------
   // YEREL TOHUM (MOCK SEED) VERİ HAVUZU

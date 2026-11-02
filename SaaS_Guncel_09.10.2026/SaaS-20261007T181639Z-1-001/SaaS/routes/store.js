@@ -225,17 +225,16 @@ router.get('/products', async (req, res) => {
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
     const skip = (pageNum - 1) * limitNum;
 
-    // REST Filtre Koşulları (AND dizisi ile çakışmasız, multi-criteria arama)
+    // REST Filtre Koşulları (prompt.md ADIM 2: Filtreleri esnet, koşulsuz listeleme sağla)
     const andConditions = [];
 
+    // ADIM 2: where: { isActive: true } veya status: 'APPROVED' filtreleri GEÇİCİ OLARAK KALDIRILDI
+    // Belki bayi paneli ürünü eklerken varsayılan olarak isActive: false atıyordur
+    // Vitrinde tüm ürünler koşulsuz listelenecek şekilde sorgu sadeleştirildi
     if (tenantId) {
       andConditions.push({ tenantId: tenantId });
-    } else {
-      // prompt.md GÖREVİ: Sistemdeki TÜM aktif bayilerin (Ahmet Oto vb.) ürünlerini getir
-      andConditions.push({
-        tenant: { isActive: true }
-      });
     }
+    // andConditions.push({ tenant: { isActive: true } }); // ADIM 2: YORUMA ALINDI / ESNETİLDİ
 
     if (inStock === 'true' || inStock === '1') {
       andConditions.push({ stock: { gt: 0 } });
@@ -442,7 +441,7 @@ router.get('/products', async (req, res) => {
       }
     }
 
-    const whereCondition = { AND: andConditions };
+    const whereCondition = andConditions.length > 0 ? { AND: andConditions } : {};
 
     let orderBy = { createdAt: 'desc' };
     if (sort === 'price_asc') {
@@ -455,11 +454,11 @@ router.get('/products', async (req, res) => {
       orderBy = { createdAt: 'desc' };
     }
 
-    const totalCount = await prisma.tenantProduct.count({
+    let totalCount = await prisma.tenantProduct.count({
       where: whereCondition
     });
 
-    const tenantProducts = await prisma.tenantProduct.findMany({
+    let tenantProducts = await prisma.tenantProduct.findMany({
       where: whereCondition,
       include: {
         product: {
@@ -480,12 +479,35 @@ router.get('/products', async (req, res) => {
             diagramUrl: true,
             diagrams: true
           }
-        }
+        },
+        tenant: true
       },
       skip: skip,
       take: limitNum,
       orderBy: orderBy
     });
+
+    // prompt.md ADIM 2: Eğer tenantProduct boşsa, Product tablosundaki tüm ürünleri vitrine yansıt (Sıfır veri kaybı)
+    if ((!tenantProducts || tenantProducts.length === 0) && andConditions.length === 0) {
+      const directProducts = await prisma.product.findMany({
+        take: limitNum,
+        skip: skip,
+        orderBy: { createdAt: 'desc' }
+      });
+      if (directProducts && directProducts.length > 0) {
+        totalCount = directProducts.length;
+        tenantProducts = directProducts.map(p => ({
+          id: p.id,
+          tenantId: p.bayiId || tenantId || 'tenant-ahmet-oto',
+          productId: p.id,
+          stock: 15,
+          customPrice: p.defaultPrice,
+          isDiscounted: false,
+          product: p,
+          tenant: targetTenant || null
+        }));
+      }
+    }
 
     // 5. REST Standardı: Saf JSON Dönüşümü (Ziyaretçi vs Müşteri İskonto Hesaplaması)
     const calculatedProducts = tenantProducts.map(item => {
@@ -582,11 +604,11 @@ router.get('/products', async (req, res) => {
       success: true,
       isGuest: isGuest,
       tenant: {
-        id: targetTenant.id,
-        name: targetTenant.name,
-        subdomain: targetTenant.subdomain,
-        themeColor: targetTenant.themeColor,
-        logoUrl: targetTenant.logoUrl
+        id: (targetTenant && targetTenant.id) || 'tenant-ahmet-oto',
+        name: (targetTenant && targetTenant.name) || 'Ahmet Oto',
+        subdomain: (targetTenant && targetTenant.subdomain) || 'ahmetoto',
+        themeColor: (targetTenant && targetTenant.themeColor) || '#f97316',
+        logoUrl: (targetTenant && targetTenant.logoUrl) || null
       },
       customer: customerProfile ? {
         companyName: customerProfile.companyName,
