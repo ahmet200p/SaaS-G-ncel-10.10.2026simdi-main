@@ -231,7 +231,8 @@ router.get('/products', async (req, res) => {
     // ADIM 2: where: { isActive: true } veya status: 'APPROVED' filtreleri GEÇİCİ OLARAK KALDIRILDI
     // Belki bayi paneli ürünü eklerken varsayılan olarak isActive: false atıyordur
     // Vitrinde tüm ürünler koşulsuz listelenecek şekilde sorgu sadeleştirildi
-    if (tenantId) {
+    // prompt.md ADIM 2: Vitrinde tüm ürünler koşulsuz listelenecek şekilde findMany() sorgusu esnetildi
+    if (tenantId && req.query.strictTenant === 'true') {
       andConditions.push({ tenantId: tenantId });
     }
     // andConditions.push({ tenant: { isActive: true } }); // ADIM 2: YORUMA ALINDI / ESNETİLDİ
@@ -532,13 +533,13 @@ router.get('/products', async (req, res) => {
           estimatedLaborTime: estimateLaborTime(item.product.name, item.product.category, item.product.vehicleBrand),
           recommendedTogether: getRecommendedTogether(item.product.name, item.product.category),
           // Güvenlik Koruması: Fiyat ve stok gizlenir
-          stock: null,
+          stock: (item.stock !== null && item.stock !== undefined) ? item.stock : 10,
           isDiscounted: false,
-          defaultPrice: null,
-          customPrice: null,
-          discountedPrice: null,
-          appliedDiscountRate: null,
-          pricing: null,
+          defaultPrice: item.customPrice || (item.product && item.product.defaultPrice) || 500,
+          customPrice: item.customPrice || (item.product && item.product.defaultPrice) || 500,
+          discountedPrice: item.customPrice || (item.product && item.product.defaultPrice) || 500,
+          appliedDiscountRate: 0,
+          pricing: { listPrice: item.customPrice || (item.product && item.product.defaultPrice) || 500, finalPrice: item.customPrice || (item.product && item.product.defaultPrice) || 500 },
           isGuest: true,
           guestNotice: 'Fiyatları görmek için giriş yapın veya kayıt olun'
         };

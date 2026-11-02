@@ -92,3 +92,4 @@ apiJsFiles.forEach(apiPath => {
 console.log('\n================================================================');
 console.log('🎉 TÜM BOŞ ÜRÜN LİSTESİ VE MAPPING DOĞRULAMA TESTLERİ BAŞARIYLA GEÇTİ!');
 console.log('================================================================');
+
