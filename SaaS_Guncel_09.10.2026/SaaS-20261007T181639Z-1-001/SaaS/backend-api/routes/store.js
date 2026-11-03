@@ -235,16 +235,33 @@ async function executeHybridStoreSearch({
   }
 
   // Sistemdeki derin çapraz referans servisinden de zenginleştir (Varsa)
+  let deepResult = null;
+  let schemaImageUrl = null;
+  let partRealName = null;
+  let vehicleBrandResolved = vehicleBrand || null;
+  let compatibleModelsResolved = null;
+  let technicalSpecsResolved = null;
+  let rootOEM = cleanSearchNorm || searchQuery;
+  let referenceCodesList = [];
+  let originalOEMsList = [];
+
   if (typeof executeDeepCrossReferenceSearch === 'function' && searchQuery) {
     try {
-      const deepResult = await executeDeepCrossReferenceSearch(searchQuery, { brand: vehicleBrand || '' });
+      deepResult = await executeDeepCrossReferenceSearch(searchQuery, { brand: vehicleBrand || '' });
       if (deepResult) {
+        schemaImageUrl = (deepResult.images && deepResult.images[0] && deepResult.images[0].url) ||
+                         (deepResult.schemaImageUrls && deepResult.schemaImageUrls[0]) || null;
+        partRealName = deepResult.partName || null;
+        vehicleBrandResolved = deepResult.vehicleBrand || vehicleBrand || null;
+        compatibleModelsResolved = deepResult.compatibleModels || null;
+        technicalSpecsResolved = deepResult.technicalSpecs || null;
         if (deepResult.rootOEM) {
-          const r = String(deepResult.rootOEM).trim();
-          oemSet.add(r);
-          oemSet.add(r.replace(/[^A-Za-z0-9]/g, '').toUpperCase());
+          rootOEM = String(deepResult.rootOEM).trim();
+          oemSet.add(rootOEM);
+          oemSet.add(rootOEM.replace(/[^A-Za-z0-9]/g, '').toUpperCase());
         }
         if (Array.isArray(deepResult.originalOEMs)) {
+          originalOEMsList = deepResult.originalOEMs;
           deepResult.originalOEMs.forEach(o => {
             if (o) {
               const codeStr = String(o).trim();
@@ -254,6 +271,7 @@ async function executeHybridStoreSearch({
           });
         }
         if (Array.isArray(deepResult.referenceCodes)) {
+          referenceCodesList = deepResult.referenceCodes;
           deepResult.referenceCodes.forEach(ref => {
             const codeStr = String(typeof ref === 'object' ? ref.code : ref).trim();
             if (codeStr) {
@@ -274,8 +292,6 @@ async function executeHybridStoreSearch({
   // --------------------------------------------------------------------------
   // AŞAMA 2: PRISMA İLE YEREL BAYİ/STOK TARAMASI (IN SORGUSU) (prompt.md AŞAMA 2)
   // --------------------------------------------------------------------------
-  // Elde ettiğin bu geniş oemPool dizisini Prisma'ya vererek, bu kodlardan HERHANGİ BİRİNE sahip olan tüm yerel ürünleri getir:
-  // oemNumber: { in: oemPool }
   let localProducts = [];
   try {
     localProducts = await prisma.product.findMany({
@@ -324,27 +340,21 @@ async function executeHybridStoreSearch({
 
   // --------------------------------------------------------------------------
   // AŞAMA 3: HARMANLAMA (MERGE) VE ZORUNLU ALANLARIN FORMATLANMASI (prompt.md AŞAMA 3)
-  // Frontend'in videodaki gibi detaylı bir tablo/liste basabilmesi için dönen JSON objesinin içine KESİNLİKLE şu alanları ekle:
-  // - brand (Marka)
-  // - oemNumber (Ana OEM Kodu)
-  // - crossReferences (Muadil Kodlar - Virgülle ayrılmış metin)
-  // - name (Ürün Adı)
-  // - stock (Stok Adedi)
-  // - price (Fiyat)
-  // - supplierName (Hangi Firmada/Bayide olduğu - product.tenant.name üzerinden)
-  // - isLocalStock (Bizim bayilerimizde varsa true, sadece katalog verisiyse false)
   // --------------------------------------------------------------------------
   const finalResults = [];
   const processedNormSet = new Set();
-  const defaultImg = 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=600&auto=format&fit=crop&q=80';
+  const matchedCodesSet = new Set();
 
   // 1. Yerel bayilerimizde/stoklarımızda olan ürünler (isLocalStock: true) - EN ÜSTTE
   localTenantProducts.forEach(tp => {
     const prod = tp.product || {};
-    const oem = String(prod.oeNumber || '').trim();
+    const oem = String(prod.oeNumber || rootOEM || searchQuery).trim();
     const oemNorm = oem.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-    if (!oemNorm || processedNormSet.has(oemNorm)) return;
-    processedNormSet.add(oemNorm);
+    const stockCode = prod.barcode || prod.stockCode || oem;
+    const stockCodeNorm = String(stockCode).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+
+    matchedCodesSet.add(oemNorm);
+    if (stockCodeNorm) matchedCodesSet.add(stockCodeNorm);
 
     // Muadilleri virgülle ayrılmış metin olarak hazırla
     let crossRefList = [];
@@ -353,66 +363,74 @@ async function executeHybridStoreSearch({
     } else if (typeof prod.crossReferences === 'string' && prod.crossReferences.trim()) {
       crossRefList = prod.crossReferences.split(',').map(s => s.trim()).filter(Boolean);
     }
+    if (crossRefList.length === 0 && originalOEMsList.length > 0) {
+      crossRefList = originalOEMsList.filter(c => c.toUpperCase() !== oem.toUpperCase());
+    }
     if (crossRefList.length === 0) {
       crossRefList = oemPool.filter(c => c.toUpperCase() !== oem.toUpperCase()).slice(0, 8);
     }
-    const crossRefString = crossRefList.join(', ') || 'Muadil kodu mevcut';
+    const crossRefString = crossRefList.join(', ') || 'Muadil kodları mevcut';
 
-    const supplier = (tp.tenant && tp.tenant.name) || (prod.bayi && prod.bayi.name) || 'Ahmet Oto (Yetkili Bayi)';
+    const supplier = (tp.tenant && tp.tenant.name) || (prod.bayi && prod.bayi.name) || 'Ahmet Oto Yedek Parça';
     const itemStock = (tp.stock !== null && tp.stock !== undefined) ? tp.stock : (prod.stock !== undefined ? prod.stock : 14);
     const itemPrice = (tp.customPrice !== null && tp.customPrice !== undefined)
       ? parseFloat(tp.customPrice)
       : parseFloat(prod.defaultPrice || 1450);
     const discountMultiplier = Math.max(0, (100 - discountRate) / 100);
     const discountedPrice = parseFloat((itemPrice * discountMultiplier).toFixed(2));
-    const itemImg = prod.imageUrl || (Array.isArray(prod.images) ? prod.images[0] : null) || defaultImg;
+    const itemImg = prod.imageUrl || (Array.isArray(prod.images) ? prod.images[0] : null) || schemaImageUrl || null;
 
     finalResults.push({
-      // prompt.md KESİN ALANLAR:
-      brand: prod.vehicleBrand || prod.brand || 'OEM',
+      brand: prod.vehicleBrand || prod.brand || vehicleBrandResolved || 'OEM',
+      stockCode: stockCode,
       oemNumber: oem,
-      crossReferences: crossRefString, // Virgülle ayrılmış metin
-      name: prod.name || 'Yedek Parça',
+      oeNumber: oem,
+      crossReferences: crossRefString,
+      name: prod.name || partRealName || `${oem} Parça`,
       stock: itemStock,
+      unit: 'AD',
       price: itemPrice,
+      discountedPrice,
       supplierName: supplier,
       isLocalStock: true,
-
-      // Frontend UI ve tablo uyumluluğu için ek yardımcı alanlar:
-      oeNumber: oem,
       id: tp.id || prod.id,
       tenantProductId: tp.id,
       productId: prod.id,
-      discountedPrice,
       customPrice: tp.customPrice,
       defaultPrice: prod.defaultPrice,
       imageUrl: itemImg,
-      images: [itemImg],
+      images: itemImg ? [itemImg] : [],
+      schemaImageUrl: itemImg,
       companyName: supplier,
       sellerName: supplier,
       dealerName: supplier,
       stockStatus: itemStock > 0 ? 'IN_STOCK' : 'OUT_OF_STOCK',
-      category: prod.category || 'Genel',
-      partGroup: prod.partGroup || 'Genel',
-      compatibleModels: prod.compatibleModels || 'Tüm Modeller'
+      category: prod.category || deepResult?.categoryGroup || 'Genel',
+      partGroup: prod.partGroup || deepResult?.categoryGroup || 'Genel',
+      compatibleModels: prod.compatibleModels || compatibleModelsResolved || 'Tüm Modeller',
+      technicalSpecs: technicalSpecsResolved || null
     });
   });
 
   localProducts.forEach(prod => {
-    const oem = String(prod.oeNumber || '').trim();
+    const oem = String(prod.oeNumber || rootOEM || searchQuery).trim();
     const oemNorm = oem.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-    if (!oemNorm || processedNormSet.has(oemNorm)) return;
-    processedNormSet.add(oemNorm);
+    const stockCode = prod.barcode || prod.stockCode || oem;
+    const stockCodeNorm = String(stockCode).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+
+    if (matchedCodesSet.has(oemNorm) || (stockCodeNorm && matchedCodesSet.has(stockCodeNorm))) return;
+    matchedCodesSet.add(oemNorm);
+    if (stockCodeNorm) matchedCodesSet.add(stockCodeNorm);
 
     const firstTp = prod.tenantProducts && prod.tenantProducts[0];
-    const supplier = (firstTp && firstTp.tenant && firstTp.tenant.name) || (prod.bayi && prod.bayi.name) || (prod.tenant && prod.tenant.name) || 'Ahmet Oto (Yetkili Bayi)';
+    const supplier = (firstTp && firstTp.tenant && firstTp.tenant.name) || (prod.bayi && prod.bayi.name) || (prod.tenant && prod.tenant.name) || 'Ahmet Oto Yedek Parça';
     const itemStock = (firstTp && firstTp.stock !== null && firstTp.stock !== undefined) ? firstTp.stock : (prod.stock !== undefined ? prod.stock : 14);
     const itemPrice = (firstTp && firstTp.customPrice !== null && firstTp.customPrice !== undefined)
       ? parseFloat(firstTp.customPrice)
       : parseFloat(prod.defaultPrice || 1450);
     const discountMultiplier = Math.max(0, (100 - discountRate) / 100);
     const discountedPrice = parseFloat((itemPrice * discountMultiplier).toFixed(2));
-    const itemImg = prod.imageUrl || (Array.isArray(prod.images) ? prod.images[0] : null) || defaultImg;
+    const itemImg = prod.imageUrl || (Array.isArray(prod.images) ? prod.images[0] : null) || schemaImageUrl || null;
 
     let crossRefList = [];
     if (Array.isArray(prod.crossReferences) && prod.crossReferences.length > 0) {
@@ -420,114 +438,156 @@ async function executeHybridStoreSearch({
     } else if (typeof prod.crossReferences === 'string' && prod.crossReferences.trim()) {
       crossRefList = prod.crossReferences.split(',').map(s => s.trim()).filter(Boolean);
     }
+    if (crossRefList.length === 0 && originalOEMsList.length > 0) {
+      crossRefList = originalOEMsList.filter(c => c.toUpperCase() !== oem.toUpperCase());
+    }
     if (crossRefList.length === 0) {
       crossRefList = oemPool.filter(c => c.toUpperCase() !== oem.toUpperCase()).slice(0, 8);
     }
-    const crossRefString = crossRefList.join(', ') || 'Muadil kodu mevcut';
+    const crossRefString = crossRefList.join(', ') || 'Muadil kodları mevcut';
 
     finalResults.push({
-      // prompt.md KESİN ALANLAR:
-      brand: prod.vehicleBrand || prod.brand || 'OEM',
+      brand: prod.vehicleBrand || prod.brand || vehicleBrandResolved || 'OEM',
+      stockCode: stockCode,
       oemNumber: oem,
-      crossReferences: crossRefString, // Virgülle ayrılmış metin
-      name: prod.name || 'Yedek Parça',
+      oeNumber: oem,
+      crossReferences: crossRefString,
+      name: prod.name || partRealName || `${oem} Parça`,
       stock: itemStock,
+      unit: 'AD',
       price: itemPrice,
+      discountedPrice,
       supplierName: supplier,
       isLocalStock: true,
-
-      // Frontend UI ve tablo uyumluluğu için ek yardımcı alanlar:
-      oeNumber: oem,
       id: prod.id,
       tenantProductId: firstTp ? firstTp.id : prod.id,
       productId: prod.id,
-      discountedPrice,
       customPrice: firstTp ? firstTp.customPrice : null,
       defaultPrice: prod.defaultPrice,
       imageUrl: itemImg,
-      images: [itemImg],
+      images: itemImg ? [itemImg] : [],
+      schemaImageUrl: itemImg,
       companyName: supplier,
       sellerName: supplier,
       dealerName: supplier,
       stockStatus: itemStock > 0 ? 'IN_STOCK' : 'OUT_OF_STOCK',
-      category: prod.category || 'Genel',
-      partGroup: prod.partGroup || 'Genel',
-      compatibleModels: prod.compatibleModels || 'Tüm Modeller'
+      category: prod.category || deepResult?.categoryGroup || 'Genel',
+      partGroup: prod.partGroup || deepResult?.categoryGroup || 'Genel',
+      compatibleModels: prod.compatibleModels || compatibleModelsResolved || 'Tüm Modeller',
+      technicalSpecs: technicalSpecsResolved || null
     });
   });
 
-  // 2. Dış API'den Gelen Katalog Listesi (Lokal Stokta Olmayanlar - ALTTA)
+  // 2. Çapraz Referans Kodları (TRW, BOSCH, VALEO, BREMBO, FERODO, TEXTAR, vb. - Videodaki gibi tam liste)
+  referenceCodesList.forEach(ref => {
+    const brand = typeof ref === 'object' ? (ref.brand || 'Muadil') : 'Muadil';
+    const code = typeof ref === 'object' ? (ref.code || '') : String(ref);
+    const codeNorm = String(code).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    if (!codeNorm || matchedCodesSet.has(codeNorm)) return;
+    matchedCodesSet.add(codeNorm);
+
+    finalResults.push({
+      brand: brand,
+      stockCode: code,
+      oemNumber: rootOEM || searchQuery,
+      oeNumber: rootOEM || searchQuery,
+      crossReferences: originalOEMsList.join(', ') || searchQuery,
+      name: `${partRealName || 'Yedek Parça'} (${brand} ${code})`,
+      stock: 0,
+      unit: 'AD',
+      price: null,
+      discountedPrice: null,
+      supplierName: 'Katalog Muadili (Dış Tedarik)',
+      isLocalStock: false,
+      id: `cross-${codeNorm}`,
+      tenantProductId: `cross-${codeNorm}`,
+      productId: `cross-${codeNorm}`,
+      schemaImageUrl: schemaImageUrl || null,
+      imageUrl: schemaImageUrl || null,
+      images: schemaImageUrl ? [schemaImageUrl] : [],
+      companyName: 'Katalog Muadili (Dış Tedarik)',
+      sellerName: 'Katalog Muadili (Dış Tedarik)',
+      dealerName: 'Katalog Muadili (Dış Tedarik)',
+      stockStatus: 'OUT_OF_STOCK_CATALOG',
+      category: deepResult?.categoryGroup || 'Fren Sistemi',
+      partGroup: deepResult?.categoryGroup || 'Fren Sistemi',
+      compatibleModels: compatibleModelsResolved || 'Tüm Uyumlu Modeller',
+      technicalSpecs: technicalSpecsResolved || null
+    });
+  });
+
+  // 3. Dış Katalogdan Gelen Diğer Parçalar
   for (const [normKey, catItem] of catalogItemsMap.entries()) {
-    if (processedNormSet.has(normKey)) continue;
-    processedNormSet.add(normKey);
+    if (matchedCodesSet.has(normKey)) continue;
+    matchedCodesSet.add(normKey);
 
     const itemCrossRefList = Array.isArray(catItem.crossReferences) && catItem.crossReferences.length > 0
       ? catItem.crossReferences
       : oemPool.filter(c => c.toUpperCase() !== catItem.oemNumber.toUpperCase()).slice(0, 8);
     const crossRefString = itemCrossRefList.join(', ') || 'Katalog muadili';
+    const catImg = catItem.imageUrl || schemaImageUrl || null;
 
     finalResults.push({
-      // prompt.md KESİN ALANLAR:
-      brand: catItem.brand || 'OEM / Katalog',
+      brand: catItem.brand || vehicleBrandResolved || 'OEM / Katalog',
+      stockCode: catItem.oemNumber,
       oemNumber: catItem.oemNumber,
-      crossReferences: crossRefString, // Virgülle ayrılmış metin
-      name: catItem.name || `${catItem.oemNumber} Katalog Parçası`,
+      oeNumber: catItem.oemNumber,
+      crossReferences: crossRefString,
+      name: catItem.name || partRealName || `${catItem.oemNumber} Katalog Parçası`,
       stock: 0,
+      unit: 'AD',
       price: null,
+      discountedPrice: null,
       supplierName: 'Sadece Dış Katalog (Bayide Yok)',
       isLocalStock: false,
-
-      // Frontend UI ve tablo uyumluluğu için ek yardımcı alanlar:
-      oeNumber: catItem.oemNumber,
       id: `cat-${normKey}`,
       tenantProductId: `cat-${normKey}`,
       productId: `cat-${normKey}`,
-      discountedPrice: null,
-      customPrice: null,
-      defaultPrice: null,
-      imageUrl: catItem.imageUrl || defaultImg,
-      images: [catItem.imageUrl || defaultImg],
+      schemaImageUrl: catImg,
+      imageUrl: catImg,
+      images: catImg ? [catImg] : [],
       companyName: 'Sadece Dış Katalog (Bayide Yok)',
       sellerName: 'Sadece Dış Katalog (Bayide Yok)',
       dealerName: 'Sadece Dış Katalog (Bayide Yok)',
       stockStatus: 'OUT_OF_STOCK_CATALOG',
-      category: 'Katalog Referansı',
-      partGroup: 'Katalog Referansı',
-      compatibleModels: 'Tüm Uyumlu Modeller'
+      category: deepResult?.categoryGroup || 'Katalog Referansı',
+      partGroup: deepResult?.categoryGroup || 'Katalog Referansı',
+      compatibleModels: compatibleModelsResolved || 'Tüm Uyumlu Modeller',
+      technicalSpecs: technicalSpecsResolved || null
     });
   }
 
-  // 3. Eğer aranan kod ne API'de ne de DB'de bulunamadıysa (Örn: "101010"),
-  // Kullanıcının arattığı kodu KESİNLİKLE katalog ürünü olarak ekle (Boş dizi dönmesini engelle!)
-  if (finalResults.length === 0 && searchQuery) {
-    finalResults.push({
-      // prompt.md KESİN ALANLAR:
-      brand: vehicleBrand || 'OEM / Katalog',
+  // 4. Eğer aranan kod yerel stokta çıkmadıysa, ana OEM referansını da katalog kartı olarak ekle
+  const searchNorm = cleanSearchNorm;
+  if (searchNorm && !matchedCodesSet.has(searchNorm)) {
+    matchedCodesSet.add(searchNorm);
+    finalResults.unshift({
+      brand: vehicleBrandResolved || 'Orijinal OEM',
+      stockCode: searchQuery,
       oemNumber: searchQuery,
-      crossReferences: 'Muadil kaydı bulunamadı', // Virgülle ayrılmış metin
-      name: `${searchQuery} Referans Parça`,
+      oeNumber: searchQuery,
+      crossReferences: originalOEMsList.filter(o => o.toUpperCase() !== searchNorm).join(', ') || 'Katalog OEM Referansı',
+      name: partRealName || `${searchQuery} Referans Parça`,
       stock: 0,
+      unit: 'AD',
       price: null,
+      discountedPrice: null,
       supplierName: 'Sadece Dış Katalog (Bayide Yok)',
       isLocalStock: false,
-
-      // Frontend UI ve tablo uyumluluğu için ek yardımcı alanlar:
-      oeNumber: searchQuery,
-      id: `cat-${cleanSearchNorm}`,
-      tenantProductId: `cat-${cleanSearchNorm}`,
-      productId: `cat-${cleanSearchNorm}`,
-      discountedPrice: null,
-      customPrice: null,
-      defaultPrice: null,
-      imageUrl: defaultImg,
-      images: [defaultImg],
+      id: `cat-${searchNorm}`,
+      tenantProductId: `cat-${searchNorm}`,
+      productId: `cat-${searchNorm}`,
+      schemaImageUrl: schemaImageUrl || null,
+      imageUrl: schemaImageUrl || null,
+      images: schemaImageUrl ? [schemaImageUrl] : [],
       companyName: 'Sadece Dış Katalog (Bayide Yok)',
       sellerName: 'Sadece Dış Katalog (Bayide Yok)',
       dealerName: 'Sadece Dış Katalog (Bayide Yok)',
       stockStatus: 'OUT_OF_STOCK_CATALOG',
-      category: 'Katalog Referansı',
-      partGroup: 'Katalog Referansı',
-      compatibleModels: 'Tüm Uyumlu Modeller'
+      category: deepResult?.categoryGroup || 'Katalog Referansı',
+      partGroup: deepResult?.categoryGroup || 'Katalog Referansı',
+      compatibleModels: compatibleModelsResolved || 'Tüm Uyumlu Modeller',
+      technicalSpecs: technicalSpecsResolved || null
     });
   }
 
@@ -537,8 +597,8 @@ async function executeHybridStoreSearch({
     if (!a.isLocalStock && b.isLocalStock) return 1;
 
     // Kendi grubu içinde tam eşleşen en üstte
-    const aOe = String(a.oemNumber || a.oeNumber || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-    const bOe = String(b.oemNumber || b.oeNumber || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    const aOe = String(a.oemNumber || a.oeNumber || a.stockCode || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    const bOe = String(b.oemNumber || b.oeNumber || b.stockCode || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
     const aExact = aOe === cleanSearchNorm || String(a.oemNumber || '').trim().toUpperCase() === searchQuery.toUpperCase();
     const bExact = bOe === cleanSearchNorm || String(b.oemNumber || '').trim().toUpperCase() === searchQuery.toUpperCase();
     if (aExact && !bExact) return -1;
@@ -546,6 +606,21 @@ async function executeHybridStoreSearch({
 
     return 0;
   });
+
+  // Arama Meta Bilgisi (Teknik Şema, Parça Adı, Uyumlu Araçlar vb. üst bilgi kartı için)
+  finalResults.searchMeta = {
+    searchQuery,
+    rootOEM: rootOEM || searchQuery,
+    partName: partRealName || `${searchQuery} Referans Parça`,
+    vehicleBrand: vehicleBrandResolved || 'OEM',
+    compatibleModels: compatibleModelsResolved || 'Tüm Modeller',
+    schemaImageUrl: schemaImageUrl || null,
+    technicalSpecs: technicalSpecsResolved || null,
+    originalOEMs: originalOEMsList,
+    referenceCodes: referenceCodesList,
+    localStockCount: finalResults.filter(r => r.isLocalStock).length,
+    crossRefCount: referenceCodesList.length
+  };
 
   return finalResults;
 }
@@ -845,6 +920,7 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
         success: true,
         isGuest,
         isHybrid: true,
+        meta: hybridResults.searchMeta || null,
         tenant: {
           id: (targetTenant && targetTenant.id) || 'tenant-ahmet-oto',
           name: (targetTenant && targetTenant.name) || 'Ahmet Oto',
