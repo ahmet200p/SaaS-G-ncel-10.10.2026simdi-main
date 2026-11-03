@@ -24,15 +24,18 @@
   const API_BASE = 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api';
   const isDirectExpress = false;
 
+  const TECHNICAL_BLUEPRINT_SVG = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300' width='400' height='300'%3E%3Crect width='400' height='300' fill='%230f172a'/%3E%3Cdefs%3E%3Cpattern id='grid' width='20' height='20' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 20 0 L 0 0 0 20' fill='none' stroke='%231e293b' stroke-width='1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='400' height='300' fill='url(%23grid)'/%3E%3Ccircle cx='200' cy='135' r='60' fill='none' stroke='%2338bdf8' stroke-width='2' stroke-dasharray='6 3'/%3E%3Ccircle cx='200' cy='135' r='26' fill='%231e293b' stroke='%230284c7' stroke-width='1.5'/%3E%3Crect x='140' y='90' width='30' height='90' rx='4' fill='%230284c7' opacity='0.35' stroke='%2338bdf8' stroke-width='1.5'/%3E%3Crect x='230' y='90' width='30' height='90' rx='4' fill='%230284c7' opacity='0.35' stroke='%2338bdf8' stroke-width='1.5'/%3E%3Cline x1='120' y1='135' x2='280' y2='135' stroke='%23f59e0b' stroke-width='1.5' stroke-dasharray='4 2'/%3E%3Cline x1='200' y1='50' x2='200' y2='220' stroke='%23f59e0b' stroke-width='1.5' stroke-dasharray='4 2'/%3E%3Ctext x='200' y='248' fill='%2338bdf8' font-family='monospace' font-size='12' font-weight='bold' text-anchor='middle'%3EOEM TEKN%C4%B0K %C5%9EEMA / DETAY%3C/text%3E%3Ctext x='200' y='270' fill='%2394a3b8' font-family='sans-serif' font-size='11' text-anchor='middle'%3EPar%C3%A7a Referans %C3%87izimi%3C/text%3E%3C/svg%3E";
+
   // ----------------------------------------------------------------------------
-  // YEREL TOHUM (MOCK SEED) VERİ HAVUZU
+  // YEREL TOHUM (MOCK SEED) VERİ HAVUZU (STANDALONE V3)
   // ----------------------------------------------------------------------------
-  const MOCK_STORAGE_KEY = 'saas_b2b_standalone_data_v2';
+  const MOCK_STORAGE_KEY = 'saas_b2b_standalone_data_v3';
 
   function initMockStore() {
     // Eski mock kalıntılarını tarayıcıdan temizle
     try {
       localStorage.removeItem('saas_b2b_standalone_data_v1');
+      localStorage.removeItem('saas_b2b_standalone_data_v2');
     } catch (e) {}
 
     let store = null;
@@ -1708,7 +1711,7 @@
             compatibleModels: 'Volkswagen Golf VII (1.6 TDI, 1.4 TSI), Passat B8, Octavia III',
             defaultPrice: 1450,
             stock: 14,
-            imageUrl: 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=400&auto=format&fit=crop&q=80',
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
             estimatedLaborTime: '45 Dk'
           },
           {
@@ -1722,7 +1725,7 @@
             compatibleModels: 'Volkswagen Golf VII 2016-2020, Seat Leon 5F, Audi A3 8V',
             defaultPrice: 2150,
             stock: 24,
-            imageUrl: 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=400&auto=format&fit=crop&q=80',
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
             estimatedLaborTime: '45 Dk'
           },
           {
@@ -1736,7 +1739,7 @@
             compatibleModels: 'Volkswagen Golf VII 1.6 TDI 115 HP, 2.0 TDI',
             defaultPrice: 1320,
             stock: 19,
-            imageUrl: 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=400&auto=format&fit=crop&q=80',
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
             estimatedLaborTime: '45 Dk'
           },
           {
@@ -1750,7 +1753,7 @@
             compatibleModels: 'Volkswagen Golf VII Tüm Modeller, Passat B8, Tiguan',
             defaultPrice: 1150,
             stock: 12,
-            imageUrl: 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=400&auto=format&fit=crop&q=80',
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
             estimatedLaborTime: '40 Dk'
           },
           {
@@ -1764,7 +1767,7 @@
             compatibleModels: 'Volkswagen Golf VII, Audi A3 8V, Skoda Octavia III',
             defaultPrice: 1080,
             stock: 22,
-            imageUrl: 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=400&auto=format&fit=crop&q=80',
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
             estimatedLaborTime: '40 Dk'
           },
           {
@@ -1778,7 +1781,7 @@
             compatibleModels: 'Volkswagen Golf VII 1.6 TDI (PR-1ZA, 1ZE), Passat B8',
             defaultPrice: 2850,
             stock: 18,
-            imageUrl: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=400&auto=format&fit=crop&q=80',
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
             estimatedLaborTime: '1 Saat'
           },
           {
@@ -1792,7 +1795,7 @@
             compatibleModels: 'Volkswagen Golf VII 1.2 TSI, 1.6 TDI (PR-1ZF)',
             defaultPrice: 2450,
             stock: 15,
-            imageUrl: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=400&auto=format&fit=crop&q=80',
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
             estimatedLaborTime: '1 Saat'
           },
           {
@@ -1806,7 +1809,7 @@
             compatibleModels: 'Volkswagen Golf VII, Skoda Octavia III, Seat Leon 5F',
             defaultPrice: 1950,
             stock: 16,
-            imageUrl: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=400&auto=format&fit=crop&q=80',
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
             estimatedLaborTime: '50 Dk'
           },
           {
@@ -1820,7 +1823,7 @@
             compatibleModels: 'Volkswagen Golf VII 2016-2020 Platformu',
             defaultPrice: 3450,
             stock: 8,
-            imageUrl: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=400&auto=format&fit=crop&q=80',
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
             estimatedLaborTime: '1.5 Saat'
           },
           {
@@ -1834,7 +1837,7 @@
             compatibleModels: 'Volkswagen Golf VII 1.6 TDI, GTD, R-Line',
             defaultPrice: 680,
             stock: 14,
-            imageUrl: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=400&auto=format&fit=crop&q=80',
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
             estimatedLaborTime: '30 Dk'
           },
           {
@@ -1848,7 +1851,7 @@
             compatibleModels: 'Volkswagen Golf VII 1.6 TDI, Passat B8',
             defaultPrice: 850,
             stock: 35,
-            imageUrl: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=400&auto=format&fit=crop&q=80',
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
             estimatedLaborTime: '45 Dk'
           },
           {
@@ -1862,13 +1865,31 @@
             compatibleModels: 'Volkswagen Golf VII 1.6 TDI (115 HP) 2016-2020',
             defaultPrice: 4200,
             stock: 12,
-            imageUrl: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=400&auto=format&fit=crop&q=80',
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
             estimatedLaborTime: '2.5 Saat'
           },
 
           // ============================================================
           // DİĞER MODELLER (RENAULT, FIAT, FORD, BMW)
           // ============================================================
+          {
+            name: 'Renault Clio II / Thalia Ön Fren Balata Takımı',
+            oeNumber: '7701209639',
+            stockCode: '7701209639',
+            vehicleBrand: 'Renault',
+            category: 'Fren Sistemi',
+            partGroup: 'Fren Sistemi',
+            subCategory: 'Ön Fren Balatası',
+            manufacturer: 'Orijinal Renault (OEM)',
+            compatibleModels: 'Clio II / Thalia / Symbol / Lutecia',
+            defaultPrice: 1450,
+            stock: 8,
+            imageUrl: 'https://img.parts-catalogs.com/renault_2019_10/dessins/01040693.png',
+            schemaImageUrl: 'https://img.parts-catalogs.com/renault_2019_10/dessins/01040693.png',
+            crossReferences: '7711130036, 7701209639, GDB0036, 0986424036, 598036, P68036, FDB0036, 2403601',
+            technicalSpecs: { kalinlik: '18.0 mm', genislik: '137.0 mm', yukseklik: '57.4 mm', montajKonumu: 'Ön Aks', frenSistemi: 'TRW / Lucas' },
+            estimatedLaborTime: '45 Dk'
+          },
           {
             name: 'Renault Megane IV Triger Kayış Kiti & Gergi Rulmanı',
             oeNumber: '130C15339R',
@@ -1880,7 +1901,7 @@
             compatibleModels: 'Megane IV, Clio V, Captur II 1.5 dCi',
             defaultPrice: 2850,
             stock: 20,
-            imageUrl: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=400&auto=format&fit=crop&q=80',
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
             estimatedLaborTime: '2.5 Saat'
           },
           {
@@ -1894,7 +1915,7 @@
             compatibleModels: 'Megane IV, Clio V, Talisman, Kadjar',
             defaultPrice: 1250,
             stock: 18,
-            imageUrl: 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=400&auto=format&fit=crop&q=80',
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
             estimatedLaborTime: '45 Dk'
           },
           {
@@ -1908,7 +1929,7 @@
             compatibleModels: 'Fiat Egea 1.3 / 1.6 Multijet, 500L',
             defaultPrice: 1100,
             stock: 30,
-            imageUrl: 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=400&auto=format&fit=crop&q=80',
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
             estimatedLaborTime: '40 Dk'
           },
           {
@@ -1922,7 +1943,7 @@
             compatibleModels: 'Ford Focus 1.5 TDCi, C-Max, Kuga',
             defaultPrice: 2950,
             stock: 15,
-            imageUrl: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=400&auto=format&fit=crop&q=80',
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
             estimatedLaborTime: '2 Saat'
           }
         ];
@@ -1936,19 +1957,27 @@
             tenantProductId: `tp-seed-${sIdx + 1}`,
             productId: `prod-seed-${sIdx + 1}`,
             oeNumber: seed.oeNumber,
+            oemNumber: seed.oeNumber,
+            stockCode: seed.stockCode || seed.oeNumber,
             name: seed.name,
+            brand: seed.manufacturer || seed.vehicleBrand || 'OEM',
             category: seed.category,
             vehicleBrand: seed.vehicleBrand,
             compatibleModels: seed.compatibleModels,
             partGroup: seed.partGroup,
-            imageUrl: seed.imageUrl,
-            images: [seed.imageUrl],
+            imageUrl: seed.schemaImageUrl || seed.imageUrl,
+            images: [seed.schemaImageUrl || seed.imageUrl],
+            schemaImageUrl: seed.schemaImageUrl || seed.imageUrl,
+            technicalSpecs: seed.technicalSpecs || null,
             stock: seed.stock || 25,
+            unit: 'AD',
+            price: listP,
             isLocalStock: true,
             subCategory: seed.subCategory || '',
             manufacturer: seed.manufacturer || '',
             estimatedLaborTime: seed.estimatedLaborTime || lr.estimatedLaborTime,
             isDiscounted: discountRate > 0,
+            supplierName: 'Ahmet Oto (Yetkili Bayi)',
             companyName: 'Ahmet Oto (Yetkili Bayi)',
             dealerName: 'Ahmet Oto (Yetkili Bayi)',
             sellerName: 'Ahmet Oto (Yetkili Bayi)',
@@ -2020,27 +2049,142 @@
             (detectedBrand && (p.compatibleModels || '').toLowerCase().includes(detectedBrand))
           );
 
-          // prompt.md Kuralı: Eğer aranan kod (Örn: 101010) lokal stokta yoksa,
-          // KATALOG VERİSİ olarak ekrana gelmeli ve "Stokta Yok" yazmalıdır (isLocalStock: false, stock: 0, price: null)
-          if (calculated.length === 0 && searchFilter) {
+          // prompt.md Kuralı & Video Referansı: OEM ile sorgu yapıldığında
+          // 1. Elimde stok varsa en başta gözükecek (firma adı, fiyatı, stok adedi)
+          // 2. Ardından o OEM numarasına karşılık gelen tüm çapraz referanslar (TRW, Bosch, Valeo, Brembo...)
+          //    stokta olsa da olmasa da ekrana yazılacak!
+          const sClean = (searchFilter || '').toUpperCase().trim();
+          const isRenaultSample = sClean.includes('7701209639') || sClean.includes('7711130036') || sClean.includes('GDB0036') || sClean.includes('0986424036');
+          
+          if (isRenaultSample) {
+            const sampleSchema = 'https://img.parts-catalogs.com/renault_2019_10/dessins/01040693.png';
+            const sampleName = 'Brake pad - Fren Balata Takımı';
+            const sampleBrand = 'Renault';
+            const sampleModels = 'Clio II / Thalia / Symbol / Lutecia';
+            const sampleRefs = '7711130036, 7701209639, GDB0036, 0986424036, 598036, P68036, FDB0036, 2403601';
+            const sampleSpecs = { kalinlik: '18.0 mm', genislik: '137.0 mm', yukseklik: '57.4 mm', montajKonumu: 'Ön Aks', frenSistemi: 'TRW / Lucas' };
+
+            // 1. Lokal Stok Kaydı (En başta listelenir)
+            if (calculated.length === 0) {
+              calculated.push({
+                brand: sampleBrand,
+                stockCode: '7701209639',
+                oemNumber: '7711130036',
+                oeNumber: '7711130036',
+                crossReferences: sampleRefs,
+                name: sampleName,
+                stock: 8,
+                unit: 'AD',
+                price: 1450,
+                defaultPrice: 1450,
+                customPrice: 1450,
+                discountedPrice: 1160,
+                appliedDiscountRate: 20,
+                supplierName: 'Ahmet Oto (Yetkili Bayi)',
+                companyName: 'Ahmet Oto (Yetkili Bayi)',
+                sellerName: 'Ahmet Oto (Yetkili Bayi)',
+                dealerName: 'Ahmet Oto (Yetkili Bayi)',
+                isLocalStock: true,
+                tenantProductId: 'cat-7701209639',
+                productId: 'cat-7701209639',
+                category: 'Fren Sistemi',
+                vehicleBrand: sampleBrand,
+                compatibleModels: sampleModels,
+                partGroup: 'Fren Sistemi',
+                imageUrl: sampleSchema,
+                images: [sampleSchema],
+                schemaImageUrl: sampleSchema,
+                isCatalogOnly: false,
+                stockStatus: 'IN_STOCK',
+                technicalSpecs: sampleSpecs,
+                pricing: { listPrice: 1450, discountRate: 20, savedAmount: 290, finalPrice: 1160 }
+              });
+            } else {
+              // Mevcut lokal kaydı zenginleştir
+              calculated.forEach(item => {
+                item.schemaImageUrl = sampleSchema;
+                item.imageUrl = sampleSchema;
+                item.images = [sampleSchema];
+                item.technicalSpecs = sampleSpecs;
+                item.compatibleModels = sampleModels;
+                item.supplierName = item.supplierName || 'Ahmet Oto (Yetkili Bayi)';
+                item.stockCode = item.stockCode || '7701209639';
+                item.brand = item.brand || sampleBrand;
+                item.price = item.price || item.defaultPrice || 1450;
+                item.isLocalStock = true;
+              });
+            }
+
+            // 2. Çapraz Referans Kodları (TRW, BOSCH, VALEO, BREMBO, FERODO, TEXTAR, AYD)
+            const refs = [
+              { brand: 'TRW', code: 'GDB0036' },
+              { brand: 'BOSCH', code: '0986424036' },
+              { brand: 'VALEO', code: '598036' },
+              { brand: 'BREMBO', code: 'P68036' },
+              { brand: 'FERODO', code: 'FDB0036' },
+              { brand: 'TEXTAR', code: '2403601' },
+              { brand: 'AYD', code: '11-30036AA' }
+            ];
+            refs.forEach(r => {
+              if (!calculated.some(c => (c.stockCode || c.oeNumber) === r.code)) {
+                calculated.push({
+                  brand: r.brand,
+                  stockCode: r.code,
+                  oemNumber: '7711130036',
+                  oeNumber: '7711130036',
+                  crossReferences: sampleRefs,
+                  name: `${sampleName} (${r.brand} ${r.code})`,
+                  stock: 0,
+                  unit: 'AD',
+                  price: null,
+                  supplierName: 'Katalog Muadili (Dış Tedarik)',
+                  isLocalStock: false,
+                  tenantProductId: `cat-${r.code}`,
+                  productId: `cat-${r.code}`,
+                  category: 'Fren Sistemi',
+                  vehicleBrand: sampleBrand,
+                  compatibleModels: sampleModels,
+                  partGroup: 'Fren Sistemi',
+                  imageUrl: sampleSchema,
+                  images: [sampleSchema],
+                  schemaImageUrl: sampleSchema,
+                  isCatalogOnly: true,
+                  defaultPrice: null,
+                  customPrice: null,
+                  discountedPrice: null,
+                  appliedDiscountRate: 0,
+                  stockStatus: 'OUT_OF_STOCK_CATALOG',
+                  companyName: 'Katalog Muadili (Dış Tedarik)',
+                  sellerName: 'Katalog Muadili (Dış Tedarik)',
+                  dealerName: 'Katalog Muadili (Dış Tedarik)',
+                  technicalSpecs: sampleSpecs,
+                  pricing: { listPrice: null, discountRate: 0, savedAmount: 0, finalPrice: null }
+                });
+              }
+            });
+          } else if (calculated.length === 0 && searchFilter) {
+            const sampleSchema = TECHNICAL_BLUEPRINT_SVG;
+            const sampleName = `${sClean} Referans Parça`;
             calculated = [{
               brand: 'OEM / Katalog',
-              oemNumber: searchFilter.toUpperCase(),
-              oeNumber: searchFilter.toUpperCase(),
+              oemNumber: sClean,
+              oeNumber: sClean,
               crossReferences: 'Muadil kaydı bulunamadı',
-              name: `${searchFilter.toUpperCase()} Referans Parça`,
+              name: sampleName,
               stock: 0,
+              unit: 'AD',
               price: null,
               supplierName: 'Sadece Dış Katalog (Bayide Yok)',
               isLocalStock: false,
-              tenantProductId: `cat-${searchFilter}`,
-              productId: `cat-${searchFilter}`,
+              tenantProductId: `cat-${sClean}`,
+              productId: `cat-${sClean}`,
               category: 'Katalog Referansı',
               vehicleBrand: 'OEM / Katalog',
               compatibleModels: 'Katalog Uyumlu Araçlar',
               partGroup: 'Katalog Referansı',
-              imageUrl: 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=400&auto=format&fit=crop&q=80',
-              images: ['https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=400&auto=format&fit=crop&q=80'],
+              imageUrl: sampleSchema,
+              images: [sampleSchema],
+              schemaImageUrl: sampleSchema,
               isCatalogOnly: true,
               defaultPrice: null,
               customPrice: null,
@@ -2099,8 +2243,22 @@
 
       const currentBal = firstCust && firstCust.balance !== undefined ? firstCust.balance : 14850.00;
 
+      const firstItem = calculated[0] || null;
+      const searchMeta = searchFilter ? {
+        searchQuery: searchFilter,
+        rootOEM: firstItem ? (firstItem.oemNumber || firstItem.oeNumber || searchFilter) : searchFilter,
+        partName: firstItem ? (firstItem.partName || firstItem.name || `${searchFilter} Referans Parça`) : `${searchFilter} Referans Parça`,
+        vehicleBrand: firstItem ? (firstItem.vehicleBrand || 'OEM') : 'OEM',
+        compatibleModels: firstItem ? (firstItem.compatibleModels || 'Tüm Modeller') : 'Tüm Modeller',
+        schemaImageUrl: (firstItem && firstItem.schemaImageUrl) || (firstItem && firstItem.imageUrl) || TECHNICAL_BLUEPRINT_SVG,
+        technicalSpecs: (firstItem && firstItem.technicalSpecs) || null,
+        localStockCount: calculated.filter(p => p.isLocalStock).length,
+        crossRefCount: calculated.filter(p => !p.isLocalStock).length
+      } : null;
+
       return {
         success: true,
+        meta: searchMeta,
         customer: {
           companyName: firstCust ? firstCust.companyName : 'Kemal Usta (Otoservis)',
           appliedDiscountRate: discountRate > 0 ? `%${discountRate}` : '%0',
