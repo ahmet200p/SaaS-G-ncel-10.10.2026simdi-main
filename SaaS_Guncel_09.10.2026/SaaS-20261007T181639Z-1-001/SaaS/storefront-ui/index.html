@@ -1685,7 +1685,7 @@
           const crossReferences = p.crossReferences || prod.crossReferences || p.cross_references || prod.cross_references || [];
           const barcode = p.barcode || prod.barcode || '';
           const imageUrl = p.imageUrl || prod.imageUrl || (p.images && p.images[0]) || (prod.images && prod.images[0]) || 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=400&auto=format&fit=crop&q=80';
-          const sellerName = p.companyName || p.sellerName || p.dealerName || p.tenantName || (p.user && (p.user.companyName || p.user.name)) || (p.tenant && p.tenant.name) || (prod.user && (prod.user.companyName || prod.user.name)) || 'Ahmet Oto (Yetkili Bayi)';
+          const sellerName = p.supplierName || p.companyName || p.sellerName || p.dealerName || p.tenantName || (p.tenant && p.tenant.name) || (p.user && (p.user.companyName || p.user.name)) || (prod.user && (prod.user.companyName || prod.user.name)) || 'Ahmet Oto (Yetkili Bayi)';
 
           return {
             id,
@@ -1701,11 +1701,13 @@
             isCatalogOnly,
             stockStatus,
             oeNumber,
+            oemNumber: oeNumber,
             barcode,
             crossReferences,
             brand,
             vehicleBrand,
             manufacturer,
+            supplierName: sellerName,
             sellerName,
             companyName: sellerName,
             dealerName: sellerName,
@@ -2046,12 +2048,13 @@
         });
       }
 
-      // Arama & OEM Kodu Filtresi (prompt.md ADIM 1)
-      if (activeSearch) {
-        const normQ = activeSearch.toLowerCase();
+      // Arama & OEM Kodu Filtresi (prompt.md ADIM 1):
+      // Sol menüdeki ikincil OEM filtresi (currentOemFilter) girilmişse sonuçları daralt:
+      if (currentOemFilter && currentOemFilter.trim()) {
+        const normQ = currentOemFilter.trim().toLowerCase();
         const cleanQ = normQ.replace(/[^a-z0-9]/gi, '');
         filtered = filtered.filter(p => {
-          const oe = (p.oeNumber || '').toLowerCase();
+          const oe = (p.oeNumber || p.oemNumber || '').toLowerCase();
           const cleanOe = oe.replace(/[^a-z0-9]/gi, '');
           const name = (p.name || '').toLowerCase();
           const brand = (p.vehicleBrand || p.manufacturer || p.brand || '').toLowerCase();
@@ -2067,8 +2070,8 @@
         });
       }
 
-      // Subcategories filter
-      if (currentSubCategories.length > 0) {
+      // Alt Kategori Filtresi (Arama yapılmadığı durumlarda veya arama sonrası spesifik filtrelemede)
+      if (!currentSearchQuery && currentSubCategories.length > 0) {
         filtered = filtered.filter(p => {
           const sub = (p.subCategory || p.category || '').toLowerCase().trim();
           const name = (p.name || '').toLowerCase().trim();
@@ -2081,8 +2084,8 @@
         });
       }
 
-      // Manufacturers filter
-      if (currentManufacturers.length > 0) {
+      // Parça Üreticisi (Marka) Filtresi (Arama yapılmadığı durumlarda veya arama sonrası spesifik filtrelemede)
+      if (!currentSearchQuery && currentManufacturers.length > 0) {
         filtered = filtered.filter(p => {
           const mfr = (p.manufacturer || p.brand || p.vehicleBrand || '').toLowerCase().trim();
           const name = (p.name || '').toLowerCase().trim();
