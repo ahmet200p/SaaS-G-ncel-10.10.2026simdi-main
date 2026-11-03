@@ -476,7 +476,7 @@ const ensureNeonTables = async () => {
         await prisma.systemSettings.create({
           data: {
             id: 1,
-            tecdocApiKey: process.env.PARTS_CATALOG_API_KEY || 'OEM-API-BD39DFA8-9AE9-4E7F-8B6D-3D1011BF973F',
+            tecdocApiKey: process.env.PARTS_CATALOG_API_KEY || '',
             tecdocEndpoint: 'https://api.parts-catalogs.com',
             defaultB2BDiscount: 15.0,
             defaultTaxRate: 20.0,

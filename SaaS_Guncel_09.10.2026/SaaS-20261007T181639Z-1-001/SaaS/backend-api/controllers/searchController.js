@@ -278,6 +278,11 @@ function extractVinFromRequest(req) {
  *        - Katalog API'si şasi için parça ağacı sunmuyorsa [] döner; asla sahte/mock veri üretilmez.
  */
 async function searchVin(req, res) {
+  const apiKey = process.env.PARTS_CATALOG_API_KEY;
+  if (!apiKey) {
+    console.error("KRİTİK HATA: PARTS_CATALOG_API_KEY .env dosyasında bulunamadı!");
+    return res.status(500).json({ error: "Sunucu yapılandırma hatası: API anahtarı eksik." });
+  }
   // prompt.md Kural 2: Zaman aşımı (timeout) süresini Node seviyesinde güvenceye al (120 sn)
   if (typeof req.setTimeout === 'function') req.setTimeout(120000);
   if (typeof res.setTimeout === 'function') res.setTimeout(120000);

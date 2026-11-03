@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
   <meta name="description" content="ParçaPro B2B Toptan Otomotiv Yedek Parça Pazaryeri ve Tedarik Portalı - Şasi Numarası ile %100 Uyum Doğrulama">
-  <title>Volkswagen Golf VII Uyumlu Tüm Yedek Parçalar | ParçaPro B2B</title>
+  <title>ParçaPro B2B | Otomotiv Yedek Parça Pazaryeri</title>
 
   <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -232,7 +232,7 @@
     <div class="max-w-7xl mx-auto px-4 flex items-center gap-1 sm:gap-2 overflow-x-auto py-1 scrollbar-none">
       
       <!-- Tüm Kategoriler Mega Button -->
-      <button type="button" onclick="toggleMegaMenu(event)" id="btn-mega-menu"
+      <button type="button" onclick="toggleMegaMenu(event)" id="btn-mega-menu" data-category="Tüm Kategoriler"
         class="bg-[#f97316] hover:bg-[#ea580c] text-white font-extrabold text-xs px-3.5 py-2 rounded-lg flex items-center gap-2 shadow-md shrink-0 cursor-pointer transition-all active:scale-95"
         aria-haspopup="true" aria-expanded="false" aria-controls="mega-menu-dropdown">
         <span class="text-sm">☰</span>
@@ -241,15 +241,15 @@
       </button>
 
       <!-- Category Links -->
-      <div class="flex items-center gap-1 overflow-x-auto py-1 shrink-0">
-        <button type="button" onclick="filterByCategory('Motor & Şanzıman', this)" class="nav-cat-btn px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors shrink-0">Motor & Şanzıman</button>
-        <button type="button" onclick="filterByCategory('Fren Sistemi', this)" class="nav-cat-btn px-3 py-1.5 rounded-lg bg-slate-800 text-orange-400 font-extrabold border-b-2 border-orange-500 transition-colors shrink-0 active-cat">Fren Sistemi</button>
-        <button type="button" onclick="filterByCategory('Süspansiyon & Direksiyon', this)" class="nav-cat-btn px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors shrink-0">Süspansiyon & Direksiyon</button>
-        <button type="button" onclick="filterByCategory('Filtre & Bakım', this)" class="nav-cat-btn px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors shrink-0">Filtre & Bakım</button>
-        <button type="button" onclick="filterByCategory('Elektrik & Aydınlatma', this)" class="nav-cat-btn px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors shrink-0">Elektrik & Aydınlatma</button>
-        <button type="button" onclick="filterByCategory('Kaporta & Karoseri', this)" class="nav-cat-btn px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors shrink-0">Kaporta & Karoseri</button>
-        <button type="button" onclick="filterByCategory('Egzoz & Emisyon', this)" class="nav-cat-btn px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors shrink-0">Egzoz & Emisyon</button>
-        <button type="button" onclick="filterByCategory('FIRSAT', this)" class="nav-cat-btn px-3 py-1.5 rounded-lg text-rose-400 hover:bg-slate-800 font-extrabold transition-colors shrink-0">🔥 Fırsat Ürünleri</button>
+      <div class="flex items-center gap-1 overflow-x-auto py-1 shrink-0" id="navbar-category-links">
+        <button type="button" data-category="Motor & Şanzıman" class="nav-cat-btn px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors shrink-0">Motor & Şanzıman</button>
+        <button type="button" data-category="Fren Sistemi" class="nav-cat-btn px-3 py-1.5 rounded-lg bg-slate-800 text-orange-400 font-extrabold border-b-2 border-orange-500 transition-colors shrink-0 active-cat">Fren Sistemi</button>
+        <button type="button" data-category="Süspansiyon & Direksiyon" class="nav-cat-btn px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors shrink-0">Süspansiyon & Direksiyon</button>
+        <button type="button" data-category="Filtre & Bakım" class="nav-cat-btn px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors shrink-0">Filtre & Bakım</button>
+        <button type="button" data-category="Elektrik & Aydınlatma" class="nav-cat-btn px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors shrink-0">Elektrik & Aydınlatma</button>
+        <button type="button" data-category="Kaporta & Karoseri" class="nav-cat-btn px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors shrink-0">Kaporta & Karoseri</button>
+        <button type="button" data-category="Egzoz & Emisyon" class="nav-cat-btn px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors shrink-0">Egzoz & Emisyon</button>
+        <button type="button" data-category="FIRSAT" class="nav-cat-btn px-3 py-1.5 rounded-lg text-rose-400 hover:bg-slate-800 font-extrabold transition-colors shrink-0">🔥 Fırsat Ürünleri</button>
         <button type="button" onclick="openVehicleSelectorModal()" class="nav-cat-btn px-3 py-1.5 rounded-lg text-amber-300 hover:bg-slate-800 font-extrabold transition-colors shrink-0 flex items-center gap-1">🚗 Garajım Seçimi</button>
       </div>
 
@@ -329,13 +329,12 @@
   <section class="bg-white border-b border-slate-200 py-5" aria-label="Katalog Başlığı ve Metrikler">
     <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
       
-      <!-- Left: Title & Subtitle -->
+      <!-- Left: Title & Subtitle (prompt.md ADIM 2 & 3: Dinamik Başlık ve Kriter Sayacı) -->
       <div>
-        <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight" id="catalog-main-title">
-          Volkswagen Golf VII Uyumlu Tüm Yedek Parçalar
-        </h1>
+        <h1 class="hidden text-xl sm:text-2xl font-black text-slate-900 tracking-tight" id="dynamic-page-title"></h1>
         <p class="text-xs sm:text-sm text-slate-500 font-medium mt-1" id="catalog-subtitle">
-          Toplam <strong class="text-slate-900 font-bold" id="title-total-count">348</strong> parça listeleniyor. (3 arama kriteri devrede ve B2B toptancı iskonto şartı aktif)
+          Toplam <strong class="text-slate-900 font-bold" id="title-total-count">0</strong> parça listeleniyor.
+          <span id="dynamic-criteria-text" class="hidden text-orange-600 font-bold ml-1"></span>
         </p>
       </div>
 
@@ -376,27 +375,7 @@
            ==================================================================== -->
       <aside class="w-full lg:w-72 shrink-0 space-y-4" id="store-sidebar">
         
-        <!-- Card 1: Seçili Araç (Blue Theme Card) -->
-        <div class="bg-blue-50/90 border border-blue-200 rounded-2xl p-4 shadow-xs" id="sidebar-vehicle-card">
-          <div class="flex items-center justify-between pb-2 border-b border-blue-200/80 mb-2.5">
-            <div class="flex items-center gap-1.5">
-              <span class="text-sm">🚗</span>
-              <span class="text-xs font-black uppercase tracking-wider text-blue-900">Seçili Araç</span>
-            </div>
-            <button type="button" onclick="openVehicleSelectorModal()" class="text-[11px] font-extrabold text-blue-600 hover:text-blue-800 uppercase tracking-wider cursor-pointer">
-              DEĞİŞTİR
-            </button>
-          </div>
-          <h3 class="text-sm font-black text-slate-900 leading-snug" id="sidebar-vehicle-title">Volkswagen Golf VII</h3>
-          <p class="text-xs text-slate-600 font-medium mt-0.5" id="sidebar-vehicle-desc">1.6 TDI (115 HP) 2016-2020, Dizel</p>
-          <div class="text-[11px] font-mono text-slate-500 mt-1" id="sidebar-vehicle-chassis">Şasi Kodu: 5G1 / BQ1 / BE1</div>
-          <button type="button" onclick="openVehicleSelectorModal()" class="w-full mt-3 py-2 px-3 bg-white hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-300 font-bold text-xs rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer">
-            <span>🚗</span>
-            <span>Farklı Araç Seç</span>
-          </button>
-        </div>
-
-        <!-- Card 2: OEM / Parça Kodu ile Filtrele -->
+        <!-- Card: OEM / Parça Kodu ile Filtrele -->
         <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
           <h4 class="font-black text-xs text-slate-900 uppercase tracking-wider mb-1">OEM / Parça Kodu ile Filtrele</h4>
           <p class="text-[11px] text-slate-500 mb-2.5">Özel Parça Kodu veya OE Numarası girin</p>
@@ -420,35 +399,35 @@
                 <input type="checkbox" value="Ön Fren Balatası" onchange="handleSubCategoryToggle(this)" class="w-3.5 h-3.5 rounded text-orange-600 focus:ring-0">
                 <span>Ön Fren Balatası</span>
               </span>
-              <span class="text-[11px] text-slate-400 font-mono">(14)</span>
+              <span data-filter-count="category-Ön Fren Balatası" class="text-[11px] text-slate-400 font-mono">(0)</span>
             </label>
             <label class="flex items-center justify-between cursor-pointer hover:text-orange-600 select-none">
               <span class="flex items-center gap-2">
                 <input type="checkbox" value="Arka Fren Balatası" onchange="handleSubCategoryToggle(this)" class="w-3.5 h-3.5 rounded text-orange-600 focus:ring-0">
                 <span>Arka Fren Balatası</span>
               </span>
-              <span class="text-[11px] text-slate-400 font-mono">(12)</span>
+              <span data-filter-count="category-Arka Fren Balatası" class="text-[11px] text-slate-400 font-mono">(0)</span>
             </label>
             <label class="flex items-center justify-between cursor-pointer hover:text-orange-600 select-none">
               <span class="flex items-center gap-2">
                 <input type="checkbox" value="Ön Fren Diski" onchange="handleSubCategoryToggle(this)" class="w-3.5 h-3.5 rounded text-orange-600 focus:ring-0">
                 <span>Ön Fren Diski</span>
               </span>
-              <span class="text-[11px] text-slate-400 font-mono">(18)</span>
+              <span data-filter-count="category-Ön Fren Diski" class="text-[11px] text-slate-400 font-mono">(0)</span>
             </label>
             <label class="flex items-center justify-between cursor-pointer hover:text-orange-600 select-none">
               <span class="flex items-center gap-2">
                 <input type="checkbox" value="Arka Fren Diski" onchange="handleSubCategoryToggle(this)" class="w-3.5 h-3.5 rounded text-orange-600 focus:ring-0">
                 <span>Arka Fren Diski</span>
               </span>
-              <span class="text-[11px] text-slate-400 font-mono">(16)</span>
+              <span data-filter-count="category-Arka Fren Diski" class="text-[11px] text-slate-400 font-mono">(0)</span>
             </label>
             <label class="flex items-center justify-between cursor-pointer hover:text-orange-600 select-none">
               <span class="flex items-center gap-2">
                 <input type="checkbox" value="Fren Kaliperi & Hortumlar" onchange="handleSubCategoryToggle(this)" class="w-3.5 h-3.5 rounded text-orange-600 focus:ring-0">
                 <span>Fren Kaliperi & Hortumlar</span>
               </span>
-              <span class="text-[11px] text-slate-400 font-mono">(8)</span>
+              <span data-filter-count="category-Fren Kaliperi & Hortumlar" class="text-[11px] text-slate-400 font-mono">(0)</span>
             </label>
           </div>
         </div>
@@ -460,54 +439,54 @@
             <span class="text-slate-400 text-xs">▾</span>
           </div>
           <div class="space-y-2 text-xs font-medium text-slate-700" id="filter-manufacturers-list">
-            <label class="flex items-center justify-between cursor-pointer hover:text-orange-600 select-none">
+            <label class="flex items-center justify-between cursor-pointer hover:text-orange-600 select-none" id="brand-oem-label">
               <span class="flex items-center gap-2">
-                <input type="checkbox" value="Orijinal VAG (OEM)" onchange="handleManufacturerToggle(this)" class="w-3.5 h-3.5 rounded text-orange-600 focus:ring-0">
-                <span>Orijinal VAG (OEM)</span>
+                <input type="checkbox" id="brand-oem-checkbox" value="Orijinal VAG (OEM)" onchange="handleManufacturerToggle(this)" class="w-3.5 h-3.5 rounded text-orange-600 focus:ring-0">
+                <span id="brand-oem-text">Orijinal VAG (OEM)</span>
               </span>
-              <span class="text-[11px] text-slate-400 font-mono">(24)</span>
+              <span id="brand-oem-count" data-filter-count="brand-Orijinal VAG (OEM)" class="text-[11px] text-slate-400 font-mono">(0)</span>
             </label>
             <label class="flex items-center justify-between cursor-pointer hover:text-orange-600 select-none">
               <span class="flex items-center gap-2">
                 <input type="checkbox" value="Bosch" onchange="handleManufacturerToggle(this)" class="w-3.5 h-3.5 rounded text-orange-600 focus:ring-0">
                 <span>Bosch (Germany)</span>
               </span>
-              <span class="text-[11px] text-slate-400 font-mono">(32)</span>
+              <span data-filter-count="brand-Bosch" class="text-[11px] text-slate-400 font-mono">(0)</span>
             </label>
             <label class="flex items-center justify-between cursor-pointer hover:text-orange-600 select-none">
               <span class="flex items-center gap-2">
                 <input type="checkbox" value="Ferodo" onchange="handleManufacturerToggle(this)" class="w-3.5 h-3.5 rounded text-orange-600 focus:ring-0">
                 <span>Ferodo (Italy)</span>
               </span>
-              <span class="text-[11px] text-slate-400 font-mono">(19)</span>
+              <span data-filter-count="brand-Ferodo" class="text-[11px] text-slate-400 font-mono">(0)</span>
             </label>
             <label class="flex items-center justify-between cursor-pointer hover:text-orange-600 select-none">
               <span class="flex items-center gap-2">
                 <input type="checkbox" value="TRW / ZF" onchange="handleManufacturerToggle(this)" class="w-3.5 h-3.5 rounded text-orange-600 focus:ring-0">
                 <span>TRW / ZF</span>
               </span>
-              <span class="text-[11px] text-slate-400 font-mono">(28)</span>
+              <span data-filter-count="brand-TRW / ZF" class="text-[11px] text-slate-400 font-mono">(0)</span>
             </label>
             <label class="flex items-center justify-between cursor-pointer hover:text-orange-600 select-none">
               <span class="flex items-center gap-2">
                 <input type="checkbox" value="Brembo" onchange="handleManufacturerToggle(this)" class="w-3.5 h-3.5 rounded text-orange-600 focus:ring-0">
                 <span>Brembo (Italy)</span>
               </span>
-              <span class="text-[11px] text-slate-400 font-mono">(15)</span>
+              <span data-filter-count="brand-Brembo" class="text-[11px] text-slate-400 font-mono">(0)</span>
             </label>
             <label class="flex items-center justify-between cursor-pointer hover:text-orange-600 select-none">
               <span class="flex items-center gap-2">
                 <input type="checkbox" value="Textar" onchange="handleManufacturerToggle(this)" class="w-3.5 h-3.5 rounded text-orange-600 focus:ring-0">
                 <span>Textar (Germany)</span>
               </span>
-              <span class="text-[11px] text-slate-400 font-mono">(22)</span>
+              <span data-filter-count="brand-Textar" class="text-[11px] text-slate-400 font-mono">(0)</span>
             </label>
             <label class="flex items-center justify-between cursor-pointer hover:text-orange-600 select-none">
               <span class="flex items-center gap-2">
                 <input type="checkbox" value="Valeo" onchange="handleManufacturerToggle(this)" class="w-3.5 h-3.5 rounded text-orange-600 focus:ring-0">
                 <span>Valeo (France)</span>
               </span>
-              <span class="text-[11px] text-slate-400 font-mono">(14)</span>
+              <span data-filter-count="brand-Valeo" class="text-[11px] text-slate-400 font-mono">(0)</span>
             </label>
           </div>
         </div>
@@ -540,15 +519,15 @@
           <div class="space-y-1.5 text-xs font-medium text-slate-700">
             <label class="flex items-center justify-between cursor-pointer hover:text-orange-600">
               <span class="flex items-center gap-2"><input type="checkbox" class="w-3.5 h-3.5 rounded text-orange-600"> İstanbul (Aynı Gün)</span>
-              <span class="text-[10px] text-slate-400 font-mono">(142)</span>
+              <span data-filter-count="city-İstanbul" class="text-[10px] text-slate-400 font-mono">(0)</span>
             </label>
             <label class="flex items-center justify-between cursor-pointer hover:text-orange-600">
               <span class="flex items-center gap-2"><input type="checkbox" class="w-3.5 h-3.5 rounded text-orange-600"> Ankara (Ertesi Gün)</span>
-              <span class="text-[10px] text-slate-400 font-mono">(96)</span>
+              <span data-filter-count="city-Ankara" class="text-[10px] text-slate-400 font-mono">(0)</span>
             </label>
             <label class="flex items-center justify-between cursor-pointer hover:text-orange-600">
               <span class="flex items-center gap-2"><input type="checkbox" class="w-3.5 h-3.5 rounded text-orange-600"> İzmir / Bursa / Diğer</span>
-              <span class="text-[10px] text-slate-400 font-mono">(110)</span>
+              <span data-filter-count="city-Diğer" class="text-[10px] text-slate-400 font-mono">(0)</span>
             </label>
           </div>
         </div>
@@ -590,15 +569,16 @@
 
           <div class="flex items-center gap-3">
             <span class="text-xs text-slate-400 hidden sm:inline" id="sort-summary-text">Sayfa Başı: 24</span>
+            <!-- prompt.md ADIM 3: id="btn-grid-view" ve id="btn-list-view" -->
             <div class="flex items-center border border-slate-200 rounded-xl overflow-hidden">
-              <button type="button" onclick="setViewMode('grid')" id="view-mode-grid" class="p-1.5 px-2.5 bg-slate-900 text-white text-xs font-bold cursor-pointer" title="Grid Görünümü">⊞</button>
-              <button type="button" onclick="setViewMode('table')" id="view-mode-table" class="p-1.5 px-2.5 bg-slate-100 text-slate-600 hover:text-slate-900 text-xs font-bold cursor-pointer" title="Tablo Görünümü">☰</button>
+              <button type="button" id="btn-grid-view" onclick="setViewMode('grid')" class="p-1.5 px-2.5 bg-slate-900 text-white text-xs font-bold cursor-pointer transition-colors" title="Grid (Izgara) Görünümü">⊞</button>
+              <button type="button" id="btn-list-view" onclick="setViewMode('list')" class="p-1.5 px-2.5 bg-slate-100 text-slate-600 hover:text-slate-900 text-xs font-bold cursor-pointer transition-colors" title="List (Şerit) Görünümü">☰</button>
             </div>
           </div>
         </div>
 
-        <!-- Products Grid Container -->
-        <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <!-- Products Container (prompt.md ADIM 3: id="products-container") -->
+        <div id="products-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <!-- Dinamik olarak JS ile çizdirilir -->
         </div>
 
@@ -670,23 +650,23 @@
         </div>
 
         <!-- ==================================================================
-             TECHNICAL BUYING GUIDE CARD
-             "Volkswagen Golf VII Fren Parçaları Satın Alma Rehberi"
+             TECHNICAL BUYING GUIDE CARD (Dinamik ve Koşullu Satın Alma Rehberi)
+             prompt.md ADIM 1: id="dynamic-guide-section", varsayılan olarak hidden
              ================================================================== -->
-        <div class="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-xs" id="technical-buying-guide-section">
-          <h2 class="text-base sm:text-lg font-black text-slate-900 tracking-tight mb-4 pb-2 border-b border-slate-100 flex items-center justify-between" id="guide-header-title">
-            <span>Volkswagen Golf VII Fren Parçaları Satın Alma Rehberi</span>
+        <div class="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-xs hidden" id="dynamic-guide-section" style="display: none;">
+          <h2 class="text-base sm:text-lg font-black text-slate-900 tracking-tight mb-4 pb-2 border-b border-slate-100 flex items-center justify-between" id="guide-title">
+            <span>Otomotiv Yedek Parçaları Satın Alma Rehberi</span>
             <span class="text-xs font-bold text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">B2B Teknik Kılavuz</span>
           </h2>
 
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             <!-- Left Text Content (2 Columns) -->
-            <div class="lg:col-span-2 space-y-3.5 text-xs text-slate-600 leading-relaxed">
+            <div class="lg:col-span-2 space-y-3.5 text-xs text-slate-600 leading-relaxed" id="guide-content">
               <div>
                 <h3 class="font-black text-slate-900 mb-1">PR Kodları ve Disk Çapları:</h3>
                 <p>
-                  Volkswagen Golf VII modellerinde fabrika çıkış donanıma bağlı olarak farklı ön disk çapları (276mm, 288mm veya 312mm) bulunmaktadır. 1.6 TDI motor seçeneklerinde çoğunlukla 288mm havalandırmalı ön diskler kullanılır. Sipariş vermeden önce bagaj havuzundaki etikette yer alan <strong>1ZA / 1ZE</strong> kodlarını kontrol etmeniz önerilir.
+                  Modern binek ve ticari araç modellerinde fabrika çıkış donanıma bağlı olarak farklı ön disk çapları (276mm, 288mm veya 312mm) bulunmaktadır. Doğru parçayı seçmek için aracınızın teknik kılavuzundaki ve bagaj havuzundaki etikette yer alan <strong>PR kodlarını (Örn: 1ZA / 1ZE)</strong> kontrol etmeniz önerilir.
                 </p>
               </div>
 
@@ -710,26 +690,28 @@
               <div>
                 <div class="flex items-center justify-between pb-2 border-b border-slate-200/80 mb-3">
                   <h4 class="font-black text-xs text-slate-900 uppercase tracking-wider">Hızlı Referans Tablosu</h4>
-                  <span class="text-[10px] text-blue-600 font-bold">OEM VAG</span>
+                  <span class="text-[10px] text-blue-600 font-bold" id="guide-badge">OEM VAG</span>
                 </div>
-                <ul class="space-y-2 text-xs font-mono">
-                  <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
-                    <span class="font-sans text-slate-600 font-medium text-[11px]">Ön Fren Balatası:</span>
-                    <strong class="text-slate-900 font-bold">5Q0 698 151 B</strong>
-                  </li>
-                  <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
-                    <span class="font-sans text-slate-600 font-medium text-[11px]">Ön Fren Diski:</span>
-                    <strong class="text-slate-900 font-bold">5Q0 615 301 H (288mm)</strong>
-                  </li>
-                  <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
-                    <span class="font-sans text-slate-600 font-medium text-[11px]">Arka Fren Balatası:</span>
-                    <strong class="text-slate-900 font-bold">5Q0 698 451</strong>
-                  </li>
-                  <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
-                    <span class="font-sans text-slate-600 font-medium text-[11px]">Arka Fren Diski:</span>
-                    <strong class="text-slate-900 font-bold">5Q0 615 601 F (272mm)</strong>
-                  </li>
-                </ul>
+                <div id="guide-table">
+                  <ul class="space-y-2 text-xs font-mono">
+                    <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+                      <span class="font-sans text-slate-600 font-medium text-[11px]">Ön Fren Balatası:</span>
+                      <strong class="text-slate-900 font-bold">5Q0 698 151 B</strong>
+                    </li>
+                    <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+                      <span class="font-sans text-slate-600 font-medium text-[11px]">Ön Fren Diski:</span>
+                      <strong class="text-slate-900 font-bold">5Q0 615 301 H (288mm)</strong>
+                    </li>
+                    <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+                      <span class="font-sans text-slate-600 font-medium text-[11px]">Arka Fren Balatası:</span>
+                      <strong class="text-slate-900 font-bold">5Q0 698 451</strong>
+                    </li>
+                    <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+                      <span class="font-sans text-slate-600 font-medium text-[11px]">Arka Fren Diski:</span>
+                      <strong class="text-slate-900 font-bold">5Q0 615 601 F (272mm)</strong>
+                    </li>
+                  </ul>
+                </div>
                 <div class="mt-3 p-2 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900">
                   ⚠️ Emin olamadığınız parça veya PR kodu eşleşmelerinde şasi numaranızla WhatsApp B2B Destek hattımıza danışabilirsiniz.
                 </div>
@@ -741,9 +723,6 @@
 
           </div>
         </div>
-
-        <!-- Çapraz Satış: "Bu parçayı alanlar şunları da aldı (Bakım Kiti)" -->
-        <section id="page-recommended-kit-section" class="hidden"></section>
 
       </section>
 
@@ -951,18 +930,26 @@
       <!-- Araç Listesi -->
       <div class="space-y-2.5 max-h-80 overflow-y-auto custom-scrollbar pr-1" id="vehicle-modal-list">
         
-        <!-- Golf 7 (Default) -->
+        <!-- Golf 7 -->
         <div onclick="selectVehicle('golf7', 'Volkswagen Golf VII', '1.6 TDI (115 HP) 2016-2020, Dizel', '5G1 / BQ1 / BE1', 'WVWZZZAUZHP129841', 'Volkswagen')"
-             class="p-3 rounded-2xl border-2 border-orange-500 bg-orange-50/40 hover:bg-orange-50 cursor-pointer transition-all flex items-center justify-between vehicle-item-active">
+             class="p-3 rounded-2xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/40 cursor-pointer transition-all flex items-center justify-between">
           <div>
-            <div class="font-black text-sm text-slate-900 flex items-center gap-1.5">
-              <span>Volkswagen Golf VII</span>
-              <span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-orange-200 text-orange-900">Aktif</span>
-            </div>
+            <div class="font-black text-sm text-slate-900">Volkswagen Golf VII</div>
             <div class="text-xs text-slate-600 font-medium">1.6 TDI (115 HP) 2016-2020, Dizel</div>
             <div class="text-[10px] font-mono text-slate-400 mt-0.5">VIN: WVWZZZAUZHP129841 • PR: 1ZA/1ZE</div>
           </div>
-          <span class="text-xs font-black text-orange-600">Seçili ✓</span>
+          <span class="text-xs font-bold text-slate-400">Seç ➔</span>
+        </div>
+
+        <!-- Hyundai Tucson -->
+        <div onclick="selectVehicle('tucson', 'Hyundai Tucson', '1.6 CRDi (136 HP) 2021, Dizel', 'TL / NX4', 'KMHJ381BBLU192841', 'Hyundai')"
+             class="p-3 rounded-2xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/40 cursor-pointer transition-all flex items-center justify-between">
+          <div>
+            <div class="font-black text-sm text-slate-900">Hyundai Tucson</div>
+            <div class="text-xs text-slate-600 font-medium">1.6 CRDi (136 HP) 2019-2023, Dizel</div>
+            <div class="text-[10px] font-mono text-slate-400 mt-0.5">VIN: KMHJ381BBLU192841 • Plaka: 34 HYU 90</div>
+          </div>
+          <span class="text-xs font-bold text-slate-400">Seç ➔</span>
         </div>
 
         <!-- Megane IV -->
@@ -1047,14 +1034,6 @@
           </div>
         </div>
       </div>
-
-      <!-- Bakım Kiti / Birlikte Al Alanı -->
-      <div class="mt-6 pt-4 border-t border-slate-200" id="detail-kit-section">
-        <h4 class="font-black text-xs text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
-          <span>💡</span> Bu parçayı alanlar şunları da aldı (Bakım Kiti)
-        </h4>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="detail-kit-carousel"></div>
-      </div>
     </div>
   </div>
 
@@ -1126,6 +1105,19 @@
     </div>
   </div>
 
+  <!-- G. LIGHTBOX / BÜYÜTÜLMÜŞ GÖRSEL MODALI (prompt.md ADIM 2) -->
+  <div id="image-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm transition-opacity" onclick="closeImageModal()">
+    <div class="relative max-w-4xl max-h-[90vh] bg-white rounded-3xl p-4 sm:p-6 shadow-2xl overflow-hidden flex flex-col items-center justify-center border border-slate-200 pointer-events-auto animate-fadeIn" onclick="event.stopPropagation()">
+      <button type="button" onclick="closeImageModal()" class="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-slate-900/80 hover:bg-slate-900 text-white flex items-center justify-center text-lg font-bold transition-all hover:scale-110 cursor-pointer shadow-lg" title="Kapat">
+        ✕
+      </button>
+      <div class="w-full flex items-center justify-center p-2">
+        <img id="image-modal-img" src="" alt="Parça Görseli" class="max-w-full max-h-[75vh] object-contain rounded-2xl select-none transition-all duration-300">
+      </div>
+      <div id="image-modal-caption" class="w-full text-center mt-3 text-sm font-bold text-slate-800 truncate px-4"></div>
+    </div>
+  </div>
+
   <!-- ========================================================================
        8. JAVASCRIPT LOGIC & STATE ENGINE
        ======================================================================== -->
@@ -1137,8 +1129,8 @@
     let favorites = [];
 
     // Filter States
-    let currentBrand = 'Volkswagen';
-    let currentCategory = 'Fren Sistemi';
+    let currentBrand = '';
+    let currentCategory = '';
     let currentSubCategories = [];
     let currentManufacturers = [];
     let currentSearchQuery = '';
@@ -1150,15 +1142,395 @@
     let currentSort = 'smart';
     let viewMode = 'grid';
 
-    // Active Vehicle Profile (Default: Volkswagen Golf VII as in screenshot)
-    let activeVehicle = {
-      code: 'golf7',
-      name: 'Volkswagen Golf VII',
-      desc: '1.6 TDI (115 HP) 2016-2020, Dizel',
-      chassis: 'Şasi Kodu: 5G1 / BQ1 / BE1',
-      vin: 'WVWZZZAUZHP129841',
-      brand: 'Volkswagen'
+    // Active Vehicle Profile (Default: null - hiçbir araç/marka seçili değil)
+    let activeVehicle = null;
+
+    // ==========================================================================
+    // SATIN ALMA REHBERİ BİLGİ BANKASI VE DİNAMİK YÖNETİMİ (prompt.md ADIM 2 & 3)
+    // ==========================================================================
+    const guideData = {
+      "Fren Sistemi": {
+        title: "Fren Sistemi Satın Alma ve Değişim Rehberi",
+        content: `
+          <div>
+            <h3 class="font-black text-slate-900 mb-1">PR Kodları ve Disk Çapları:</h3>
+            <p>Modern binek ve hafif ticari araçlarda donanım paketine bağlı olarak farklı ön disk çapları (276mm, 288mm veya 312mm) bulunmaktadır. Doğru parçayı seçmek için aracınızın teknik kılavuzundaki ve bagaj havuzundaki etikette yer alan <strong>PR kodlarını (Örn: 1ZA / 1ZE)</strong> kontrol etmeniz önerilir.</p>
+          </div>
+          <div>
+            <h3 class="font-black text-slate-900 mb-1">Orijinal Ekipman (OEM) ve Muadil Standartları:</h3>
+            <p>Mühendislik standartlarına tam uyum sağlayan <strong>Ferodo, Brembo, TRW ve Bosch</strong> gibi OEM üreticiler, fabrika montajında tercih edilen standartları sunar. Fren performansını korumak için balataların disk alaşımı ile uyumlu seçilmesi gerekir.</p>
+          </div>
+          <div>
+            <h3 class="font-black text-slate-900 mb-1">Fren Hidroliği ve Hortum Güvenliği:</h3>
+            <p>Balata değişimlerinde DOT4 / DOT5.1 fren hidroliği kaynama noktası kontrol edilmeli; aşırı sıcaklık ve basınç altında genleşmeyi önlemek için takviyeli hortumlar tercih edilmelidir.</p>
+          </div>
+        `,
+        tableHtml: `
+          <ul class="space-y-2 text-xs font-mono">
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Ön Fren Balatası:</span>
+              <strong class="text-slate-900 font-bold">5Q0 698 151 B</strong>
+            </li>
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Ön Fren Diski:</span>
+              <strong class="text-slate-900 font-bold">5Q0 615 301 H (288mm)</strong>
+            </li>
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Arka Fren Balatası:</span>
+              <strong class="text-slate-900 font-bold">5Q0 698 451</strong>
+            </li>
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Arka Fren Diski:</span>
+              <strong class="text-slate-900 font-bold">5Q0 615 601 F (272mm)</strong>
+            </li>
+          </ul>
+        `
+      },
+      "Motor & Şanzıman": {
+        title: "Motor & Şanzıman Aksamı Satın Alma Rehberi",
+        content: `
+          <div>
+            <h3 class="font-black text-slate-900 mb-1">Motor Kodu ve Subap Sayısı Tespiti:</h3>
+            <p>Triger seti, devirdaim su pompası ve silindir kapak contası siparişlerinde ruhsattaki <strong>Motor Kodu (Örn: K9K, EA888, OM651)</strong> birebir eşleştirilmelidir.</p>
+          </div>
+          <div>
+            <h3 class="font-black text-slate-900 mb-1">Triger Seti & Devirdaim Birlikte Değişimi:</h3>
+            <p>İşçilik maliyetini düşürmek ve rulman kilitlemelerini önlemek adına triger kayış değişiminde gergiler ve devirdaim su pompasının set olarak yenilenmesi üretici tavsiyesidir.</p>
+          </div>
+          <div>
+            <h3 class="font-black text-slate-900 mb-1">Şanzıman Yağı ve Filtre Standartları:</h3>
+            <p>Otomatik şanzımanlarda (DSG, EDC, ZF 8HP) üretici onaylı OEM viskozite ve onay koduna (Örn: G 052 182 A2) sahip yağlar kullanılmalıdır.</p>
+          </div>
+        `,
+        tableHtml: `
+          <ul class="space-y-2 text-xs font-mono">
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Triger Kayış Seti:</span>
+              <strong class="text-slate-900 font-bold">04L 198 119 A</strong>
+            </li>
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Devirdaim Su Pompası:</span>
+              <strong class="text-slate-900 font-bold">04L 121 011 N</strong>
+            </li>
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Kapak Contası:</span>
+              <strong class="text-slate-900 font-bold">04L 103 383 AK</strong>
+            </li>
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">DSG / Şanzıman Filtresi:</span>
+              <strong class="text-slate-900 font-bold">02E 305 051 C</strong>
+            </li>
+          </ul>
+        `
+      },
+      "Süspansiyon & Direksiyon": {
+        title: "Süspansiyon & Yürüyen Aksam Satın Alma Rehberi",
+        content: `
+          <div>
+            <h3 class="font-black text-slate-900 mb-1">Sağ / Sol ve Ön / Arka Yön Ayrımı:</h3>
+            <p>Salıncaklar, rot başları ve z-rotlar araç üzerinde yönlü parçalardır. Sipariş oluştururken şasi ve montaj tarafının (Sağ/Sol) doğru seçildiğinden emin olunmalıdır.</p>
+          </div>
+          <div>
+            <h3 class="font-black text-slate-900 mb-1">Amortisörlerin Çift Olarak Değişimi:</h3>
+            <p>Yol tutuş stabilitesi ve fren mesafesinin korunması için ön veya arka amortisörlerin daima aks bazında çift (sağ + sol) olarak yenilenmesi şarttır.</p>
+          </div>
+        `,
+        tableHtml: `
+          <ul class="space-y-2 text-xs font-mono">
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Ön Amortisör (Sağ/Sol):</span>
+              <strong class="text-slate-900 font-bold">5Q0 413 031 ET</strong>
+            </li>
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Ön Salıncak (Sol):</span>
+              <strong class="text-slate-900 font-bold">5Q0 407 151 J</strong>
+            </li>
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Z-Rot (Askı Rotu):</span>
+              <strong class="text-slate-900 font-bold">5Q0 411 315 B</strong>
+            </li>
+          </ul>
+        `
+      },
+      "Filtre & Bakım": {
+        title: "Periyodik Bakım & Filtre Seti Rehberi",
+        content: `
+          <div>
+            <h3 class="font-black text-slate-900 mb-1">4'lü Filtre Seti Uyumluluğu:</h3>
+            <p>Yağ, hava, yakıt ve polen filtrelerinin aracın model yılı ve şasi revizyonuna göre UFI veya MANN tip gövdeye sahip olup olmadığı kontrol edilmelidir.</p>
+          </div>
+          <div>
+            <h3 class="font-black text-slate-900 mb-1">DPF Uyumlu Motor Yağı:</h3>
+            <p>Dizel Partikül Filtreli (DPF) araçlarda düşük kül oranlı (Low SAPS) onaylı 5W-30 veya 0W-30 OEM onaylı tam sentetik motor yağları kullanılmalıdır.</p>
+          </div>
+        `,
+        tableHtml: `
+          <ul class="space-y-2 text-xs font-mono">
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Yağ Filtresi:</span>
+              <strong class="text-slate-900 font-bold">03N 115 562 B</strong>
+            </li>
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Hava Filtresi:</span>
+              <strong class="text-slate-900 font-bold">5Q0 129 620 B</strong>
+            </li>
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Karbonlu Polen:</span>
+              <strong class="text-slate-900 font-bold">5Q0 819 653</strong>
+            </li>
+          </ul>
+        `
+      },
+      "Mercedes": {
+        title: "Mercedes-Benz Orijinal Yedek Parça Rehberi",
+        content: `
+          <div>
+            <h3 class="font-black text-slate-900 mb-1">Şasi Numarası (VIN) Kontrolü Zorunludur:</h3>
+            <p>Mercedes araçlarda şasi numarası (VIN) kontrolü zorunludur. WDF / WDD kodlu 17 haneli şasi numarası üzerinden EPC kontrolü yapılmadan sipariş verilmemelidir. Donanıma (AMG Line, Avantgarde, Exclusive) göre disk ve kaliper çapları değişmektedir.</p>
+          </div>
+          <div>
+            <h3 class="font-black text-slate-900 mb-1">Orijinal Yıldızlı Parça Standartları:</h3>
+            <p>Yürüyen aksam ve şanzıman parçalarında Lemförder, Sachs ve Bilstein OEM üreticileri tercih edilmelidir.</p>
+          </div>
+        `,
+        tableHtml: `
+          <ul class="space-y-2 text-xs font-mono">
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Ön Fren Balata Seti:</span>
+              <strong class="text-slate-900 font-bold">A 000 420 30 02</strong>
+            </li>
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Hava Filtresi (Set):</span>
+              <strong class="text-slate-900 font-bold">A 651 094 00 04</strong>
+            </li>
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">7G/9G Tronic Filtre:</span>
+              <strong class="text-slate-900 font-bold">A 222 277 20 00</strong>
+            </li>
+          </ul>
+        `
+      },
+      "Renault": {
+        title: "Renault & Dacia Orijinal Yedek Parça Rehberi",
+        content: `
+          <div>
+            <h3 class="font-black text-slate-900 mb-1">OEM Kod ve Kaliper Tipi Eşleştirmesi:</h3>
+            <p>Renault ve Dacia araçlarda kaliper tipi (Lucas/TRW veya Bosch tip) ve 41060 / 7701 serisi OEM numaraları kontrol edilmelidir.</p>
+          </div>
+          <div>
+            <h3 class="font-black text-slate-900 mb-1">1.5 dCi Motor Bakım Özellikleri:</h3>
+            <p>K9K 1.5 dCi motorlarda triger seti, v-kayışı ve mazot filtresinin periyodik kilometrelerde OEM standartlarında yenilenmesi subap ve enjektör sağlığı için zorunludur.</p>
+          </div>
+        `,
+        tableHtml: `
+          <ul class="space-y-2 text-xs font-mono">
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Ön Fren Balata Tk.:</span>
+              <strong class="text-slate-900 font-bold">410601241R</strong>
+            </li>
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Ön Fren Diski (Çift):</span>
+              <strong class="text-slate-900 font-bold">7701207795 (259mm)</strong>
+            </li>
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">1.5 dCi Triger Seti:</span>
+              <strong class="text-slate-900 font-bold">130C11508R</strong>
+            </li>
+          </ul>
+        `
+      },
+      "Volkswagen": {
+        title: "Volkswagen & VAG Grubu Orijinal Yedek Parça Rehberi",
+        content: `
+          <div>
+            <h3 class="font-black text-slate-900 mb-1">PR Kodları ve Disk Çapları:</h3>
+            <p>Modern binek ve ticari araç modellerinde fabrika çıkış donanıma bağlı olarak farklı ön disk çapları (276mm, 288mm veya 312mm) bulunmaktadır. Doğru parçayı seçmek için aracınızın teknik kılavuzundaki ve bagaj havuzundaki etikette yer alan <strong>PR kodlarını (Örn: 1ZA / 1ZE)</strong> kontrol etmeniz önerilir.</p>
+          </div>
+          <div>
+            <h3 class="font-black text-slate-900 mb-1">Orijinal Ekipman (OEM) ve Muadil:</h3>
+            <p>Mühendislik standartlarına tam uyum sağlayan <strong>Ferodo, Brembo ve Bosch</strong> gibi OEM üreticiler, fabrika montajında tercih edilen standartları sunar. Fren performansını fabrika seviyesinde korumak için balataların disk materyali ile uyumlu seçilmesi tavsiye edilir.</p>
+          </div>
+        `,
+        tableHtml: `
+          <ul class="space-y-2 text-xs font-mono">
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Ön Fren Balatası:</span>
+              <strong class="text-slate-900 font-bold">5Q0 698 151 B</strong>
+            </li>
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Ön Fren Diski:</span>
+              <strong class="text-slate-900 font-bold">5Q0 615 301 H (288mm)</strong>
+            </li>
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Arka Fren Balatası:</span>
+              <strong class="text-slate-900 font-bold">5Q0 698 451</strong>
+            </li>
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Arka Fren Diski:</span>
+              <strong class="text-slate-900 font-bold">5Q0 615 601 F (272mm)</strong>
+            </li>
+          </ul>
+        `
+      },
+      "BMW": {
+        title: "BMW Orijinal Yedek Parça Rehberi",
+        content: `
+          <div>
+            <h3 class="font-black text-slate-900 mb-1">BMW ETK ve Şasi Doğrulaması:</h3>
+            <p>BMW araçlarında son 7 haneli şasi sorgusu ile parça kataloğundan tam eşleşme sağlanmalıdır. M Sport ve standart fren kaliper ve disk çapları farklıdır.</p>
+          </div>
+        `,
+        tableHtml: `
+          <ul class="space-y-2 text-xs font-mono">
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Ön Fren Balatası:</span>
+              <strong class="text-slate-900 font-bold">34 11 6 850 568</strong>
+            </li>
+            <li class="flex justify-between items-center pb-1.5 border-b border-slate-200/60">
+              <span class="font-sans text-slate-600 font-medium text-[11px]">Fren İkaz Fişi:</span>
+              <strong class="text-slate-900 font-bold">34 35 6 792 289</strong>
+            </li>
+          </ul>
+        `
+      }
     };
+
+    function updateDynamicBuyingGuide() {
+      const guideSection = document.getElementById('dynamic-guide-section');
+      const guideTitle = document.getElementById('guide-title') || document.getElementById('guide-header-title');
+      const guideContent = document.getElementById('guide-content');
+      const guideTable = document.getElementById('guide-table');
+
+      if (!guideSection) return;
+
+      // Tüm aktif filtre ve arama parametrelerini topla
+      const activeTerms = [];
+
+      if (currentCategory && currentCategory !== 'all' && currentCategory !== 'Tüm Kategoriler') {
+        activeTerms.push(currentCategory.trim());
+      }
+      if (Array.isArray(currentSubCategories) && currentSubCategories.length > 0) {
+        currentSubCategories.forEach(s => activeTerms.push(s.trim()));
+      }
+      if (currentBrand && currentBrand !== 'all') {
+        activeTerms.push(currentBrand.trim());
+      }
+      if (activeVehicle && (activeVehicle.brand || activeVehicle.name)) {
+        const vb = (activeVehicle.brand || activeVehicle.name || '').trim();
+        if (vb && !activeTerms.includes(vb)) activeTerms.push(vb);
+      }
+      if (Array.isArray(currentManufacturers) && currentManufacturers.length > 0) {
+        currentManufacturers.forEach(m => activeTerms.push(m.trim()));
+      }
+      if (currentSearchQuery && currentSearchQuery.trim()) {
+        activeTerms.push(currentSearchQuery.trim());
+      }
+      if (currentOemFilter && currentOemFilter.trim()) {
+        activeTerms.push(currentOemFilter.trim());
+      }
+
+      // prompt.md ADIM 3: EĞER YOKSA veya FİLTRE TEMİZLENDİYSE: Kutuya hidden ekle ve ekrandan kaldır
+      if (activeTerms.length === 0) {
+        guideSection.classList.add('hidden');
+        guideSection.style.display = 'none';
+        return;
+      }
+
+      // prompt.md ADIM 3: guideData objesinde eşleşen var mı kontrol et
+      let matchedGuide = null;
+      const guideKeys = Object.keys(guideData);
+
+      for (const term of activeTerms) {
+        const tLower = term.toLowerCase();
+
+        // Doğrudan anahtar kontrolü
+        for (const k of guideKeys) {
+          const kLower = k.toLowerCase();
+          if (kLower === tLower || tLower.includes(kLower) || kLower.includes(tLower)) {
+            matchedGuide = guideData[k];
+            break;
+          }
+        }
+        if (matchedGuide) break;
+
+        // Kategori / Terim kök kontrolleri
+        if (tLower.includes('fren') || tLower.includes('balata') || tLower.includes('disk') || tLower.includes('kaliper')) {
+          matchedGuide = guideData["Fren Sistemi"];
+          break;
+        }
+        if (tLower.includes('motor') || tLower.includes('şanzıman') || tLower.includes('sanziman') || tLower.includes('triger') || tLower.includes('devirdaim')) {
+          matchedGuide = guideData["Motor & Şanzıman"];
+          break;
+        }
+        if (tLower.includes('süspansiyon') || tLower.includes('suspansiyon') || tLower.includes('amortisör') || tLower.includes('salıncak') || tLower.includes('rot')) {
+          matchedGuide = guideData["Süspansiyon & Direksiyon"];
+          break;
+        }
+        if (tLower.includes('filtre') || tLower.includes('bakım') || tLower.includes('bakim')) {
+          matchedGuide = guideData["Filtre & Bakım"];
+          break;
+        }
+        if (tLower.includes('mercedes')) {
+          matchedGuide = guideData["Mercedes"];
+          break;
+        }
+        if (tLower.includes('renault') || tLower.includes('clio') || tLower.includes('megane') || tLower.includes('dacia')) {
+          matchedGuide = guideData["Renault"];
+          break;
+        }
+        if (tLower.includes('volkswagen') || tLower.includes('golf') || tLower.includes('passat') || tLower.includes('vag')) {
+          matchedGuide = guideData["Volkswagen"];
+          break;
+        }
+        if (tLower.includes('bmw')) {
+          matchedGuide = guideData["BMW"];
+          break;
+        }
+      }
+
+      // prompt.md ADIM 3: EĞER VARSA: Gizliliği kaldır ve alanları doldur
+      if (matchedGuide) {
+        if (guideTitle) {
+          guideTitle.innerHTML = `<span>${matchedGuide.title}</span><span class="text-xs font-bold text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">B2B Teknik Kılavuz</span>`;
+        }
+        if (guideContent) {
+          guideContent.innerHTML = matchedGuide.content;
+        }
+        if (guideTable) {
+          guideTable.innerHTML = matchedGuide.tableHtml;
+        }
+        guideSection.classList.remove('hidden');
+        guideSection.style.display = '';
+      } else {
+        guideSection.classList.add('hidden');
+        guideSection.style.display = 'none';
+      }
+    }
+    window.guideData = guideData;
+    window.updateDynamicBuyingGuide = updateDynamicBuyingGuide;
+
+    try {
+      Object.defineProperty(window, 'currentCategory', {
+        get: () => currentCategory,
+        set: (v) => { currentCategory = v; },
+        configurable: true
+      });
+      Object.defineProperty(window, 'currentBrand', {
+        get: () => currentBrand,
+        set: (v) => { currentBrand = v; },
+        configurable: true
+      });
+      Object.defineProperty(window, 'currentSearchQuery', {
+        get: () => currentSearchQuery,
+        set: (v) => { currentSearchQuery = v; },
+        configurable: true
+      });
+      Object.defineProperty(window, 'activeVehicle', {
+        get: () => activeVehicle,
+        set: (v) => { activeVehicle = v; },
+        configurable: true
+      });
+    } catch (e) {}
 
     // --------------------------------------------------------------------------
     // 1. INITIALIZATION & DATA FETCHING
@@ -1167,26 +1539,40 @@
       loadCartFromStorage();
       loadFavoritesFromStorage();
       checkAuthState();
+      initSidebarListeners();
+      initNavbarCategoryListeners();
+      initViewModeButtons();
+      buildAndFetchFilters();
+      updateFilterFacetCounts([]);
       await fetchProducts();
     });
 
     // ==========================================================================
-    // 1. ÜRÜN ÇEKME & FRONTEND VERİ EŞLEŞTİRMESİ (prompt.md ADIM 1)
+    // 1. ÜRÜN ÇEKME & FRONTEND VERİ EŞLEŞTİRMESİ (prompt.md ADIM 1 & ADIM 2)
     // ==========================================================================
-    async function fetchProducts() {
-      const grid = document.getElementById('products-grid');
+    async function fetchProducts(category) {
+      // ADIM 2: Dışarıdan category parametresi alacak şekilde dinamik yönetim
+      // Parametresiz çağrıldığında (veya 'Tüm Kategoriler' seçildiğinde) filtreyi sıfırla
+      if (!category || category === 'Tüm Kategoriler' || category === 'all') {
+        currentCategory = '';
+      } else {
+        currentCategory = category.trim();
+      }
+
+      const grid = document.getElementById('products-container') || document.getElementById('products-grid');
       const emptyState = document.getElementById('empty-catalog-state');
 
       try {
         const queryParams = new URLSearchParams();
-        if (activeVehicle && activeVehicle.brand && activeVehicle.brand !== 'all') {
-          queryParams.set('brand', activeVehicle.brand);
-        }
-        if (currentCategory && currentCategory !== 'all') {
-          queryParams.set('category', currentCategory);
-        }
         if (currentSearchQuery) {
           queryParams.set('search', currentSearchQuery);
+        } else {
+          if (activeVehicle && activeVehicle.brand && activeVehicle.brand !== 'all') {
+            queryParams.set('brand', activeVehicle.brand);
+          }
+          if (currentCategory && currentCategory !== 'all' && currentCategory !== 'Tüm Kategoriler') {
+            queryParams.set('category', currentCategory);
+          }
         }
         if (currentInStockOnly) {
           queryParams.set('inStock', 'true');
@@ -1198,11 +1584,19 @@
           queryParams.set('maxPrice', String(currentMaxPrice));
         }
 
+        const queryString = queryParams.toString();
+        // prompt.md ADIM 1: URL sonundaki fazladan slash ve çift slash temizlenir
+        const requestPath = ('/store/products' + (queryString ? '?' + queryString : '')).replace(/\/+(\?|$)/, '$1');
+        const fullUrl = `https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api${requestPath}`.replace(/([^:]\/)\/+/g, '$1');
+
         let data = null;
         if (typeof apiFetch === 'function') {
-          data = await apiFetch('/store/products?' + queryParams.toString());
+          data = await apiFetch(requestPath);
         } else {
-          const rawRes = await fetch('https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api/store/products?' + queryParams.toString());
+          const rawRes = await fetch(fullUrl);
+          if (!rawRes.ok) {
+            throw new Error(`HTTP ${rawRes.status}: ${rawRes.statusText}`);
+          }
           data = await rawRes.json();
         }
 
@@ -1224,21 +1618,29 @@
           rawList = data.items;
         }
 
-        // Eğer belirli kategori veya marka filtresi sonucu 0 ürün geldiyse (farklı marka/kategori bayi ürünleri varsa),
-        // vitrinin boş kalmaması için tüm ürünleri koşulsuz getir:
-        if (rawList.length === 0 && (queryParams.has('brand') || queryParams.has('category'))) {
-          console.info("[Vitrin] Filtreli aramada sonuç bulunamadı. Bayi ürünleri için koşulsuz katalog sorgulanıyor...");
-          let fallbackData = null;
-          if (typeof apiFetch === 'function') {
-            fallbackData = await apiFetch('/store/products');
-          } else {
-            const rawRes = await fetch('https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api/store/products');
-            fallbackData = await rawRes.json();
-          }
-          console.log("Gelen Veri (Koşulsuz Liste):", fallbackData);
-          if (Array.isArray(fallbackData)) rawList = fallbackData;
-          else if (fallbackData && Array.isArray(fallbackData.data)) rawList = fallbackData.data;
-          else if (fallbackData && fallbackData.data && Array.isArray(fallbackData.data.data)) rawList = fallbackData.data.data;
+        // prompt.md Kuralı: Eğer arama yapılmışsa fakat backend boş dizi dönmüşse,
+        // aranan kod KESİNLİKLE katalog ürünü olarak ekrana getirilmelidir!
+        if (rawList.length === 0 && currentSearchQuery && currentSearchQuery.trim()) {
+          const qClean = currentSearchQuery.trim();
+          rawList = [{
+            brand: 'OEM / Katalog',
+            vehicleBrand: 'OEM / Katalog',
+            oemNumber: qClean,
+            oeNumber: qClean,
+            name: `${qClean} Referans Parça`,
+            category: 'Katalog Referansı',
+            subCategory: 'Katalog Referansı',
+            partGroup: 'Katalog Referansı',
+            stock: 0,
+            price: null,
+            supplierName: 'Sadece Dış Katalog (Bayide Yok)',
+            isLocalStock: false,
+            isCatalogOnly: true,
+            stockStatus: 'OUT_OF_STOCK_CATALOG',
+            crossReferences: 'Muadil kaydı bulunamadı',
+            imageUrl: 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=600&auto=format&fit=crop&q=80',
+            images: ['https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=600&auto=format&fit=crop&q=80']
+          }];
         }
 
         // prompt.md ADIM 1: HTML şablonu ve Prisma sütun isimleriyle (name, price, oeNumber, vehicleBrand, stock)
@@ -1248,15 +1650,42 @@
           const id = p.tenantProductId || p.productId || p.id || prod.id || `prod-${idx}`;
           const oeNumber = p.oeNumber || prod.oeNumber || p.oemNumber || '5Q0 698 151';
           const name = p.name || prod.name || 'Yedek Parça';
-          const vehicleBrand = p.vehicleBrand || prod.vehicleBrand || p.brand || 'OEM';
+          const vehicleBrand = (p.vehicleBrand || prod.vehicleBrand || p.brand || prod.brand || 'OEM').trim();
+          const brand = (p.brand || prod.brand || p.manufacturer || prod.manufacturer || vehicleBrand).trim();
+          const manufacturer = (p.manufacturer || prod.manufacturer || brand).trim();
+
+          // Kategori çözümlemesi: Veritabanı ve parçanın tam adına göre normalize et (strict match)
+          let category = (p.category || prod.category || p.subCategory || prod.subCategory || '').trim();
+          const nameLower = name.toLowerCase();
+          if (!category || category === 'Genel' || category === 'Motor & Mekanik' || category === 'Fren Sistemi') {
+            if (nameLower.includes('ön fren balata') || nameLower.includes('ön fren balatası')) category = 'Ön Fren Balatası';
+            else if (nameLower.includes('arka fren balata') || nameLower.includes('arka fren balatası')) category = 'Arka Fren Balatası';
+            else if (nameLower.includes('ön fren disk')) category = 'Ön Fren Diski';
+            else if (nameLower.includes('arka fren disk')) category = 'Arka Fren Diski';
+            else if (nameLower.includes('kaliper') || nameLower.includes('hortum')) category = 'Fren Kaliperi & Hortumlar';
+            else if (nameLower.includes('balata')) category = 'Ön Fren Balatası';
+            else if (!category) category = 'Genel';
+          }
+          const subCategory = category;
+          const partGroup = (p.partGroup || prod.partGroup || category).trim();
           const compatibleModels = p.compatibleModels || prod.compatibleModels || (activeVehicle ? activeVehicle.name : 'Tüm Modeller');
-          const category = p.category || prod.category || 'Genel';
-          const partGroup = p.partGroup || prod.partGroup || category;
           const labor = p.estimatedLaborTime || prod.estimatedLaborTime || '45 Dk';
-          const price = parseFloat(p.price !== undefined && p.price !== null ? p.price : (p.customPrice !== undefined && p.customPrice !== null ? p.customPrice : (prod.defaultPrice || p.defaultPrice || 1450)));
-          const discountedPrice = parseFloat(p.discountedPrice || (p.pricing && p.pricing.finalPrice) || (price > 0 ? price * 0.8 : 0));
-          const stock = parseInt(p.stock !== undefined && p.stock !== null ? p.stock : (prod.stock !== undefined ? prod.stock : 14), 10);
+          const isLocalStock = p.isLocalStock !== undefined ? !!p.isLocalStock : (p.stock !== undefined && p.stock !== null && parseInt(p.stock, 10) > 0 && p.price !== null);
+          const isCatalogOnly = !!p.isCatalogOnly || !isLocalStock;
+          const price = isLocalStock
+            ? parseFloat(p.price !== undefined && p.price !== null ? p.price : (p.customPrice !== undefined && p.customPrice !== null ? p.customPrice : (prod.defaultPrice || p.defaultPrice || 1450)))
+            : null;
+          const discountedPrice = (isLocalStock && price !== null)
+            ? parseFloat(p.discountedPrice || (p.pricing && p.pricing.finalPrice) || (price * 0.8))
+            : null;
+          const stock = isLocalStock
+            ? ((p.stock !== undefined && p.stock !== null) ? parseInt(p.stock, 10) : (prod.stock !== undefined ? parseInt(prod.stock, 10) : 14))
+            : 0;
+          const stockStatus = p.stockStatus || (isLocalStock ? 'IN_STOCK' : 'OUT_OF_STOCK_CATALOG');
+          const crossReferences = p.crossReferences || prod.crossReferences || p.cross_references || prod.cross_references || [];
+          const barcode = p.barcode || prod.barcode || '';
           const imageUrl = p.imageUrl || prod.imageUrl || (p.images && p.images[0]) || (prod.images && prod.images[0]) || 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=400&auto=format&fit=crop&q=80';
+          const sellerName = p.companyName || p.sellerName || p.dealerName || p.tenantName || (p.user && (p.user.companyName || p.user.name)) || (p.tenant && p.tenant.name) || (prod.user && (prod.user.companyName || prod.user.name)) || 'Ahmet Oto (Yetkili Bayi)';
 
           return {
             id,
@@ -1268,11 +1697,22 @@
             defaultPrice: price,
             discountedPrice,
             stock,
+            isLocalStock,
+            isCatalogOnly,
+            stockStatus,
             oeNumber,
+            barcode,
+            crossReferences,
+            brand,
             vehicleBrand,
-            manufacturer: p.manufacturer || vehicleBrand,
+            manufacturer,
+            sellerName,
+            companyName: sellerName,
+            dealerName: sellerName,
+            user: p.user || { companyName: sellerName, name: sellerName },
             compatibleModels,
             category,
+            subCategory,
             partGroup,
             estimatedLaborTime: labor,
             imageUrl,
@@ -1280,23 +1720,56 @@
             product: {
               id,
               name,
+              brand,
               price,
               defaultPrice: price,
               stock,
+              isLocalStock,
+              isCatalogOnly,
+              stockStatus,
               oeNumber,
+              barcode,
+              crossReferences,
               category,
+              subCategory,
               vehicleBrand,
+              manufacturer,
               compatibleModels,
               partGroup,
-              imageUrl
+              imageUrl,
+              companyName: sellerName,
+              user: p.user || { companyName: sellerName, name: sellerName }
             }
           };
         });
 
+        // Sol menüdeki OEM Marka etiketini ve checkbox değerini gelen ürünün ana araç markasına göre güncelle
+        if (allProducts.length > 0) {
+          const primaryBrand = (allProducts[0].vehicleBrand || allProducts[0].brand || '').trim();
+          const oemCheckbox = document.getElementById('brand-oem-checkbox');
+          const oemText = document.getElementById('brand-oem-text');
+          const oemCount = document.getElementById('brand-oem-count');
+          if (primaryBrand && primaryBrand.toLowerCase() !== 'oem') {
+            if (oemCheckbox) oemCheckbox.value = primaryBrand;
+            if (oemText) oemText.textContent = `Orijinal ${primaryBrand} (OEM)`;
+            if (oemCount) oemCount.setAttribute('data-filter-count', `brand-${primaryBrand}`);
+          }
+        }
+
+        // prompt.md ADIM 1: OEM Arama Algoritması (Exact Match First)
+        if (currentSearchQuery) {
+          allProducts = sortExactMatchFirst(allProducts, currentSearchQuery);
+        }
+
+        // prompt.md ADIM 2: Sol menü filtre sayılarını (facet counts) gelen veriye göre hesapla ve güncelle
+        updateFilterFacetCounts(allProducts);
+
         applyClientFilters();
-      } catch (err) {
-        console.error('[LOAD_PRODUCTS_ERROR]:', err);
+      } catch (error) {
+        // prompt.md ADIM 1: Gerçek API hatasını konsola yazdır
+        console.error("Gerçek API Hatası:", error);
         allProducts = [];
+        updateFilterFacetCounts([]);
         applyClientFilters();
       }
     }
@@ -1306,36 +1779,320 @@
     window.loadProducts = loadProducts;
 
     // --------------------------------------------------------------------------
+    // DYNAMIC PAGE TITLE & FILTER CRITERIA COUNTER (prompt.md ADIM 2 & ADIM 3)
+    // --------------------------------------------------------------------------
+    function initSidebarListeners() {
+      const sidebar = document.getElementById('store-sidebar');
+      if (sidebar) {
+        sidebar.addEventListener('change', function() {
+          buildAndFetchFilters();
+        });
+        sidebar.addEventListener('input', function() {
+          buildAndFetchFilters();
+        });
+      }
+
+      const searchInput = document.getElementById('store-search-input');
+      if (searchInput) {
+        let searchDebounceTimer = null;
+        searchInput.addEventListener('input', function() {
+          currentSearchQuery = this.value.trim();
+          buildAndFetchFilters();
+          applyClientFilters();
+          clearTimeout(searchDebounceTimer);
+          searchDebounceTimer = setTimeout(() => {
+            fetchProducts();
+          }, 350);
+        });
+      }
+    }
+
+    // --------------------------------------------------------------------------
+    // FRONTEND ÜST MENÜ (NAVBAR) OLAY DİNLEYİCİLERİ (prompt.md ADIM 1)
+    // --------------------------------------------------------------------------
+    function initNavbarCategoryListeners() {
+      const catButtons = document.querySelectorAll('.nav-cat-btn[data-category]');
+      catButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          const category = this.getAttribute('data-category');
+
+          // 1. Eski aktif sekmeden CSS class'larını kaldır, tıklanan sekmeye ekle
+          document.querySelectorAll('.nav-cat-btn').forEach(b => {
+            b.classList.remove('bg-slate-800', 'text-orange-400', 'font-extrabold', 'border-b-2', 'border-orange-500', 'active-cat');
+            b.classList.add('hover:bg-slate-800', 'hover:text-white');
+          });
+          this.classList.remove('hover:bg-slate-800', 'hover:text-white');
+          this.classList.add('bg-slate-800', 'text-orange-400', 'font-extrabold', 'border-b-2', 'border-orange-500', 'active-cat');
+
+          // 2 & 3. Tıklanan sekmenin data-category değerini al ve fetchProducts(category) çağır
+          if (category === 'FIRSAT') {
+            fetchProducts('all');
+          } else {
+            fetchProducts(category);
+          }
+        });
+      });
+
+      // 4. "Tüm Kategoriler" butonu
+      const allCategoriesBtn = document.getElementById('btn-mega-menu');
+      if (allCategoriesBtn) {
+        allCategoriesBtn.addEventListener('click', function(e) {
+          document.querySelectorAll('.nav-cat-btn').forEach(b => {
+            b.classList.remove('bg-slate-800', 'text-orange-400', 'font-extrabold', 'border-b-2', 'border-orange-500', 'active-cat');
+            b.classList.add('hover:bg-slate-800', 'hover:text-white');
+          });
+          fetchProducts(); // Parametresiz çağır (filtreyi sıfırla)
+        });
+      }
+    }
+
+    function buildAndFetchFilters(paramBrand) {
+      if (typeof paramBrand === 'string') {
+        currentBrand = paramBrand;
+        if (activeVehicle && paramBrand) {
+          activeVehicle.brand = paramBrand;
+          activeVehicle.name = paramBrand;
+        }
+      }
+
+      const dynamicTitle = document.getElementById('dynamic-page-title');
+      const criteriaText = document.getElementById('dynamic-criteria-text');
+
+      // ADIM 2: Marka / Model tespit et ve başlığı dinamikleştir
+      const secilenMarka = currentBrand || (activeVehicle && (activeVehicle.brand || activeVehicle.name)) || '';
+
+      if (dynamicTitle) {
+        if (currentSearchQuery && currentSearchQuery.trim()) {
+          dynamicTitle.textContent = `"${currentSearchQuery.trim()}" Arama Sonuçları`;
+          dynamicTitle.classList.remove('hidden');
+          dynamicTitle.style.display = '';
+          document.title = `"${currentSearchQuery.trim()}" Arama Sonuçları | ParçaPro B2B`;
+        } else if (secilenMarka && secilenMarka.trim() !== '' && secilenMarka.toLowerCase() !== 'all') {
+          dynamicTitle.textContent = `${secilenMarka} Uyumlu Tüm Yedek Parçalar`;
+          dynamicTitle.classList.remove('hidden');
+          dynamicTitle.style.display = '';
+          document.title = `${secilenMarka} Uyumlu Tüm Yedek Parçalar | ParçaPro B2B`;
+        } else {
+          dynamicTitle.textContent = '';
+          dynamicTitle.classList.add('hidden');
+          document.title = 'ParçaPro B2B | Otomotiv Yedek Parça Pazaryeri';
+        }
+      }
+
+      // ADIM 3: Sol menüdeki aktif filtre (checkbox) sayısını hesapla
+      const sidebar = document.getElementById('store-sidebar');
+      const checkedBoxes = sidebar ? sidebar.querySelectorAll('input[type="checkbox"]:checked') : [];
+      const aktifFiltreSayisi = checkedBoxes.length;
+
+      if (criteriaText) {
+        if (aktifFiltreSayisi > 0) {
+          criteriaText.textContent = `(${aktifFiltreSayisi} arama kriteri devrede)`;
+          criteriaText.classList.remove('hidden');
+          criteriaText.style.display = '';
+        } else {
+          criteriaText.textContent = '';
+          criteriaText.classList.add('hidden');
+        }
+      }
+
+      // prompt.md ADIM 3: Dinamik Satın Alma Rehberi güncelleme
+      updateDynamicBuyingGuide();
+    }
+    window.buildAndFetchFilters = buildAndFetchFilters;
+    window.updateDynamicHeaders = buildAndFetchFilters;
+
+    function selectBrand(brand) {
+      currentBrand = brand || '';
+      if (activeVehicle) {
+        activeVehicle.brand = brand;
+      }
+      buildAndFetchFilters();
+      applyClientFilters();
+    }
+    window.selectBrand = selectBrand;
+
+    // --------------------------------------------------------------------------
+    // DYNAMIC FILTER FACET COUNTS (prompt.md ADIM 2: Kesin/Strict Sayım Algoritması)
+    // --------------------------------------------------------------------------
+    function updateFilterFacetCounts(products) {
+      const list = Array.isArray(products) ? products : (allProducts || []);
+      const brandCounts = {};
+      const categoryCounts = {};
+
+      // ADIM 2: Veritabanından gelen tam string değerine göre say
+      list.forEach(product => {
+        const prod = product.product || {};
+        const b = (product.brand || prod.brand || product.manufacturer || prod.manufacturer || product.vehicleBrand || prod.vehicleBrand || '').trim();
+        const c = (product.category || prod.category || product.subCategory || prod.subCategory || '').trim();
+
+        if (b) {
+          brandCounts[b] = (brandCounts[b] || 0) + 1;
+        }
+        if (c) {
+          categoryCounts[c] = (categoryCounts[c] || 0) + 1;
+        }
+      });
+
+      console.log("[FACET_COUNTS] Marka Sayımları:", brandCounts);
+      console.log("[FACET_COUNTS] Kategori Sayımları:", categoryCounts);
+
+      // ADIM 2 & 3: Sadece ilgili data-filter etiketlerine bu sayıları bas, olmayanlara (0) bas
+      const countSpans = document.querySelectorAll('[data-filter-count]');
+      if (!countSpans || countSpans.length === 0) return { brandCounts, categoryCounts };
+
+      countSpans.forEach(span => {
+        const key = span.getAttribute('data-filter-count');
+        if (!key) return;
+
+        let count = 0;
+        if (key.startsWith('brand-')) {
+          const targetBrand = key.replace('brand-', '').trim();
+          const targetLower = targetBrand.toLowerCase();
+
+          // Sadece gelen ürünün kendi markasına kesin (strict/case-insensitive) eşleşme ile sayı ekle
+          Object.keys(brandCounts).forEach(bKey => {
+            const bLower = bKey.toLowerCase().trim();
+            if (bLower === targetLower) {
+              count += brandCounts[bKey];
+            } else if (targetLower === 'trw / zf' && (bLower === 'trw' || bLower === 'zf')) {
+              count += brandCounts[bKey];
+            } else if ((targetLower.includes('vag') || targetLower.includes('oem')) && (bLower.includes('vag') || bLower === 'oem' || bLower === 'orijinal')) {
+              count += brandCounts[bKey];
+            }
+          });
+        } else if (key.startsWith('category-')) {
+          const targetCat = key.replace('category-', '').trim().toLowerCase();
+
+          // Sadece gelen ürünün kendi kategorisine kesin (strict/case-insensitive) eşleşme ile sayı ekle
+          Object.keys(categoryCounts).forEach(cKey => {
+            const cLower = cKey.toLowerCase().trim();
+            const cRoot = cLower.replace(/(balatası|balatasi)$/, 'balata').replace(/(diski)$/, 'disk');
+            const targetRoot = targetCat.replace(/(balatası|balatasi)$/, 'balata').replace(/(diski)$/, 'disk');
+            if (cLower === targetCat || cRoot === targetRoot) {
+              count += categoryCounts[cKey];
+            }
+          });
+        }
+
+        span.textContent = '(' + count + ')';
+
+        // Checkbox ve label durumu: Olmayanlar (0) disabled & soluk, olanlar aktif
+        const label = span.closest('label');
+        const checkbox = label ? label.querySelector('input[type="checkbox"]') : null;
+        if (checkbox && !checkbox.checked) {
+          if (count === 0) {
+            checkbox.disabled = true;
+            if (label && label.classList) {
+              label.classList.add('opacity-40', 'cursor-not-allowed');
+              label.classList.remove('cursor-pointer');
+            }
+          } else {
+            checkbox.disabled = false;
+            if (label && label.classList) {
+              label.classList.remove('opacity-40', 'cursor-not-allowed');
+              label.classList.add('cursor-pointer');
+            }
+          }
+        }
+      });
+
+      window.facetCounts = { brandCounts, categoryCounts };
+      return { brandCounts, categoryCounts };
+    }
+    window.updateFilterFacetCounts = updateFilterFacetCounts;
+    window.calculateFilterFacetCounts = updateFilterFacetCounts;
+
+    // --------------------------------------------------------------------------
     // 2. CLIENT-SIDE FILTERING & RENDERING
     // --------------------------------------------------------------------------
     function applyClientFilters() {
-      let filtered = [...allProducts];
+      buildAndFetchFilters();
 
-      // OEM Code filter
-      if (currentOemFilter) {
-        const q = currentOemFilter.trim().toLowerCase().replace(/\s+/g, '');
+      let filtered = [...allProducts];
+      const activeSearch = (currentSearchQuery || currentOemFilter || '').trim();
+
+      // Üst Kategori (Navbar) filtresi (Arama yapılmadığı durumlarda geçerlidir)
+      if (!activeSearch && currentCategory && currentCategory !== 'all' && currentCategory !== 'Tüm Kategoriler') {
+        const catLower = currentCategory.toLowerCase().trim();
         filtered = filtered.filter(p => {
-          const oe = (p.oeNumber || '').toLowerCase().replace(/\s+/g, '');
+          const pCat = (p.category || '').toLowerCase().trim();
+          const pSub = (p.subCategory || '').toLowerCase().trim();
+          const pPart = (p.partGroup || '').toLowerCase().trim();
+          const pName = (p.name || '').toLowerCase().trim();
+
+          if (catLower.includes('fren')) {
+            return pCat.includes('fren') || pSub.includes('fren') || pPart.includes('fren') || pName.includes('fren') || pName.includes('balata') || pName.includes('disk');
+          }
+          if (catLower.includes('motor') || catLower.includes('şanzıman') || catLower.includes('sanziman')) {
+            if (pName.includes('fren') || pName.includes('balata') || pName.includes('disk') || pSub.includes('fren')) {
+              return false;
+            }
+            return pCat.includes('motor') || pCat.includes('şanzıman') || pPart.includes('motor') || pName.includes('motor');
+          }
+          return pCat.includes(catLower) || pSub.includes(catLower) || pPart.includes(catLower) || pName.includes(catLower);
+        });
+      }
+
+      // Marka / Model filtresi (Arama yapılmadığı durumlarda geçerlidir)
+      if (!activeSearch && currentBrand && currentBrand !== 'all') {
+        const b = currentBrand.trim().toLowerCase();
+        filtered = filtered.filter(p => {
+          const pb = (p.vehicleBrand || '').toLowerCase();
+          const pm = (p.compatibleModels || '').toLowerCase();
+          const pn = (p.name || '').toLowerCase();
+          const mfr = (p.manufacturer || '').toLowerCase();
+          return pb.includes(b) || pm.includes(b) || pn.includes(b) || mfr.includes(b);
+        });
+      }
+
+      // Arama & OEM Kodu Filtresi (prompt.md ADIM 1)
+      if (activeSearch) {
+        const normQ = activeSearch.toLowerCase();
+        const cleanQ = normQ.replace(/[^a-z0-9]/gi, '');
+        filtered = filtered.filter(p => {
+          const oe = (p.oeNumber || '').toLowerCase();
+          const cleanOe = oe.replace(/[^a-z0-9]/gi, '');
           const name = (p.name || '').toLowerCase();
-          return oe.includes(q) || name.includes(q);
+          const brand = (p.vehicleBrand || p.manufacturer || p.brand || '').toLowerCase();
+          const models = (p.compatibleModels || '').toLowerCase();
+          const barcode = (p.barcode || '').toLowerCase();
+          const refs = Array.isArray(p.crossReferences) ? p.crossReferences.join(' ').toLowerCase() : String(p.crossReferences || '').toLowerCase();
+          return oe.includes(normQ) || (cleanQ && cleanOe.includes(cleanQ)) ||
+                 name.includes(normQ) ||
+                 brand.includes(normQ) ||
+                 models.includes(normQ) ||
+                 barcode.includes(normQ) ||
+                 refs.includes(normQ);
         });
       }
 
       // Subcategories filter
       if (currentSubCategories.length > 0) {
         filtered = filtered.filter(p => {
-          const sub = (p.subCategory || '').toLowerCase();
-          const name = (p.name || '').toLowerCase();
-          return currentSubCategories.some(sc => sub.includes(sc.toLowerCase()) || name.includes(sc.toLowerCase()));
+          const sub = (p.subCategory || p.category || '').toLowerCase().trim();
+          const name = (p.name || '').toLowerCase().trim();
+          return currentSubCategories.some(sc => {
+            const scLower = sc.toLowerCase().trim();
+            if (sub === scLower || sub.includes(scLower) || scLower.includes(sub)) return true;
+            const scRoot = scLower.replace(/(balatası|balatasi)$/, 'balata').replace(/(diski)$/, 'disk');
+            return name.includes(scLower) || name.includes(scRoot) || sub.includes(scRoot);
+          });
         });
       }
 
       // Manufacturers filter
       if (currentManufacturers.length > 0) {
         filtered = filtered.filter(p => {
-          const mfr = (p.manufacturer || '').toLowerCase();
-          const name = (p.name || '').toLowerCase();
-          return currentManufacturers.some(m => mfr.includes(m.toLowerCase()) || name.includes(m.toLowerCase()));
+          const mfr = (p.manufacturer || p.brand || p.vehicleBrand || '').toLowerCase().trim();
+          const name = (p.name || '').toLowerCase().trim();
+          return currentManufacturers.some(m => {
+            const mLower = m.toLowerCase().trim();
+            if (mfr === mLower || mfr.includes(mLower) || mLower.includes(mfr)) return true;
+            if (name.includes(mLower)) return true;
+            if ((mLower.includes('oem') || mLower.includes('orijinal')) && (mfr === 'oem' || mfr.includes('oem') || mfr.includes('orijinal'))) return true;
+            return false;
+          });
         });
       }
 
@@ -1361,12 +2118,23 @@
         filtered.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr'));
       }
 
+      // prompt.md ADIM 1: Arama yapıldığında tam eşleşen (Exact Match) her zaman en tepeye (index 0) yerleştirilir
+      if (activeSearch) {
+        filtered = sortExactMatchFirst(filtered, activeSearch);
+      }
+
       displayedProducts = filtered;
-      renderProductsGrid();
+      renderProducts(displayedProducts);
     }
 
-    function renderProductsGrid() {
-      const grid = document.getElementById('products-grid');
+    // ==========================================================================
+    // 2. ÜRÜN LİSTELEME / RENDER FONKSİYONU (prompt.md ADIM 2 & ADIM 3)
+    // ==========================================================================
+    function renderProducts(itemsToRender) {
+      if (Array.isArray(itemsToRender)) {
+        displayedProducts = itemsToRender;
+      }
+      const container = document.getElementById('products-container') || document.getElementById('products-grid');
       const emptyState = document.getElementById('empty-catalog-state');
       const activePartsBadge = document.getElementById('stat-active-parts');
       const totalCountTitle = document.getElementById('title-total-count');
@@ -1374,109 +2142,312 @@
       const paginationRange = document.getElementById('pagination-range');
 
       const count = displayedProducts.length;
-      if (activePartsBadge) activePartsBadge.textContent = String(count > 0 ? count : 312);
+      if (activePartsBadge) activePartsBadge.textContent = String(count);
       if (totalCountTitle) totalCountTitle.textContent = String(count);
       if (paginationTotal) paginationTotal.textContent = String(count);
       if (paginationRange) paginationRange.textContent = count > 0 ? `1 - ${count}` : '0 - 0';
 
       if (count === 0) {
-        if (grid) grid.innerHTML = '';
+        if (container) container.innerHTML = '';
         if (emptyState) emptyState.classList.remove('hidden');
         return;
       }
 
       if (emptyState) emptyState.classList.add('hidden');
-      if (!grid) return;
+      if (!container) return;
 
-      if (viewMode === 'table') {
-        renderTableView(grid, displayedProducts);
+      // prompt.md ADIM 2: Eski statik verileri tamamen temizle
+      container.innerHTML = '';
+
+      // prompt.md ADIM 3: Şerit (List / flex flex-row) Görünümü
+      if (viewMode === 'list' || viewMode === 'table') {
+        container.className = 'flex flex-col space-y-4';
+        container.innerHTML = displayedProducts.map((p, idx) => {
+          const id = p.tenantProductId || p.productId || p.id || `prod-${idx}`;
+          const oe = p.oeNumber || '5Q0 698 151';
+          const name = p.name || 'Yedek Parça';
+          const brand = p.manufacturer || p.vehicleBrand || 'OEM';
+          const models = p.compatibleModels || (activeVehicle ? activeVehicle.name : 'Tüm Modeller');
+          const sellerName = (p.user && (p.user.companyName || p.user.name)) || p.companyName || p.sellerName || p.dealerName || p.tenantName || 'AFS Bayisi';
+          const isLocal = !!p.isLocalStock;
+          const listPrice = (p.price !== null && p.price !== undefined) ? parseFloat(p.price) : 0;
+          const netPrice = (p.discountedPrice !== null && p.discountedPrice !== undefined) ? parseFloat(p.discountedPrice) : (listPrice > 0 ? listPrice * 0.8 : 0);
+          const stockVal = (p.stock !== undefined && p.stock !== null) ? parseInt(p.stock, 10) : 0;
+          const img = p.imageUrl || (p.images && p.images[0]) || 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=400&auto=format&fit=crop&q=80';
+          const isFav = favorites.includes(id);
+
+          // prompt.md ADIM 3: Diğer Referanslar (Muadil) ve Stok Durumu
+          const rawRefs = p.crossReferences || (p.product && p.product.crossReferences) || [];
+          let crossRefsDisplay = '';
+          if (Array.isArray(rawRefs)) {
+            crossRefsDisplay = rawRefs.filter(Boolean).join(', ');
+          } else if (rawRefs) {
+            crossRefsDisplay = String(rawRefs);
+          }
+          if (!crossRefsDisplay) {
+            crossRefsDisplay = 'Orijinal OEM Eşdeğer';
+          }
+
+          // prompt.md ADIM 2: Stok Gösterimi ve Kaynak Rozeti
+          const stockBadge = isLocal
+            ? `<span class="bg-green-100 text-green-700 px-2.5 py-1 rounded-md font-bold text-xs inline-flex items-center gap-1.5 border border-green-200 shadow-2xs">
+                <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>Stokta Mevcut (${stockVal} Adet)
+              </span>`
+            : `<span class="bg-rose-50 text-rose-700 px-2.5 py-1 rounded-md font-bold text-xs inline-flex items-center gap-1.5 border border-rose-200 shadow-2xs">
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Stokta Yok / Sadece Katalog Ürünü
+              </span>`;
+
+          // prompt.md ADIM 2: Sepete Ekle veya Talep Et butonu
+          const actionBtnHtml = isLocal
+            ? `<button type="button" onclick="addToCart('${escapeJs(id)}', '${escapeJs(oe)}', '${escapeJs(name)}', ${listPrice}, ${netPrice}, ${stockVal}, '${escapeJs(img)}')"
+                class="flex-1 h-10 bg-[#f97316] hover:bg-[#ea580c] text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-xs transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer">
+                <span>Sepete Ekle</span>
+              </button>`
+            : `<button type="button" onclick="requestCatalogQuote('${escapeJs(id)}', '${escapeJs(oe)}', '${escapeJs(name)}')"
+                class="flex-1 h-10 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer" title="Fiyat Sorunuz / Parça temin talebinde bulunun">
+                <span>📞 Fiyat Sorunuz / Talep Et</span>
+              </button>`;
+
+          return `
+            <div class="bg-white rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-xl hover:border-slate-300 transition-all flex flex-col md:flex-row items-stretch md:items-center justify-between p-4 gap-5 group">
+              
+              <!-- Sol: Parça Görseli (prompt.md ADIM 2: onclick="openImageModal(...)") -->
+              <div class="relative w-full md:w-44 h-40 shrink-0 bg-slate-50/80 rounded-xl overflow-hidden flex items-center justify-center p-3 cursor-pointer group/img" onclick="openImageModal('${escapeJs(img)}', '${escapeJs(name)}')">
+                <img src="${escapeHtml(img)}" alt="${escapeHtml(name)}" class="max-h-36 object-contain group-hover/img:scale-105 transition-transform duration-300 cursor-pointer" onclick="openImageModal('${escapeJs(img)}', '${escapeJs(name)}')">
+                <div class="absolute inset-0 bg-black/10 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+                  <span class="bg-black/70 text-white text-[11px] font-bold px-2 py-0.5 rounded-md backdrop-blur-xs flex items-center gap-1 shadow-sm">🔍 Büyüt</span>
+                </div>
+              </div>
+
+              <!-- Orta: Başlık, OEM & Diğer Referanslar (prompt.md ADIM 3) -->
+              <div class="flex-1 min-w-0 flex flex-col justify-between py-1">
+                <div>
+                  <div class="flex flex-wrap items-center gap-2 mb-1.5">
+                    <span class="font-mono text-xs font-extrabold px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-800 border border-slate-200">
+                      ${escapeHtml(oe)}
+                    </span>
+                    <span class="text-xs font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+                      ${escapeHtml(brand)}
+                    </span>
+                    ${stockBadge}
+                    <button type="button" onclick="event.stopPropagation(); toggleFavorite('${id}')" class="text-slate-400 hover:text-rose-500 p-0.5 cursor-pointer transition-colors" title="Favorilere Ekle">
+                      ${isFav ? '❤️' : '🤍'}
+                    </button>
+                  </div>
+
+                  <h3 class="text-base font-bold text-slate-900 hover:text-orange-600 cursor-pointer transition-colors leading-snug line-clamp-2" onclick="openProductDetailModal('${id}')" title="${escapeHtml(name)}">
+                    ${escapeHtml(name)}
+                  </h3>
+
+                  <div class="text-xs text-slate-500 font-medium truncate mt-1">🚗 ${escapeHtml(models)}</div>
+
+                  <!-- prompt.md ADIM 3: Orijinal OE ve Muadil Marka Kodları Listesi -->
+                  <div class="mt-2 text-xs text-slate-600 bg-slate-50/90 p-2.5 rounded-xl border border-slate-200/80 font-mono space-y-1">
+                    <div class="flex items-center justify-between">
+                      <span class="text-slate-400 font-sans font-medium text-[11px]">Orijinal OE:</span>
+                      <span class="font-extrabold text-slate-900">${escapeHtml(oe)}</span>
+                    </div>
+                    ${crossRefsDisplay ? `
+                    <div class="flex items-start justify-between gap-2 pt-1 border-t border-slate-200/60">
+                      <span class="text-slate-400 font-sans font-medium text-[11px] shrink-0">Muadil Kodlar:</span>
+                      <span class="text-slate-700 font-semibold text-right break-all line-clamp-2" title="${escapeHtml(crossRefsDisplay)}">${escapeHtml(crossRefsDisplay)}</span>
+                    </div>
+                    ` : ''}
+                  </div>
+                </div>
+
+                <div class="mt-3 flex flex-wrap items-center gap-3">
+                  <div class="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md text-xs font-medium border border-slate-200 shadow-2xs">
+                    <svg class="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    <span>Satıcı: <strong class="font-semibold text-slate-900">${escapeHtml(sellerName)}</strong></span>
+                  </div>
+                  ${isLocal ? `
+                    <span class="text-xs text-emerald-600 font-bold flex items-center gap-1">✓ Aynı Gün Kargo</span>
+                  ` : `
+                    <span class="text-xs text-blue-600 font-bold flex items-center gap-1">⚡ Tedarik Edilebilir</span>
+                  `}
+                </div>
+              </div>
+
+              <!-- Sağ: Fiyat ve Sepete Ekle -->
+              <div class="w-full md:w-56 shrink-0 md:border-l md:border-slate-100 md:pl-5 flex flex-col justify-between py-1">
+                <div class="flex md:flex-col justify-between items-baseline md:items-end mb-3">
+                  ${isLocal ? `
+                    <div class="text-right">
+                      <span class="text-xs text-slate-400 line-through font-mono font-medium">₺${listPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                      <div class="text-xl font-black text-slate-900 font-mono tracking-tight">₺${netPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} <span class="text-[10px] font-bold text-slate-400 uppercase">+KDV</span></div>
+                    </div>
+                    <span class="text-xs font-extrabold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md mt-1">%20 B2B İskonto</span>
+                  ` : `
+                    <div class="text-right">
+                      <span class="text-xs text-slate-400 font-medium">Katalog Ürünü</span>
+                      <div class="text-lg font-black text-rose-600 tracking-tight">Fiyat Sorunuz</div>
+                    </div>
+                    <span class="text-xs font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md mt-1 border border-rose-200">Stokta Yok / Sadece Katalog Ürünü</span>
+                  `}
+                </div>
+
+                <div class="flex items-center gap-2">
+                  ${isLocal ? `
+                    <div class="flex items-center border border-slate-200 rounded-xl bg-slate-50 px-1.5 h-10">
+                      <button type="button" onclick="changeQtyInput('${id}', -1)" class="w-7 text-slate-600 font-bold hover:text-black transition-colors">-</button>
+                      <input type="number" id="qty-${id}" value="1" min="1" max="${stockVal > 0 ? stockVal : 1}" class="w-8 text-center text-xs font-bold bg-transparent border-0 focus:outline-none" readonly>
+                      <button type="button" onclick="changeQtyInput('${id}', 1)" class="w-7 text-slate-600 font-bold hover:text-black transition-colors">+</button>
+                    </div>
+                  ` : ''}
+
+                  ${actionBtnHtml}
+                </div>
+              </div>
+
+            </div>
+          `;
+        }).join('');
         return;
       }
 
-      grid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4';
-      grid.innerHTML = displayedProducts.map((p, idx) => {
+      // prompt.md ADIM 3: Grid (Dikey Kutu) Görünümü
+      container.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6';
+      container.innerHTML = displayedProducts.map((p, idx) => {
         const id = p.tenantProductId || p.productId || p.id || `prod-${idx}`;
         const oe = p.oeNumber || '5Q0 698 151';
         const name = p.name || 'Yedek Parça';
         const brand = p.manufacturer || p.vehicleBrand || 'OEM';
         const models = p.compatibleModels || (activeVehicle ? activeVehicle.name : 'Tüm Modeller');
-        const labor = p.estimatedLaborTime || '45 Dk';
-        const listPrice = parseFloat(p.price !== undefined && p.price !== null ? p.price : (p.customPrice !== undefined && p.customPrice !== null ? p.customPrice : (p.defaultPrice || p.listPrice || 1450)));
-        const netPrice = parseFloat(p.discountedPrice || (p.pricing && p.pricing.finalPrice) || (listPrice * 0.8));
-        const stock = parseInt(p.stock !== undefined && p.stock !== null ? p.stock : 14, 10);
+        const sellerName = (p.user && (p.user.companyName || p.user.name)) || p.companyName || p.sellerName || p.dealerName || p.tenantName || 'AFS Bayisi';
+        const isLocal = !!p.isLocalStock;
+        const listPrice = (p.price !== null && p.price !== undefined) ? parseFloat(p.price) : 0;
+        const netPrice = (p.discountedPrice !== null && p.discountedPrice !== undefined) ? parseFloat(p.discountedPrice) : (listPrice > 0 ? listPrice * 0.8 : 0);
+        const stockVal = (p.stock !== undefined && p.stock !== null) ? parseInt(p.stock, 10) : 0;
         const img = p.imageUrl || (p.images && p.images[0]) || 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=400&auto=format&fit=crop&q=80';
         const isFav = favorites.includes(id);
+
+        // prompt.md ADIM 3: Diğer Referanslar (Muadil) ve Stok Durumu
+        const rawRefs = p.crossReferences || (p.product && p.product.crossReferences) || [];
+        let crossRefsDisplay = '';
+        if (Array.isArray(rawRefs)) {
+          crossRefsDisplay = rawRefs.filter(Boolean).join(', ');
+        } else if (rawRefs) {
+          crossRefsDisplay = String(rawRefs);
+        }
+        if (!crossRefsDisplay) {
+          crossRefsDisplay = 'Orijinal OEM Eşdeğer';
+        }
+
+        // prompt.md ADIM 2: Stok Gösterimi ve Kaynak Rozeti
+        const stockBadge = isLocal
+          ? `<span class="bg-green-100 text-green-700 px-2.5 py-1 rounded-md font-bold text-xs inline-flex items-center gap-1.5 border border-green-200 shadow-2xs">
+              <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>Stokta Mevcut (${stockVal} Adet)
+            </span>`
+          : `<span class="bg-rose-50 text-rose-700 px-2.5 py-1 rounded-md font-bold text-xs inline-flex items-center gap-1.5 border border-rose-200 shadow-2xs">
+              <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Stokta Yok / Sadece Katalog Ürünü
+            </span>`;
+
+        // prompt.md ADIM 2: Sepete Ekle veya Talep Et butonu
+        const actionBtnHtml = isLocal
+          ? `<button type="button" onclick="addToCart('${escapeJs(id)}', '${escapeJs(oe)}', '${escapeJs(name)}', ${listPrice}, ${netPrice}, ${stockVal}, '${escapeJs(img)}')"
+              class="flex-1 h-10 bg-[#f97316] hover:bg-[#ea580c] text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-xs transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer">
+              <span>Sepete Ekle</span>
+            </button>`
+          : `<button type="button" onclick="requestCatalogQuote('${escapeJs(id)}', '${escapeJs(oe)}', '${escapeJs(name)}')"
+              class="flex-1 h-10 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer" title="Fiyat Sorunuz / Parça temin talebinde bulunun">
+              <span>📞 Fiyat Sorunuz / Talep Et</span>
+            </button>`;
 
         return `
           <div class="bg-white rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-xl hover:border-slate-300 transition-all flex flex-col justify-between overflow-hidden group">
             
             <!-- Görsel & OE Başlığı -->
-            <div class="p-3 pb-0">
-              <div class="flex items-center justify-between mb-2">
-                <span class="font-mono text-[10px] font-extrabold px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200">
+            <div class="p-3.5 pb-0">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="font-mono text-xs font-extrabold px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-800 border border-slate-200">
                   ${escapeHtml(oe)}
                 </span>
-                <div class="flex items-center gap-1">
-                  <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
                     ${escapeHtml(brand)}
                   </span>
-                  <button type="button" onclick="event.stopPropagation(); toggleFavorite('${id}')" class="text-slate-400 hover:text-rose-500 p-1 cursor-pointer" title="Favorilere Ekle">
+                  <button type="button" onclick="event.stopPropagation(); toggleFavorite('${escapeJs(id)}')" class="text-slate-400 hover:text-rose-500 p-1 cursor-pointer transition-colors" title="Favorilere Ekle">
                     ${isFav ? '❤️' : '🤍'}
                   </button>
                 </div>
               </div>
 
-              <div class="relative h-40 bg-slate-50/70 rounded-xl overflow-hidden flex items-center justify-center p-3 cursor-pointer" onclick="openProductDetailModal('${id}')">
-                <img src="${escapeHtml(img)}" alt="${escapeHtml(name)}" class="max-h-36 object-contain group-hover:scale-105 transition-transform duration-300">
-                ${stock > 0 ? `
-                  <span class="absolute bottom-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>${stock} Adet Stokta
-                  </span>
-                ` : `
-                  <span class="absolute bottom-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200">
-                    Tükendi
-                  </span>
-                `}
+              <!-- Büyütülmüş Görsel Alanı (prompt.md ADIM 2: onclick="openImageModal(...)") -->
+              <div class="relative h-56 bg-slate-50/80 rounded-2xl overflow-hidden flex items-center justify-center p-4 cursor-pointer group/img" onclick="openImageModal('${escapeJs(img)}', '${escapeJs(name)}')">
+                <img src="${escapeHtml(img)}" alt="${escapeHtml(name)}" class="max-h-52 object-contain group-hover/img:scale-105 transition-transform duration-300 cursor-pointer" onclick="openImageModal('${escapeJs(img)}', '${escapeJs(name)}')">
+                <div class="absolute inset-0 bg-black/10 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+                  <span class="bg-black/70 text-white text-xs font-bold px-2.5 py-1 rounded-lg backdrop-blur-xs flex items-center gap-1 shadow-sm">🔍 Büyüt</span>
+                </div>
+              </div>
+
+              <!-- prompt.md ADIM 2: Stok Gösterimi -->
+              <div class="mt-2.5">
+                ${stockBadge}
               </div>
             </div>
 
             <!-- Ürün Bilgileri -->
-            <div class="p-3 pt-2.5 flex-1 flex flex-col justify-between">
+            <div class="p-4 pt-2.5 flex-1 flex flex-col justify-between">
               <div>
-                <h3 class="text-xs font-bold text-slate-900 line-clamp-2 hover:text-orange-600 cursor-pointer" onclick="openProductDetailModal('${id}')" title="${escapeHtml(name)}">
+                <h3 class="text-base font-bold text-slate-900 line-clamp-2 hover:text-orange-600 cursor-pointer transition-colors leading-snug" onclick="openProductDetailModal('${id}')" title="${escapeHtml(name)}">
                   ${escapeHtml(name)}
                 </h3>
-                <div class="text-[11px] text-slate-500 font-medium truncate mt-1">🚗 ${escapeHtml(models)}</div>
                 
-                <!-- Tahmini İşçilik Rozeti -->
-                <div class="mt-1.5">
-                  <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/80">
-                    <span>⏱️</span> Tahmini İşçilik: ${escapeHtml(labor)}
-                  </span>
+                <div class="text-xs text-slate-500 font-medium truncate mt-1">🚗 ${escapeHtml(models)}</div>
+
+                <!-- prompt.md ADIM 3: Orijinal OE ve Muadil Marka Kodları Listesi -->
+                <div class="mt-2 text-xs text-slate-600 bg-slate-50/90 p-2.5 rounded-xl border border-slate-200/80 font-mono space-y-1">
+                  <div class="flex items-center justify-between">
+                    <span class="text-slate-400 font-sans font-medium text-[11px]">Orijinal OE:</span>
+                    <span class="font-extrabold text-slate-900">${escapeHtml(oe)}</span>
+                  </div>
+                  ${crossRefsDisplay ? `
+                  <div class="flex items-start justify-between gap-2 pt-1 border-t border-slate-200/60">
+                    <span class="text-slate-400 font-sans font-medium text-[11px] shrink-0">Muadil Kodlar:</span>
+                    <span class="text-slate-700 font-semibold text-right break-all line-clamp-2" title="${escapeHtml(crossRefsDisplay)}">${escapeHtml(crossRefsDisplay)}</span>
+                  </div>
+                  ` : ''}
+                </div>
+                
+                <div class="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md text-xs font-medium border border-slate-200 mt-2 shadow-2xs">
+                  <svg class="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  <span>Satıcı: <strong class="font-semibold text-slate-900">${escapeHtml(sellerName)}</strong></span>
                 </div>
               </div>
 
               <!-- Fiyat ve Sepet Butonları -->
-              <div class="mt-3 pt-2.5 border-t border-slate-100">
-                <div class="flex items-baseline justify-between mb-2">
-                  <div>
-                    <span class="text-[11px] text-slate-400 line-through font-mono">₺${listPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
-                    <div class="text-base font-black text-slate-900 font-mono">₺${netPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} <span class="text-[9px] font-bold text-slate-400 uppercase">+KDV</span></div>
-                  </div>
-                  <span class="text-[10px] font-extrabold text-emerald-700 bg-emerald-100/70 px-1.5 py-0.5 rounded">%20 B2B</span>
+              <div class="mt-4 pt-3 border-t border-slate-100">
+                <div class="flex items-baseline justify-between mb-2.5">
+                  ${isLocal ? `
+                    <div>
+                      <span class="text-xs text-slate-400 line-through font-mono font-medium">₺${listPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                      <div class="text-lg sm:text-xl font-black text-slate-900 font-mono tracking-tight">₺${netPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} <span class="text-[10px] font-bold text-slate-400 uppercase">+KDV</span></div>
+                    </div>
+                    <span class="text-xs font-extrabold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md">%20 B2B</span>
+                  ` : `
+                    <div>
+                      <span class="text-xs text-slate-400 font-medium">Katalog Ürünü</span>
+                      <div class="text-base font-black text-rose-600 tracking-tight">Fiyat Sorunuz</div>
+                    </div>
+                    <span class="text-xs font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">Stokta Yok / Sadece Katalog Ürünü</span>
+                  `}
                 </div>
 
-                <div class="flex items-center gap-1.5">
-                  <div class="flex items-center border border-slate-200 rounded-xl bg-slate-50 px-1 h-9">
-                    <button type="button" onclick="changeQtyInput('${id}', -1)" class="w-6 text-slate-600 font-bold hover:text-black">-</button>
-                    <input type="number" id="qty-${id}" value="1" min="1" max="${stock}" class="w-7 text-center text-xs font-bold bg-transparent border-0 focus:outline-none" readonly>
-                    <button type="button" onclick="changeQtyInput('${id}', 1)" class="w-6 text-slate-600 font-bold hover:text-black">+</button>
-                  </div>
+                <div class="flex items-center gap-2">
+                  ${isLocal ? `
+                    <div class="flex items-center border border-slate-200 rounded-xl bg-slate-50 px-1.5 h-10">
+                      <button type="button" onclick="changeQtyInput('${id}', -1)" class="w-7 text-slate-600 font-bold hover:text-black transition-colors">-</button>
+                      <input type="number" id="qty-${id}" value="1" min="1" max="${stockVal > 0 ? stockVal : 1}" class="w-8 text-center text-xs font-bold bg-transparent border-0 focus:outline-none" readonly>
+                      <button type="button" onclick="changeQtyInput('${id}', 1)" class="w-7 text-slate-600 font-bold hover:text-black transition-colors">+</button>
+                    </div>
+                  ` : ''}
 
-                  <button type="button" onclick="addToCart('${id}', '${escapeHtml(oe)}', '${escapeHtml(name)}', ${listPrice}, ${netPrice}, ${stock}, '${escapeHtml(img)}')"
-                    class="flex-1 h-9 bg-[#f97316] hover:bg-[#ea580c] text-white font-extrabold text-xs rounded-xl shadow-xs transition-all active:scale-95 flex items-center justify-center gap-1 cursor-pointer">
-                    <span>Sepete Ekle</span>
-                  </button>
+                  ${actionBtnHtml}
                 </div>
               </div>
 
@@ -1487,56 +2458,9 @@
       }).join('');
     }
 
-    function renderTableView(container, items) {
-      container.className = 'w-full overflow-x-auto bg-white rounded-2xl border border-slate-200 shadow-xs';
-      container.innerHTML = `
-        <table class="w-full text-left text-xs">
-          <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-bold">
-            <tr>
-              <th class="p-3">OEM / Kod</th>
-              <th class="p-3">Parça Adı</th>
-              <th class="p-3">Marka</th>
-              <th class="p-3">Uyumlu Araç</th>
-              <th class="p-3">Tahmini İşçilik</th>
-              <th class="p-3">Stok</th>
-              <th class="p-3">Net B2B Fiyat</th>
-              <th class="p-3 text-right">İşlem</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100 font-medium">
-            ${items.map(p => {
-              const id = p.tenantProductId || p.productId || p.id;
-              const oe = p.oeNumber || '-';
-              const name = p.name || 'Parça';
-              const brand = p.manufacturer || p.vehicleBrand || 'OEM';
-              const models = p.compatibleModels || (activeVehicle ? activeVehicle.name : 'Tüm Modeller');
-              const labor = p.estimatedLaborTime || '45 Dk';
-              const netPrice = parseFloat(p.discountedPrice || p.price || p.customPrice || p.defaultPrice || 1450);
-              const stock = parseInt(p.stock !== undefined && p.stock !== null ? p.stock : 14, 10);
-              const img = p.imageUrl || '';
-
-              return `
-                <tr class="hover:bg-slate-50/80 transition-colors">
-                  <td class="p-3 font-mono font-bold text-slate-900">${escapeHtml(oe)}</td>
-                  <td class="p-3 font-bold text-slate-900 cursor-pointer hover:text-orange-600" onclick="openProductDetailModal('${id}')">${escapeHtml(name)}</td>
-                  <td class="p-3"><span class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold">${escapeHtml(brand)}</span></td>
-                  <td class="p-3 text-slate-500">${escapeHtml(models)}</td>
-                  <td class="p-3 text-indigo-700 font-bold">${escapeHtml(labor)}</td>
-                  <td class="p-3"><span class="font-bold text-emerald-600">${stock} Adet</span></td>
-                  <td class="p-3 font-mono font-bold text-slate-900">₺${netPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</td>
-                  <td class="p-3 text-right">
-                    <button type="button" onclick="addToCart('${id}', '${escapeHtml(oe)}', '${escapeHtml(name)}', ${netPrice}, ${netPrice}, ${stock}, '${escapeHtml(img)}')"
-                      class="px-3 py-1.5 bg-[#f97316] hover:bg-[#ea580c] text-white font-bold text-xs rounded-lg transition-all shadow-xs cursor-pointer">
-                      Sepete Ekle
-                    </button>
-                  </td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
-      `;
-    }
+    const renderProductsGrid = renderProducts;
+    window.renderProducts = renderProducts;
+    window.renderProductsGrid = renderProductsGrid;
 
     // --------------------------------------------------------------------------
     // 3. SEARCH & FILTER HANDLERS
@@ -1571,21 +2495,29 @@
     }
 
     function handleSubCategoryToggle(checkbox) {
-      const val = checkbox.value;
+      const secilenKategori = (checkbox.value || '').trim();
+      console.log("Filtrelenen Kategori:", secilenKategori);
+
       if (checkbox.checked) {
-        if (!currentSubCategories.includes(val)) currentSubCategories.push(val);
+        if (!currentSubCategories.some(c => c.toLowerCase().trim() === secilenKategori.toLowerCase().trim())) {
+          currentSubCategories.push(secilenKategori);
+        }
       } else {
-        currentSubCategories = currentSubCategories.filter(c => c !== val);
+        currentSubCategories = currentSubCategories.filter(c => c.toLowerCase().trim() !== secilenKategori.toLowerCase().trim());
       }
       applyClientFilters();
     }
 
     function handleManufacturerToggle(checkbox) {
-      const val = checkbox.value;
+      const secilenMarka = (checkbox.value || '').trim();
+      console.log("Filtrelenen Marka:", secilenMarka);
+
       if (checkbox.checked) {
-        if (!currentManufacturers.includes(val)) currentManufacturers.push(val);
+        if (!currentManufacturers.some(m => m.toLowerCase().trim() === secilenMarka.toLowerCase().trim())) {
+          currentManufacturers.push(secilenMarka);
+        }
       } else {
-        currentManufacturers = currentManufacturers.filter(m => m !== val);
+        currentManufacturers = currentManufacturers.filter(m => m.toLowerCase().trim() !== secilenMarka.toLowerCase().trim());
       }
       applyClientFilters();
     }
@@ -1608,41 +2540,79 @@
       applyClientFilters();
     }
 
+    // prompt.md ADIM 3: IZGARA (GRID) VE ŞERİT (LIST) GÖRÜNÜM GEÇİŞİ (TOGGLE)
     function setViewMode(mode) {
       viewMode = mode;
-      const btnGrid = document.getElementById('view-mode-grid');
-      const btnTable = document.getElementById('view-mode-table');
+      const btnGrid = document.getElementById('btn-grid-view') || document.getElementById('view-mode-grid');
+      const btnList = document.getElementById('btn-list-view') || document.getElementById('view-mode-table');
+      const container = document.getElementById('products-container') || document.getElementById('products-grid');
+
       if (mode === 'grid') {
-        btnGrid.className = 'p-1.5 px-2.5 bg-slate-900 text-white text-xs font-bold cursor-pointer';
-        btnTable.className = 'p-1.5 px-2.5 bg-slate-100 text-slate-600 hover:text-slate-900 text-xs font-bold cursor-pointer';
+        if (btnGrid) btnGrid.className = 'p-1.5 px-2.5 bg-slate-900 text-white text-xs font-bold cursor-pointer transition-colors';
+        if (btnList) btnList.className = 'p-1.5 px-2.5 bg-slate-100 text-slate-600 hover:text-slate-900 text-xs font-bold cursor-pointer transition-colors';
+        if (container) {
+          container.classList.remove('flex', 'flex-col', 'space-y-4');
+          container.classList.add('grid', 'grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3', 'gap-6');
+        }
       } else {
-        btnTable.className = 'p-1.5 px-2.5 bg-slate-900 text-white text-xs font-bold cursor-pointer';
-        btnGrid.className = 'p-1.5 px-2.5 bg-slate-100 text-slate-600 hover:text-slate-900 text-xs font-bold cursor-pointer';
+        if (btnList) btnList.className = 'p-1.5 px-2.5 bg-slate-900 text-white text-xs font-bold cursor-pointer transition-colors';
+        if (btnGrid) btnGrid.className = 'p-1.5 px-2.5 bg-slate-100 text-slate-600 hover:text-slate-900 text-xs font-bold cursor-pointer transition-colors';
+        if (container) {
+          container.classList.remove('grid', 'grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3', 'gap-6');
+          container.classList.add('flex', 'flex-col', 'space-y-4');
+        }
       }
-      renderProductsGrid();
+      renderProducts(displayedProducts);
     }
 
+    function initViewModeButtons() {
+      const btnGrid = document.getElementById('btn-grid-view') || document.getElementById('view-mode-grid');
+      const btnList = document.getElementById('btn-list-view') || document.getElementById('view-mode-table');
+      if (btnGrid) {
+        btnGrid.addEventListener('click', function(e) {
+          e.preventDefault();
+          setViewMode('grid');
+        });
+      }
+      if (btnList) {
+        btnList.addEventListener('click', function(e) {
+          e.preventDefault();
+          setViewMode('list');
+        });
+      }
+    }
+    window.setViewMode = setViewMode;
+    window.initViewModeButtons = initViewModeButtons;
+
     function filterByCategory(catName, btn) {
-      currentCategory = (catName === 'FIRSAT') ? 'all' : catName;
       document.querySelectorAll('.nav-cat-btn').forEach(b => {
-        b.className = 'nav-cat-btn px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors shrink-0';
+        b.classList.remove('bg-slate-800', 'text-orange-400', 'font-extrabold', 'border-b-2', 'border-orange-500', 'active-cat');
+        b.classList.add('hover:bg-slate-800', 'hover:text-white');
       });
       if (btn) {
-        btn.className = 'nav-cat-btn px-3 py-1.5 rounded-lg bg-slate-800 text-orange-400 font-extrabold border-b-2 border-orange-500 transition-colors shrink-0 active-cat';
+        btn.classList.remove('hover:bg-slate-800', 'hover:text-white');
+        btn.classList.add('bg-slate-800', 'text-orange-400', 'font-extrabold', 'border-b-2', 'border-orange-500', 'active-cat');
       }
-      loadProducts();
+      if (!catName || catName === 'Tüm Kategoriler' || catName === 'all') {
+        fetchProducts();
+      } else if (catName === 'FIRSAT') {
+        fetchProducts('all');
+      } else {
+        fetchProducts(catName);
+      }
     }
 
     function filterBySubCategory(subCat) {
       closeMegaMenu();
       currentSubCategories = [subCat];
       document.querySelectorAll('#filter-subcategories-list input[type="checkbox"]').forEach(cb => {
-        cb.checked = (cb.value === subCat);
+        cb.checked = (cb.value.toLowerCase().trim() === subCat.toLowerCase().trim());
       });
       applyClientFilters();
     }
 
     function resetAllFilters() {
+      currentCategory = '';
       currentSearchQuery = '';
       currentOemFilter = '';
       currentSubCategories = [];
@@ -1651,6 +2621,13 @@
       currentMaxPrice = 0;
       currentInStockOnly = false;
       currentSort = 'smart';
+      currentBrand = '';
+      activeVehicle = null;
+
+      document.querySelectorAll('.nav-cat-btn').forEach(b => {
+        b.classList.remove('bg-slate-800', 'text-orange-400', 'font-extrabold', 'border-b-2', 'border-orange-500', 'active-cat');
+        b.classList.add('hover:bg-slate-800', 'hover:text-white');
+      });
 
       const sInput = document.getElementById('store-search-input');
       if (sInput) sInput.value = '';
@@ -1665,7 +2642,10 @@
 
       document.querySelectorAll('#filter-subcategories-list input').forEach(cb => cb.checked = false);
       document.querySelectorAll('#filter-manufacturers-list input').forEach(cb => cb.checked = false);
+      document.querySelectorAll('#store-sidebar input[type="checkbox"]').forEach(cb => cb.checked = false);
 
+      buildAndFetchFilters();
+      updateFilterFacetCounts(allProducts);
       loadProducts();
     }
 
@@ -1693,6 +2673,9 @@
       } else if (rawVin.startsWith('WF0')) {
         selectVehicle('focus', 'Ford Focus III/IV', '1.5 TDCi (120 HP) 2018, Dizel', 'C346', rawVin, 'Ford');
         showToast('✓ Şasi Doğrulandı: Ford Focus 1.5 TDCi uyumlu parçalar filtrelendi!', 'success');
+      } else if (rawVin.startsWith('KMH') || rawVin.startsWith('MAL')) {
+        selectVehicle('tucson', 'Hyundai Tucson', '1.6 CRDi (136 HP) 2021, Dizel', 'TL / NX4', rawVin, 'Hyundai');
+        showToast('✓ Şasi Doğrulandı: Hyundai Tucson 1.6 CRDi uyumlu parçalar filtrelendi!', 'success');
       } else {
         currentSearchQuery = rawVin;
         loadProducts();
@@ -1729,24 +2712,17 @@
     }
 
     function selectVehicle(code, name, desc, chassis, vin, brand) {
-      activeVehicle = { code, name, desc, chassis, vin, brand };
-      currentBrand = brand;
+      activeVehicle = { code, name, desc, chassis, vin, brand: brand || name };
+      currentBrand = brand || name;
 
       // DOM Güncellemesi
-      const tEl = document.getElementById('sidebar-vehicle-title');
-      const dEl = document.getElementById('sidebar-vehicle-desc');
-      const cEl = document.getElementById('sidebar-vehicle-chassis');
-      const mainTitle = document.getElementById('catalog-main-title');
-      const guideTitle = document.getElementById('guide-header-title');
+      const guideTitle = document.getElementById('guide-title') || document.getElementById('guide-header-title');
       const vinInput = document.getElementById('vin-banner-input');
 
-      if (tEl) tEl.textContent = name;
-      if (dEl) dEl.textContent = desc;
-      if (cEl) cEl.textContent = `Şasi Kodu: ${chassis}`;
-      if (mainTitle) mainTitle.textContent = `${name} Uyumlu Tüm Yedek Parçalar`;
       if (guideTitle) guideTitle.innerHTML = `<span>${name} Parçaları Satın Alma Rehberi</span><span class="text-xs font-bold text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">B2B Teknik Kılavuz</span>`;
       if (vinInput && vin) vinInput.value = vin;
 
+      buildAndFetchFilters();
       closeVehicleSelectorModal();
       loadProducts();
     }
@@ -1770,6 +2746,10 @@
     }
 
     function addToCart(id, oe, name, listPrice, netPrice, stock, img) {
+      if (!stock || stock <= 0) {
+        requestCatalogQuote(id, oe, name);
+        return;
+      }
       const existing = cart.find(it => it.id === id);
       const qtyInput = document.getElementById(`qty-${id}`);
       const addQty = qtyInput ? (parseInt(qtyInput.value, 10) || 1) : 1;
@@ -1905,7 +2885,7 @@
 
       if (!token || !isLoggedIn()) {
         if (window.Swal) {
-          Swal.fire({
+          window.Swal.fire({
             icon: 'warning',
             title: 'Bayi Girişi Gerekli',
             text: 'Lütfen siparişi tamamlamak için Bayi Girişi yapınız.',
@@ -1955,7 +2935,7 @@
           closeCartDrawer();
 
           if (window.Swal) {
-            Swal.fire({
+            window.Swal.fire({
               icon: 'success',
               title: 'Siparişiniz Başarıyla Alındı!',
               html: `
@@ -1984,7 +2964,7 @@
     }
 
     // --------------------------------------------------------------------------
-    // 7. PRODUCT DETAIL MODAL & CROSS-SELL
+    // 7. PRODUCT DETAIL MODAL
     // --------------------------------------------------------------------------
     function openProductDetailModal(id) {
       const prod = displayedProducts.find(p => (p.tenantProductId === id || p.productId === id || p.id === id));
@@ -1993,32 +2973,63 @@
       const oe = prod.oeNumber || '5Q0 698 151';
       const name = prod.name || 'Yedek Parça';
       const brand = prod.manufacturer || prod.vehicleBrand || 'OEM';
-      const models = prod.compatibleModels || activeVehicle.name;
+      const models = prod.compatibleModels || (activeVehicle ? activeVehicle.name : 'Tüm Modeller');
       const labor = prod.estimatedLaborTime || '45 Dk';
-      const netPrice = parseFloat(prod.discountedPrice || prod.defaultPrice || 1450);
-      const listPrice = parseFloat(prod.defaultPrice || prod.listPrice || (netPrice * 1.25));
-      const img = prod.imageUrl || 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=400&auto=format&fit=crop&q=80';
       const stock = parseInt(prod.stock !== undefined ? prod.stock : 14, 10);
+      const isLocal = !!prod.isLocalStock;
+      const netPrice = (prod.discountedPrice !== null && prod.discountedPrice !== undefined) ? parseFloat(prod.discountedPrice) : ((prod.defaultPrice !== null && prod.defaultPrice !== undefined) ? parseFloat(prod.defaultPrice) : 1450);
+      const listPrice = (prod.defaultPrice !== null && prod.defaultPrice !== undefined) ? parseFloat(prod.defaultPrice) : (netPrice * 1.25);
+      const img = prod.imageUrl || 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=400&auto=format&fit=crop&q=80';
 
-      document.getElementById('detail-oe-badge').textContent = oe;
-      document.getElementById('detail-brand-badge').textContent = brand;
-      document.getElementById('detail-title').textContent = name;
-      document.getElementById('detail-models').textContent = `🚗 Uyumlu: ${models}`;
-      document.getElementById('detail-labor-text').textContent = `Tahmini İşçilik: ${labor}`;
-      document.getElementById('detail-price').textContent = `₺${netPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`;
-      document.getElementById('detail-list-price').textContent = `₺${listPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`;
-      document.getElementById('detail-img').src = img;
+      const oeBadge = document.getElementById('detail-oe-badge');
+      if (oeBadge) oeBadge.textContent = oe;
+      const brandBadge = document.getElementById('detail-brand-badge');
+      if (brandBadge) brandBadge.textContent = brand;
+      const titleEl = document.getElementById('detail-title');
+      if (titleEl) titleEl.textContent = name;
+      const modelsEl = document.getElementById('detail-models');
+      if (modelsEl) modelsEl.textContent = `🚗 Uyumlu: ${models}`;
+      const laborEl = document.getElementById('detail-labor-text');
+      if (laborEl) laborEl.textContent = `Tahmini İşçilik: ${labor}`;
+
+      const priceEl = document.getElementById('detail-price');
+      const listPriceEl = document.getElementById('detail-list-price');
+      if (isLocal) {
+        if (priceEl) priceEl.textContent = `₺${netPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`;
+        if (listPriceEl) {
+          listPriceEl.textContent = `₺${listPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`;
+          listPriceEl.style.display = '';
+        }
+      } else {
+        if (priceEl) priceEl.textContent = 'Fiyat Sorunuz';
+        if (listPriceEl) listPriceEl.style.display = 'none';
+      }
+
+      const detailImgEl = document.getElementById('detail-img');
+      if (detailImgEl) {
+        detailImgEl.src = img;
+        detailImgEl.onclick = () => openImageModal(img, name);
+        detailImgEl.classList.add('cursor-pointer');
+      }
 
       const btnAdd = document.getElementById('detail-btn-add');
       if (btnAdd) {
-        btnAdd.onclick = () => {
-          addToCart(id, oe, name, listPrice, netPrice, stock, img);
-          closeProductDetailModal();
-        };
+        if (isLocal) {
+          btnAdd.innerHTML = '<span>Sepete Ekle</span>';
+          btnAdd.className = 'w-full py-3 bg-[#f97316] hover:bg-[#ea580c] text-white font-extrabold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer';
+          btnAdd.onclick = () => {
+            addToCart(id, oe, name, listPrice, netPrice, stock, img);
+            closeProductDetailModal();
+          };
+        } else {
+          btnAdd.innerHTML = '<span>📞 Fiyat Sorunuz / Talep Et</span>';
+          btnAdd.className = 'w-full py-3 bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer';
+          btnAdd.onclick = () => {
+            closeProductDetailModal();
+            requestCatalogQuote(id, oe, name);
+          };
+        }
       }
-
-      // Render Kit items
-      renderDetailKitItems(prod);
 
       const modal = document.getElementById('modal-product-detail');
       const backdrop = document.getElementById('modal-detail-backdrop');
@@ -2033,41 +3044,122 @@
       if (backdrop) backdrop.classList.add('hidden');
     }
 
-    function renderDetailKitItems(mainProd) {
-      const container = document.getElementById('detail-kit-carousel');
-      if (!container) return;
-
-      const kits = [
-        {
-          name: 'DOT 4 Sentetik Yüksek Isı Fren Hidrolik Yağı (1L)',
-          oe: 'VAG-B000750M3',
-          brand: 'Castrol / VAG',
-          price: 280,
-          img: 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=400&auto=format&fit=crop&q=80'
-        },
-        {
-          name: 'Fren Balata Temizleme Spreyi (500ml)',
-          oe: 'WURTH-08901087',
-          brand: 'Würth',
-          price: 150,
-          img: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=400&auto=format&fit=crop&q=80'
-        }
-      ];
-
-      container.innerHTML = kits.map((k, i) => `
-        <div class="flex items-center gap-3 p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-          <img src="${k.img}" alt="${k.name}" class="w-10 h-10 object-contain bg-white rounded-lg p-1 border border-slate-200 shrink-0">
-          <div class="flex-1 min-w-0">
-            <h5 class="text-[11px] font-bold text-slate-900 truncate">${k.name}</h5>
-            <div class="text-[10px] text-slate-500 font-mono">${k.oe} • ${k.brand}</div>
-            <div class="text-xs font-mono font-bold text-orange-600 mt-0.5">₺${k.price.toFixed(2)}</div>
-          </div>
-          <button type="button" onclick="addToCart('kit-${i}', '${k.oe}', '${k.name}', ${k.price}, ${k.price}, 50, '${k.img}')" class="px-2.5 py-1.5 bg-slate-900 hover:bg-orange-600 text-white font-bold text-[10px] rounded-lg cursor-pointer">
-            + Ekle
-          </button>
-        </div>
-      `).join('');
+    // --------------------------------------------------------------------------
+    // 7.1 LIGHTBOX / GÖRSEL BÜYÜTME MODALI (prompt.md ADIM 2)
+    // --------------------------------------------------------------------------
+    function openImageModal(imageUrl, caption = '') {
+      const modal = document.getElementById('image-modal');
+      const img = document.getElementById('image-modal-img');
+      const cap = document.getElementById('image-modal-caption');
+      if (!modal || !img) return;
+      img.src = imageUrl || 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=800&auto=format&fit=crop&q=80';
+      if (cap) cap.textContent = caption || '';
+      modal.classList.remove('hidden');
+      if (document.body) document.body.style.overflow = 'hidden';
     }
+
+    function closeImageModal() {
+      const modal = document.getElementById('image-modal');
+      if (!modal) return;
+      modal.classList.add('hidden');
+      if (document.body) document.body.style.overflow = '';
+    }
+    window.openImageModal = openImageModal;
+    window.closeImageModal = closeImageModal;
+
+    // --------------------------------------------------------------------------
+    // 7.2 KATALOG PARÇA TALEP ET (prompt.md ADIM 2)
+    // --------------------------------------------------------------------------
+    function requestCatalogQuote(id, oe, name) {
+      if (window.Swal) {
+        window.Swal.fire({
+          title: 'Katalog Referans Parça Talebi',
+          html: `
+            <div class="text-left text-xs space-y-2.5 text-slate-700">
+              <p>Bu parça şu anda anlık lokal stoklarımızda bulunmamaktadır, ancak <strong>Parts.Catalogs Tedarik Ağı</strong> üzerinden derhal sipariş edilebilir.</p>
+              <div class="p-3 bg-slate-100 rounded-xl border border-slate-200 font-mono">
+                <div><strong>OE Numarası:</strong> ${escapeHtml(oe)}</div>
+                <div><strong>Parça Adı:</strong> ${escapeHtml(name)}</div>
+              </div>
+              <p class="text-slate-500 font-sans">Yetkili servisimiz sizinle en kısa sürede iletişime geçerek özel B2B fiyat teklifi ve teslimat süresi paylaşacaktır.</p>
+            </div>
+          `,
+          icon: 'info',
+          showCancelButton: true,
+          confirmButtonText: 'Talebi İlet',
+          cancelButtonText: 'Vazgeç',
+          confirmButtonColor: '#f97316'
+        }).then(res => {
+          if (res.isConfirmed) {
+            showToast(`"${oe}" parçası için tedarik talebiniz başarıyla alındı.`, 'success');
+          }
+        });
+      } else {
+        alert(`"${oe}" parçası için tedarik talebiniz başarıyla alındı.`);
+      }
+    }
+    window.requestCatalogQuote = requestCatalogQuote;
+
+    // --------------------------------------------------------------------------
+    // prompt.md ADIM 1: OEM Arama ve Sıralama Algoritması (Exact Match First)
+    // --------------------------------------------------------------------------
+    function sortExactMatchFirst(items, searchKeyword) {
+      if (!Array.isArray(items) || items.length <= 1 || !searchKeyword) return items;
+
+      const rawKeyword = String(searchKeyword).trim().toLowerCase();
+      const cleanKeyword = rawKeyword.replace(/[^a-z0-9]/gi, '');
+      if (!cleanKeyword) return items;
+
+      const getScore = (p) => {
+        const oe = String(p.oeNumber || p.oemNumber || (p.product && (p.product.oeNumber || p.product.oemNumber)) || '').trim().toLowerCase();
+        const cleanOe = oe.replace(/[^a-z0-9]/gi, '');
+        const barcode = String(p.barcode || (p.product && p.product.barcode) || '').trim().toLowerCase();
+        const cleanBarcode = barcode.replace(/[^a-z0-9]/gi, '');
+
+        // 0: Birebir OEM veya Barkod Eşleşmesi (En Üst - Index 0)
+        if (oe === rawKeyword || (cleanOe && cleanOe === cleanKeyword)) return 0;
+        if (barcode === rawKeyword || (cleanBarcode && cleanBarcode === cleanKeyword)) return 0;
+
+        // 1: Birebir Cross-Reference / Muadil Referans Eşleşmesi
+        let refs = p.crossReferences || (p.product && p.product.crossReferences);
+        if (typeof refs === 'string') {
+          try { refs = JSON.parse(refs); } catch (e) { refs = refs.split(/[,;\s]+/); }
+        }
+        if (Array.isArray(refs)) {
+          const matchRef = refs.some(ref => {
+            const rStr = String(ref).trim().toLowerCase();
+            const rClean = rStr.replace(/[^a-z0-9]/gi, '');
+            return rStr === rawKeyword || (cleanKeyword && rClean === cleanKeyword);
+          });
+          if (matchRef) return 1;
+        }
+
+        // 2: OEM Numarasının aranan kelime ile başlaması
+        if (oe.startsWith(rawKeyword) || (cleanOe && cleanOe.startsWith(cleanKeyword))) return 2;
+
+        // 3: OEM Numarasının aranan kelimeyi içermesi
+        if (oe.includes(rawKeyword) || (cleanOe && cleanOe.includes(cleanKeyword))) return 3;
+
+        // 4: Ürün adının aranan kelimeyi içermesi
+        const name = String(p.name || (p.product && p.product.name) || '').toLowerCase();
+        if (name.includes(rawKeyword)) return 4;
+
+        return 5;
+      };
+
+      return items.sort((a, b) => {
+        // prompt.md ADIM 1: Lokal stoklu olanlar, harici katalog referanslarının her zaman üstündedir
+        const aLocal = !!a.isLocalStock;
+        const bLocal = !!b.isLocalStock;
+        if (aLocal && !bLocal) return -1;
+        if (!aLocal && bLocal) return 1;
+
+        const scoreA = getScore(a);
+        const scoreB = getScore(b);
+        return scoreA - scoreB;
+      });
+    }
+    window.sortExactMatchFirst = sortExactMatchFirst;
 
     // --------------------------------------------------------------------------
     // 8. FAVORITES & ORDERS
@@ -2114,11 +3206,11 @@
           container.innerHTML = favProducts.map(p => `
             <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
               <div>
-                <span class="font-mono text-[10px] font-bold text-slate-500">${p.oeNumber}</span>
-                <h4 class="text-xs font-bold text-slate-900">${p.name}</h4>
+                <span class="font-mono text-[10px] font-bold text-slate-500">${escapeHtml(p.oeNumber)}</span>
+                <h4 class="text-xs font-bold text-slate-900">${escapeHtml(p.name)}</h4>
                 <div class="text-xs font-mono font-bold text-orange-600 mt-0.5">₺${parseFloat(p.discountedPrice || p.defaultPrice || 1450).toFixed(2)}</div>
               </div>
-              <button type="button" onclick="addToCart('${p.id}', '${p.oeNumber}', '${p.name}', ${p.defaultPrice}, ${p.discountedPrice || p.defaultPrice}, 10, '${p.imageUrl}'); closeFavoritesModal();" class="px-3 py-1.5 bg-[#f97316] text-white font-bold text-xs rounded-lg">
+              <button type="button" onclick="addToCart('${escapeJs(p.id)}', '${escapeJs(p.oeNumber)}', '${escapeJs(p.name)}', ${p.defaultPrice || 1450}, ${p.discountedPrice || p.defaultPrice || 1450}, ${p.stock || 10}, '${escapeJs(p.imageUrl || '')}'); closeFavoritesModal();" class="px-3 py-1.5 bg-[#f97316] hover:bg-[#ea580c] text-white font-bold text-xs rounded-lg transition-colors cursor-pointer">
                 Sepete Ekle
               </button>
             </div>
@@ -2171,7 +3263,7 @@
                   <span class="font-bold text-slate-900">Sipariş: SP-2026-8491</span>
                   <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">Kargoya Verildi</span>
                 </div>
-                <div class="text-slate-600">Volkswagen Golf VII Ön Fren Balata Takımı x 2 Adet</div>
+                <div class="text-slate-600">Ön Fren Balata Takımı x 2 Adet</div>
                 <div class="flex justify-between items-center pt-1 text-slate-500 font-mono">
                   <span>Takip: Yurtiçi Kargo - 81924018</span>
                   <strong class="text-slate-900 text-sm">₺2,900.00</strong>
@@ -2320,12 +3412,24 @@
       }
     });
 
+    // ESC tuşu ile modalları kapatma dinleyicisi
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeImageModal();
+        closeProductDetailModal();
+        closeVehicleSelectorModal();
+        closeAuthModal();
+        closeMyOrdersModal();
+        closeFavoritesModal();
+      }
+    });
+
     // --------------------------------------------------------------------------
     // 11. TOAST HELPER
     // --------------------------------------------------------------------------
     function showToast(msg, type = 'success') {
       if (window.Swal) {
-        Swal.fire({
+        window.Swal.fire({
           toast: true,
           position: 'top-end',
           icon: type === 'danger' ? 'error' : (type === 'warning' ? 'warning' : 'success'),
@@ -2348,6 +3452,64 @@
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
     }
+
+    function escapeJs(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    // Explicitly attach all interactive handlers to window
+    window.addToCart = addToCart;
+    window.changeQtyInput = changeQtyInput;
+    window.updateCartItemQty = updateCartItemQty;
+    window.removeCartItem = removeCartItem;
+    window.renderCartItems = renderCartItems;
+    window.updateCartBadges = updateCartBadges;
+    window.fetchProducts = fetchProducts;
+    window.applyClientFilters = applyClientFilters;
+    window.buildAndFetchFilters = buildAndFetchFilters;
+    window.sortExactMatchFirst = sortExactMatchFirst;
+    window.openCartDrawer = openCartDrawer;
+    window.closeCartDrawer = closeCartDrawer;
+    window.openFavoritesModal = openFavoritesModal;
+    window.closeFavoritesModal = closeFavoritesModal;
+    window.toggleFavorite = toggleFavorite;
+    window.openProductDetailModal = openProductDetailModal;
+    window.closeProductDetailModal = closeProductDetailModal;
+    window.openVehicleSelectorModal = openVehicleSelectorModal;
+    window.closeVehicleSelectorModal = closeVehicleSelectorModal;
+    window.selectVehicle = selectVehicle;
+    window.focusVinBanner = focusVinBanner;
+    window.verifyBannerVin = verifyBannerVin;
+    window.handleSearchSubmit = handleSearchSubmit;
+    window.toggleSearchTypeDropdown = toggleSearchTypeDropdown;
+    window.closeSearchTypeDropdown = closeSearchTypeDropdown;
+    window.setSearchType = setSearchType;
+    window.handleOemFilterInput = handleOemFilterInput;
+    window.handleSubCategoryToggle = handleSubCategoryToggle;
+    window.handleManufacturerToggle = handleManufacturerToggle;
+    window.applyPriceFilter = applyPriceFilter;
+    window.toggleInStockOnly = toggleInStockOnly;
+    window.resetAllFilters = resetAllFilters;
+    window.handleSortChange = handleSortChange;
+    window.submitStoreOrder = submitStoreOrder;
+    window.toggleUserDropdown = toggleUserDropdown;
+    window.closeUserDropdown = closeUserDropdown;
+    window.toggleMegaMenu = toggleMegaMenu;
+    window.closeMegaMenu = closeMegaMenu;
+    window.handleLoginSubmit = handleLoginSubmit;
+    window.closeAuthModal = closeAuthModal;
+    window.logout = logout;
+    window.openMyOrdersModal = openMyOrdersModal;
+    window.closeMyOrdersModal = closeMyOrdersModal;
+    window.showToast = showToast;
+    window.escapeJs = escapeJs;
+    window.escapeHtml = escapeHtml;
   </script>
 </body>
 </html>

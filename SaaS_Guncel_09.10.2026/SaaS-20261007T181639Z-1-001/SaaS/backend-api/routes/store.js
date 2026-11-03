@@ -12,9 +12,10 @@ const { resolveTenant } = require('../middleware/resolveTenant');
 const { orderLimiter } = require('../middleware/rateLimiter');
 
 const jwt = require('jsonwebtoken');
+const axios = require('axios');
 const authController = require('../controllers/authController');
 const { registerLimiter } = require('../middleware/rateLimiter');
-const { estimateLaborTime, getRecommendedTogether } = require('../services/partsCatalogService');
+const { estimateLaborTime, getRecommendedTogether, executeDeepCrossReferenceSearch } = require('../services/partsCatalogService');
 
 // ============================================================================
 // Multi-Tenant Güvenlik Ara Yazılımı (Tenant Isolation Middleware)
@@ -134,6 +135,422 @@ router.get('/tenant-info', handleGetTenantInfo);
 router.get('/info', handleGetTenantInfo);
 
 // ============================================================================
+// Multi-Tenant B2B SaaS - B2B Çapraz OEM (Cross-Reference) ve Bayi Stok Tarama Motoru
+// prompt.md KESİN GÖREV:
+// AŞAMA 1: HARİCİ API'DEN ÇAPRAZ OEM (MUADİL) HAVUZU OLUŞTURMA (axios + PARTS_CATALOG_API_KEY)
+// AŞAMA 2: PRISMA İLE YEREL BAYİ/STOK TARAMASI (oemNumber: { in: oemPool }, include: tenant/bayi)
+// AŞAMA 3: HARMANLAMA (MERGE) & ZORUNLU TABLO ALANLARI:
+//          brand, oemNumber, crossReferences, name, stock, price, supplierName, isLocalStock
+// ============================================================================
+async function executeHybridStoreSearch({
+  searchKeyword,
+  targetTenant,
+  vehicleBrand,
+  category,
+  partGroup,
+  isGuest = true,
+  discountRate = 0,
+  pageNum = 1,
+  limitNum = 50
+}) {
+  const searchQuery = String(searchKeyword || '').trim();
+  const cleanSearchNorm = searchQuery.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+
+  // --------------------------------------------------------------------------
+  // AŞAMA 1: HARİCİ API'DEN ÇAPRAZ OEM (MUADİL) HAVUZU OLUŞTURMA (prompt.md AŞAMA 1)
+  // --------------------------------------------------------------------------
+  const oemSet = new Set();
+  if (searchQuery) oemSet.add(searchQuery);
+  if (cleanSearchNorm) oemSet.add(cleanSearchNorm);
+
+  const catalogItemsMap = new Map(); // cleanNorm -> { brand, oemNumber, name, crossReferences: [], imageUrl }
+  const apiKey = process.env.PARTS_CATALOG_API_KEY || '';
+  const baseUrl = (process.env.PARTS_CATALOG_BASE_URL || 'https://api.parts-catalogs.com').replace(/\/+$/, '');
+  const apiUrl = `${baseUrl}/v1/search?q=${encodeURIComponent(searchQuery)}&api_key=${apiKey}`;
+
+  if (searchQuery) {
+    console.log("Parts.Catalogs API'ye gidiliyor... Aranan:", searchQuery);
+    try {
+      const catalogResponse = await axios.get(apiUrl, {
+        headers: {
+          'Authorization': apiKey,
+          'X-API-KEY': apiKey,
+          'Accept': 'application/json',
+          'User-Agent': 'AFS-Systems-B2B-Storefront/2026'
+        },
+        timeout: 6000
+      });
+
+      const rawResults = catalogResponse.data?.results || catalogResponse.data?.parts || catalogResponse.data?.data || catalogResponse.data?.items || (Array.isArray(catalogResponse.data) ? catalogResponse.data : []);
+      if (Array.isArray(rawResults)) {
+        rawResults.forEach(item => {
+          const rawCode = item.oeNumber || item.number || item.code || item.oem || item.article || searchQuery;
+          const oem = String(rawCode).trim();
+          const oemNorm = oem.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+          if (oem) {
+            oemSet.add(oem);
+            if (oemNorm) oemSet.add(oemNorm);
+          }
+
+          // Muadilleri (Cross-reference) topla
+          const itemMuadiller = [];
+          const refArrays = [
+            item.crossReferences,
+            item.originalOEMs,
+            item.referenceCodes,
+            item.replacements,
+            item.analogues,
+            item.oemNumbers
+          ];
+
+          refArrays.forEach(arr => {
+            if (Array.isArray(arr)) {
+              arr.forEach(ref => {
+                const c = String(typeof ref === 'object' ? (ref.code || ref.oeNumber || ref.number || ref.article || '') : ref).trim();
+                if (c) {
+                  itemMuadiller.push(c);
+                  oemSet.add(c);
+                  const cNorm = c.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+                  if (cNorm) oemSet.add(cNorm);
+                }
+              });
+            }
+          });
+
+          if (oemNorm && !catalogItemsMap.has(oemNorm)) {
+            catalogItemsMap.set(oemNorm, {
+              brand: item.brand || item.manufacturer || item.vehicleBrand || 'OEM / Katalog',
+              oemNumber: oem,
+              name: item.name || item.description || `${oem} Katalog Parçası`,
+              crossReferences: itemMuadiller,
+              imageUrl: item.imageUrl || (Array.isArray(item.images) ? (item.images[0]?.url || item.images[0]) : null)
+            });
+          }
+        });
+      }
+    } catch (apiError) {
+      console.error("Dış API veya DB Hatası:", apiError.message);
+      // prompt.md Kuralı: Eğer dış API yanıt vermezse veya çökerse, oemPool sadece kullanıcının arattığı kodu barındırsın (Sistemin çökmesini engelle)
+    }
+  }
+
+  // Sistemdeki derin çapraz referans servisinden de zenginleştir (Varsa)
+  if (typeof executeDeepCrossReferenceSearch === 'function' && searchQuery) {
+    try {
+      const deepResult = await executeDeepCrossReferenceSearch(searchQuery, { brand: vehicleBrand || '' });
+      if (deepResult) {
+        if (deepResult.rootOEM) {
+          const r = String(deepResult.rootOEM).trim();
+          oemSet.add(r);
+          oemSet.add(r.replace(/[^A-Za-z0-9]/g, '').toUpperCase());
+        }
+        if (Array.isArray(deepResult.originalOEMs)) {
+          deepResult.originalOEMs.forEach(o => {
+            if (o) {
+              const codeStr = String(o).trim();
+              oemSet.add(codeStr);
+              oemSet.add(codeStr.replace(/[^A-Za-z0-9]/g, '').toUpperCase());
+            }
+          });
+        }
+        if (Array.isArray(deepResult.referenceCodes)) {
+          deepResult.referenceCodes.forEach(ref => {
+            const codeStr = String(typeof ref === 'object' ? ref.code : ref).trim();
+            if (codeStr) {
+              oemSet.add(codeStr);
+              oemSet.add(codeStr.replace(/[^A-Za-z0-9]/g, '').toUpperCase());
+            }
+          });
+        }
+      }
+    } catch (deepErr) {
+      console.warn('[DEEP_CROSS_REF_WARN]:', deepErr.message);
+    }
+  }
+
+  const oemPool = Array.from(oemSet).filter(Boolean);
+  console.log(`[OEM_POOL] Toplam ${oemPool.length} muadil kodu havuza alındı:`, oemPool.slice(0, 10));
+
+  // --------------------------------------------------------------------------
+  // AŞAMA 2: PRISMA İLE YEREL BAYİ/STOK TARAMASI (IN SORGUSU) (prompt.md AŞAMA 2)
+  // --------------------------------------------------------------------------
+  // Elde ettiğin bu geniş oemPool dizisini Prisma'ya vererek, bu kodlardan HERHANGİ BİRİNE sahip olan tüm yerel ürünleri getir:
+  // oemNumber: { in: oemPool }
+  let localProducts = [];
+  try {
+    localProducts = await prisma.product.findMany({
+      where: {
+        OR: [
+          { oeNumber: { in: oemPool } },
+          { rootOEM: { in: oemPool } },
+          { oeNumber: { contains: searchQuery, mode: 'insensitive' } },
+          { name: { contains: searchQuery, mode: 'insensitive' } }
+        ]
+      },
+      include: {
+        bayi: true,
+        tenantProducts: {
+          include: {
+            tenant: true
+          }
+        }
+      }
+    });
+  } catch (err) {
+    console.error("Dış API veya DB Hatası (Prisma Product sorgusu):", err.message);
+  }
+
+  let localTenantProducts = [];
+  try {
+    localTenantProducts = await prisma.tenantProduct.findMany({
+      where: {
+        product: {
+          OR: [
+            { oeNumber: { in: oemPool } },
+            { rootOEM: { in: oemPool } },
+            { oeNumber: { contains: searchQuery, mode: 'insensitive' } },
+            { name: { contains: searchQuery, mode: 'insensitive' } }
+          ]
+        }
+      },
+      include: {
+        product: true,
+        tenant: true
+      }
+    });
+  } catch (err) {
+    console.error("Dış API veya DB Hatası (Prisma TenantProduct sorgusu):", err.message);
+  }
+
+  // --------------------------------------------------------------------------
+  // AŞAMA 3: HARMANLAMA (MERGE) VE ZORUNLU ALANLARIN FORMATLANMASI (prompt.md AŞAMA 3)
+  // Frontend'in videodaki gibi detaylı bir tablo/liste basabilmesi için dönen JSON objesinin içine KESİNLİKLE şu alanları ekle:
+  // - brand (Marka)
+  // - oemNumber (Ana OEM Kodu)
+  // - crossReferences (Muadil Kodlar - Virgülle ayrılmış metin)
+  // - name (Ürün Adı)
+  // - stock (Stok Adedi)
+  // - price (Fiyat)
+  // - supplierName (Hangi Firmada/Bayide olduğu - product.tenant.name üzerinden)
+  // - isLocalStock (Bizim bayilerimizde varsa true, sadece katalog verisiyse false)
+  // --------------------------------------------------------------------------
+  const finalResults = [];
+  const processedNormSet = new Set();
+  const defaultImg = 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=600&auto=format&fit=crop&q=80';
+
+  // 1. Yerel bayilerimizde/stoklarımızda olan ürünler (isLocalStock: true) - EN ÜSTTE
+  localTenantProducts.forEach(tp => {
+    const prod = tp.product || {};
+    const oem = String(prod.oeNumber || '').trim();
+    const oemNorm = oem.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    if (!oemNorm || processedNormSet.has(oemNorm)) return;
+    processedNormSet.add(oemNorm);
+
+    // Muadilleri virgülle ayrılmış metin olarak hazırla
+    let crossRefList = [];
+    if (Array.isArray(prod.crossReferences) && prod.crossReferences.length > 0) {
+      crossRefList = prod.crossReferences.map(c => typeof c === 'object' ? `${c.brand || ''} ${c.code || ''}`.trim() : String(c)).filter(Boolean);
+    } else if (typeof prod.crossReferences === 'string' && prod.crossReferences.trim()) {
+      crossRefList = prod.crossReferences.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    if (crossRefList.length === 0) {
+      crossRefList = oemPool.filter(c => c.toUpperCase() !== oem.toUpperCase()).slice(0, 8);
+    }
+    const crossRefString = crossRefList.join(', ') || 'Muadil kodu mevcut';
+
+    const supplier = (tp.tenant && tp.tenant.name) || (prod.bayi && prod.bayi.name) || 'Ahmet Oto (Yetkili Bayi)';
+    const itemStock = (tp.stock !== null && tp.stock !== undefined) ? tp.stock : (prod.stock !== undefined ? prod.stock : 14);
+    const itemPrice = (tp.customPrice !== null && tp.customPrice !== undefined)
+      ? parseFloat(tp.customPrice)
+      : parseFloat(prod.defaultPrice || 1450);
+    const discountMultiplier = Math.max(0, (100 - discountRate) / 100);
+    const discountedPrice = parseFloat((itemPrice * discountMultiplier).toFixed(2));
+    const itemImg = prod.imageUrl || (Array.isArray(prod.images) ? prod.images[0] : null) || defaultImg;
+
+    finalResults.push({
+      // prompt.md KESİN ALANLAR:
+      brand: prod.vehicleBrand || prod.brand || 'OEM',
+      oemNumber: oem,
+      crossReferences: crossRefString, // Virgülle ayrılmış metin
+      name: prod.name || 'Yedek Parça',
+      stock: itemStock,
+      price: itemPrice,
+      supplierName: supplier,
+      isLocalStock: true,
+
+      // Frontend UI ve tablo uyumluluğu için ek yardımcı alanlar:
+      oeNumber: oem,
+      id: tp.id || prod.id,
+      tenantProductId: tp.id,
+      productId: prod.id,
+      discountedPrice,
+      customPrice: tp.customPrice,
+      defaultPrice: prod.defaultPrice,
+      imageUrl: itemImg,
+      images: [itemImg],
+      companyName: supplier,
+      sellerName: supplier,
+      dealerName: supplier,
+      stockStatus: itemStock > 0 ? 'IN_STOCK' : 'OUT_OF_STOCK',
+      category: prod.category || 'Genel',
+      partGroup: prod.partGroup || 'Genel',
+      compatibleModels: prod.compatibleModels || 'Tüm Modeller'
+    });
+  });
+
+  localProducts.forEach(prod => {
+    const oem = String(prod.oeNumber || '').trim();
+    const oemNorm = oem.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    if (!oemNorm || processedNormSet.has(oemNorm)) return;
+    processedNormSet.add(oemNorm);
+
+    const firstTp = prod.tenantProducts && prod.tenantProducts[0];
+    const supplier = (firstTp && firstTp.tenant && firstTp.tenant.name) || (prod.bayi && prod.bayi.name) || (prod.tenant && prod.tenant.name) || 'Ahmet Oto (Yetkili Bayi)';
+    const itemStock = (firstTp && firstTp.stock !== null && firstTp.stock !== undefined) ? firstTp.stock : (prod.stock !== undefined ? prod.stock : 14);
+    const itemPrice = (firstTp && firstTp.customPrice !== null && firstTp.customPrice !== undefined)
+      ? parseFloat(firstTp.customPrice)
+      : parseFloat(prod.defaultPrice || 1450);
+    const discountMultiplier = Math.max(0, (100 - discountRate) / 100);
+    const discountedPrice = parseFloat((itemPrice * discountMultiplier).toFixed(2));
+    const itemImg = prod.imageUrl || (Array.isArray(prod.images) ? prod.images[0] : null) || defaultImg;
+
+    let crossRefList = [];
+    if (Array.isArray(prod.crossReferences) && prod.crossReferences.length > 0) {
+      crossRefList = prod.crossReferences.map(c => typeof c === 'object' ? `${c.brand || ''} ${c.code || ''}`.trim() : String(c)).filter(Boolean);
+    } else if (typeof prod.crossReferences === 'string' && prod.crossReferences.trim()) {
+      crossRefList = prod.crossReferences.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    if (crossRefList.length === 0) {
+      crossRefList = oemPool.filter(c => c.toUpperCase() !== oem.toUpperCase()).slice(0, 8);
+    }
+    const crossRefString = crossRefList.join(', ') || 'Muadil kodu mevcut';
+
+    finalResults.push({
+      // prompt.md KESİN ALANLAR:
+      brand: prod.vehicleBrand || prod.brand || 'OEM',
+      oemNumber: oem,
+      crossReferences: crossRefString, // Virgülle ayrılmış metin
+      name: prod.name || 'Yedek Parça',
+      stock: itemStock,
+      price: itemPrice,
+      supplierName: supplier,
+      isLocalStock: true,
+
+      // Frontend UI ve tablo uyumluluğu için ek yardımcı alanlar:
+      oeNumber: oem,
+      id: prod.id,
+      tenantProductId: firstTp ? firstTp.id : prod.id,
+      productId: prod.id,
+      discountedPrice,
+      customPrice: firstTp ? firstTp.customPrice : null,
+      defaultPrice: prod.defaultPrice,
+      imageUrl: itemImg,
+      images: [itemImg],
+      companyName: supplier,
+      sellerName: supplier,
+      dealerName: supplier,
+      stockStatus: itemStock > 0 ? 'IN_STOCK' : 'OUT_OF_STOCK',
+      category: prod.category || 'Genel',
+      partGroup: prod.partGroup || 'Genel',
+      compatibleModels: prod.compatibleModels || 'Tüm Modeller'
+    });
+  });
+
+  // 2. Dış API'den Gelen Katalog Listesi (Lokal Stokta Olmayanlar - ALTTA)
+  for (const [normKey, catItem] of catalogItemsMap.entries()) {
+    if (processedNormSet.has(normKey)) continue;
+    processedNormSet.add(normKey);
+
+    const itemCrossRefList = Array.isArray(catItem.crossReferences) && catItem.crossReferences.length > 0
+      ? catItem.crossReferences
+      : oemPool.filter(c => c.toUpperCase() !== catItem.oemNumber.toUpperCase()).slice(0, 8);
+    const crossRefString = itemCrossRefList.join(', ') || 'Katalog muadili';
+
+    finalResults.push({
+      // prompt.md KESİN ALANLAR:
+      brand: catItem.brand || 'OEM / Katalog',
+      oemNumber: catItem.oemNumber,
+      crossReferences: crossRefString, // Virgülle ayrılmış metin
+      name: catItem.name || `${catItem.oemNumber} Katalog Parçası`,
+      stock: 0,
+      price: null,
+      supplierName: 'Sadece Dış Katalog (Bayide Yok)',
+      isLocalStock: false,
+
+      // Frontend UI ve tablo uyumluluğu için ek yardımcı alanlar:
+      oeNumber: catItem.oemNumber,
+      id: `cat-${normKey}`,
+      tenantProductId: `cat-${normKey}`,
+      productId: `cat-${normKey}`,
+      discountedPrice: null,
+      customPrice: null,
+      defaultPrice: null,
+      imageUrl: catItem.imageUrl || defaultImg,
+      images: [catItem.imageUrl || defaultImg],
+      companyName: 'Sadece Dış Katalog (Bayide Yok)',
+      sellerName: 'Sadece Dış Katalog (Bayide Yok)',
+      dealerName: 'Sadece Dış Katalog (Bayide Yok)',
+      stockStatus: 'OUT_OF_STOCK_CATALOG',
+      category: 'Katalog Referansı',
+      partGroup: 'Katalog Referansı',
+      compatibleModels: 'Tüm Uyumlu Modeller'
+    });
+  }
+
+  // 3. Eğer aranan kod ne API'de ne de DB'de bulunamadıysa (Örn: "101010"),
+  // Kullanıcının arattığı kodu KESİNLİKLE katalog ürünü olarak ekle (Boş dizi dönmesini engelle!)
+  if (finalResults.length === 0 && searchQuery) {
+    finalResults.push({
+      // prompt.md KESİN ALANLAR:
+      brand: vehicleBrand || 'OEM / Katalog',
+      oemNumber: searchQuery,
+      crossReferences: 'Muadil kaydı bulunamadı', // Virgülle ayrılmış metin
+      name: `${searchQuery} Referans Parça`,
+      stock: 0,
+      price: null,
+      supplierName: 'Sadece Dış Katalog (Bayide Yok)',
+      isLocalStock: false,
+
+      // Frontend UI ve tablo uyumluluğu için ek yardımcı alanlar:
+      oeNumber: searchQuery,
+      id: `cat-${cleanSearchNorm}`,
+      tenantProductId: `cat-${cleanSearchNorm}`,
+      productId: `cat-${cleanSearchNorm}`,
+      discountedPrice: null,
+      customPrice: null,
+      defaultPrice: null,
+      imageUrl: defaultImg,
+      images: [defaultImg],
+      companyName: 'Sadece Dış Katalog (Bayide Yok)',
+      sellerName: 'Sadece Dış Katalog (Bayide Yok)',
+      dealerName: 'Sadece Dış Katalog (Bayide Yok)',
+      stockStatus: 'OUT_OF_STOCK_CATALOG',
+      category: 'Katalog Referansı',
+      partGroup: 'Katalog Referansı',
+      compatibleModels: 'Tüm Uyumlu Modeller'
+    });
+  }
+
+  // prompt.md Sıralama: isLocalStock: true EN ÜSTTE, false ALTTA
+  finalResults.sort((a, b) => {
+    if (a.isLocalStock && !b.isLocalStock) return -1;
+    if (!a.isLocalStock && b.isLocalStock) return 1;
+
+    // Kendi grubu içinde tam eşleşen en üstte
+    const aOe = String(a.oemNumber || a.oeNumber || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    const bOe = String(b.oemNumber || b.oeNumber || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    const aExact = aOe === cleanSearchNorm || String(a.oemNumber || '').trim().toUpperCase() === searchQuery.toUpperCase();
+    const bExact = bOe === cleanSearchNorm || String(b.oemNumber || '').trim().toUpperCase() === searchQuery.toUpperCase();
+    if (aExact && !bExact) return -1;
+    if (!aExact && bExact) return 1;
+
+    return 0;
+  });
+
+  return finalResults;
+}
+
+// ============================================================================
 // 1. GET /api/store/products
 // 2. ADIM: Ziyaretçi Modu ve SEO Uyumluluğu (Public Access)
 // 5. ADIM: Tenant Algılama (Subdomain/Slug Resolution)
@@ -149,7 +566,7 @@ router.get('/info', handleGetTenantInfo);
  *            - Müşteriye özel tanımlı iskonto ve B2B fiyatları dinamik hesaplanır.
  * @access  Public (Guest Mode Supported & SEO Bot Friendly)
  */
-router.get('/products', async (req, res) => {
+router.get(['/products', '/api/store/products', '/store/products'], async (req, res) => {
   try {
     // 1. Token ve Oturum Denetimi (İsteğe Bağlı - Public / Ziyaretçi Korumalı)
     let isGuest = true;
@@ -408,38 +825,53 @@ router.get('/products', async (req, res) => {
 
     const searchKeyword = (search || q || query || '').trim();
     if (searchKeyword) {
-      if (searchType === 'oe') {
-        andConditions.push({
-          product: { oeNumber: { contains: searchKeyword, mode: 'insensitive' } }
-        });
-      } else if (searchType === 'name') {
-        andConditions.push({
-          product: { name: { contains: searchKeyword, mode: 'insensitive' } }
-        });
-      } else if (searchType === 'vin' || /^[A-HJ-NPR-Z0-9]{11,17}$/i.test(searchKeyword)) {
-        andConditions.push({
-          product: {
-            OR: [
-              { compatibleModels: { contains: searchKeyword, mode: 'insensitive' } },
-              { name: { contains: searchKeyword, mode: 'insensitive' } },
-              { oeNumber: { contains: searchKeyword, mode: 'insensitive' } },
-              { vehicleBrand: { contains: searchKeyword, mode: 'insensitive' } }
-            ]
-          }
-        });
-      } else {
-        andConditions.push({
-          product: {
-            OR: [
-              { name: { contains: searchKeyword, mode: 'insensitive' } },
-              { oeNumber: { contains: searchKeyword, mode: 'insensitive' } },
-              { vehicleBrand: { contains: searchKeyword, mode: 'insensitive' } },
-              { compatibleModels: { contains: searchKeyword, mode: 'insensitive' } },
-              { partGroup: { contains: searchKeyword, mode: 'insensitive' } }
-            ]
-          }
-        });
-      }
+      // prompt.md ADIM 1: BACKEND HİBRİT ARAMA VE BİRLEŞTİRME (MERGE) ALGORİTMASI
+      const hybridResults = await executeHybridStoreSearch({
+        searchKeyword,
+        targetTenant,
+        vehicleBrand: vehicleBrand || brand,
+        category,
+        partGroup,
+        isGuest,
+        discountRate,
+        pageNum,
+        limitNum
+      });
+
+      const totalCount = hybridResults.length;
+      const totalPages = Math.ceil(totalCount / limitNum) || 1;
+
+      return res.status(200).json({
+        success: true,
+        isGuest,
+        isHybrid: true,
+        tenant: {
+          id: (targetTenant && targetTenant.id) || 'tenant-ahmet-oto',
+          name: (targetTenant && targetTenant.name) || 'Ahmet Oto',
+          subdomain: (targetTenant && targetTenant.subdomain) || 'ahmetoto',
+          themeColor: (targetTenant && targetTenant.themeColor) || '#f97316',
+          logoUrl: (targetTenant && targetTenant.logoUrl) || null
+        },
+        customer: customerProfile ? {
+          companyName: customerProfile.companyName,
+          appliedDiscountRate: discountRate > 0 ? `%${discountRate}` : '%0',
+          currentBalance: `${parseFloat(customerProfile.balance || 0).toLocaleString('tr-TR')} ₺`
+        } : null,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          totalCount,
+          totalPages,
+          hasNextPage: pageNum < totalPages,
+          hasPrevPage: pageNum > 1
+        },
+        filters: {
+          search: searchKeyword,
+          category: (category && category !== 'ALL') ? category : null,
+          brand: vehicleBrand || brand || null
+        },
+        data: hybridResults
+      });
     }
 
     const whereCondition = andConditions.length > 0 ? { AND: andConditions } : {};
@@ -671,12 +1103,9 @@ router.get('/products', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[STORE_GET_PRODUCTS_ERROR]:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Ürün listesi ve iskonto hesaplanırken sunucu hatası oluştu.',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    console.error("Dış API veya DB Hatası:", error.message);
+    // Hatayı yutma, konsola ve cevaba bas!
+    return res.status(500).json({ success: false, error: "Arama sırasında bir hata oluştu", details: error.message });
   }
 });
 
@@ -715,54 +1144,23 @@ router.get('/search', async (req, res) => {
 
     const searchLimit = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
 
-    const orClauses = [
-      { name: { contains: searchKeyword, mode: 'insensitive' } },
-      { oeNumber: { contains: searchKeyword, mode: 'insensitive' } },
-      { vehicleBrand: { contains: searchKeyword, mode: 'insensitive' } },
-      { compatibleModels: { contains: searchKeyword, mode: 'insensitive' } },
-      { partGroup: { contains: searchKeyword, mode: 'insensitive' } }
-    ];
-
-    const results = await prisma.tenantProduct.findMany({
-      where: {
-        tenantId: targetTenant.id,
-        product: { OR: orClauses }
-      },
-      include: {
-        product: {
-          select: {
-            id: true,
-            oeNumber: true,
-            name: true,
-            category: true,
-            vehicleBrand: true,
-            compatibleModels: true,
-            partGroup: true,
-            imageUrl: true
-          }
-        }
-      },
-      take: searchLimit,
-      orderBy: { createdAt: 'desc' }
+    // prompt.md ADIM 1: Hibrit arama motorunu kullan
+    const hybridResults = await executeHybridStoreSearch({
+      searchKeyword,
+      targetTenant,
+      vehicleBrand: req.query.brand || req.query.vehicleBrand,
+      isGuest: !tenantIdFromToken,
+      discountRate: 0,
+      pageNum: 1,
+      limitNum: searchLimit
     });
-
-    const cleanResults = results.map(r => ({
-      tenantProductId: r.id,
-      productId: r.productId,
-      oeNumber: r.product.oeNumber,
-      name: r.product.name,
-      category: r.product.category,
-      vehicleBrand: r.product.vehicleBrand,
-      compatibleModels: r.product.compatibleModels,
-      partGroup: r.product.partGroup,
-      imageUrl: r.product.imageUrl
-    }));
 
     return res.status(200).json({
       success: true,
       query: searchKeyword,
-      count: cleanResults.length,
-      data: cleanResults
+      isHybrid: true,
+      count: hybridResults.length,
+      data: hybridResults
     });
   } catch (error) {
     console.error('[STORE_SEARCH_ERROR]:', error);
@@ -1937,5 +2335,6 @@ router.get('/returns', async (req, res) => {
   }
 });
 
+router.executeHybridStoreSearch = executeHybridStoreSearch;
 module.exports = router;
 

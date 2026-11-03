@@ -1671,6 +1671,7 @@
           imageUrl: prod.imageUrl || '',
           images: prod.images || (prod.imageUrl ? [prod.imageUrl] : []),
           stock: tc.stock !== undefined ? tc.stock : 10,
+          isLocalStock: true,
           isDiscounted: tc.isDiscounted,
           defaultPrice: listPrice,
           customPrice: tc.customPrice,
@@ -1943,10 +1944,18 @@
             imageUrl: seed.imageUrl,
             images: [seed.imageUrl],
             stock: seed.stock || 25,
+            isLocalStock: true,
             subCategory: seed.subCategory || '',
             manufacturer: seed.manufacturer || '',
             estimatedLaborTime: seed.estimatedLaborTime || lr.estimatedLaborTime,
             isDiscounted: discountRate > 0,
+            companyName: 'Ahmet Oto (Yetkili Bayi)',
+            dealerName: 'Ahmet Oto (Yetkili Bayi)',
+            sellerName: 'Ahmet Oto (Yetkili Bayi)',
+            user: {
+              companyName: 'Ahmet Oto (Yetkili Bayi)',
+              name: 'Ahmet Oto'
+            },
             defaultPrice: listP,
             customPrice: listP,
             discountedPrice: finP,
@@ -2010,14 +2019,57 @@
             (detectedBrand && (p.vehicleBrand || '').toLowerCase().includes(detectedBrand)) ||
             (detectedBrand && (p.compatibleModels || '').toLowerCase().includes(detectedBrand))
           );
+
+          // prompt.md Kuralı: Eğer aranan kod (Örn: 101010) lokal stokta yoksa,
+          // KATALOG VERİSİ olarak ekrana gelmeli ve "Stokta Yok" yazmalıdır (isLocalStock: false, stock: 0, price: null)
+          if (calculated.length === 0 && searchFilter) {
+            calculated = [{
+              brand: 'OEM / Katalog',
+              oemNumber: searchFilter.toUpperCase(),
+              oeNumber: searchFilter.toUpperCase(),
+              crossReferences: 'Muadil kaydı bulunamadı',
+              name: `${searchFilter.toUpperCase()} Referans Parça`,
+              stock: 0,
+              price: null,
+              supplierName: 'Sadece Dış Katalog (Bayide Yok)',
+              isLocalStock: false,
+              tenantProductId: `cat-${searchFilter}`,
+              productId: `cat-${searchFilter}`,
+              category: 'Katalog Referansı',
+              vehicleBrand: 'OEM / Katalog',
+              compatibleModels: 'Katalog Uyumlu Araçlar',
+              partGroup: 'Katalog Referansı',
+              imageUrl: 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=400&auto=format&fit=crop&q=80',
+              images: ['https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=400&auto=format&fit=crop&q=80'],
+              isCatalogOnly: true,
+              defaultPrice: null,
+              customPrice: null,
+              discountedPrice: null,
+              appliedDiscountRate: 0,
+              stockStatus: 'OUT_OF_STOCK_CATALOG',
+              companyName: 'Sadece Dış Katalog (Bayide Yok)',
+              sellerName: 'Sadece Dış Katalog (Bayide Yok)',
+              dealerName: 'Sadece Dış Katalog (Bayide Yok)',
+              pricing: { listPrice: null, discountRate: 0, savedAmount: 0, finalPrice: null }
+            }];
+          }
         }
       }
 
-      if (categoryFilter && categoryFilter !== 'all') {
-        calculated = calculated.filter(p => 
-          (p.category || '').toLowerCase().includes(categoryFilter) ||
-          (p.partGroup || '').toLowerCase().includes(categoryFilter)
-        );
+      if (categoryFilter && categoryFilter !== 'all' && categoryFilter !== 'tüm kategoriler') {
+        calculated = calculated.filter(p => {
+          const cat = (p.category || '').toLowerCase();
+          const part = (p.partGroup || '').toLowerCase();
+          const name = (p.name || '').toLowerCase();
+          if (categoryFilter.includes('fren')) {
+            return cat.includes('fren') || part.includes('fren') || name.includes('fren') || name.includes('balata') || name.includes('disk');
+          }
+          if (categoryFilter.includes('motor') || categoryFilter.includes('şanzıman') || categoryFilter.includes('sanziman')) {
+            if (name.includes('balata') || name.includes('fren') || name.includes('disk')) return false;
+            return cat.includes('motor') || part.includes('motor') || name.includes('motor');
+          }
+          return cat.includes(categoryFilter) || part.includes(categoryFilter) || name.includes(categoryFilter);
+        });
       }
 
       if (subCatFilter && subCatFilter !== 'all') {
@@ -2399,6 +2451,10 @@
       }
     }
 
+    // prompt.md ADIM 1: URL normalizasyonu (Gereksiz çift slash ve sonundaki '/' işaretini temizle)
+    url = url.replace(/([^:]\/)\/+/g, '$1');
+    url = url.replace(/\/+(\?|$)/, '$1');
+
     let body = options.body;
     if (body && typeof body === 'object' && !(body instanceof FormData) && !(body instanceof URLSearchParams)) {
       body = JSON.stringify(body);
@@ -2477,12 +2533,14 @@
 
       return data;
 
-    } catch (networkError) {
-      console.info('[API] Canlı backend sunucusuna bağlanılamadı. Dayanıklı çevrimdışı motor devreye giriyor...');
+    } catch (error) {
+      console.warn(`[API] Canlı API bağlantısı sağlanamadı (${error.message}). Bağımsız yerel motor (handleOfflineMock) devreye alınıyor.`);
+      if (typeof handleOfflineMock === 'function') {
+        const cleanEp = (endpoint || '').startsWith('/api') ? endpoint.slice(4) : endpoint;
+        return handleOfflineMock(cleanEp, options);
+      }
+      throw error;
     }
-
-    // 4. Çevrimdışı / Bağımsız Dayanıklı Yanıt Motoru (Fallback)
-    return handleOfflineMock(endpoint, options);
   }
 
   /**
