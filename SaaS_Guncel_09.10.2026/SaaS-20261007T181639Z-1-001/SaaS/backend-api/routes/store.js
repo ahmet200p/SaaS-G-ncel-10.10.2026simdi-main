@@ -261,7 +261,7 @@ async function executeHybridStoreSearch({
         }
         if (Array.isArray(vinLookupResult.compatibleParts)) {
           vinLookupResult.compatibleParts.forEach(p => {
-            const c = String(p.oemNumber || p.oeNumber || p.code || '').trim();
+            const c = String(p.oemCode || p.oemNumber || p.oeNumber || p.code || p.oem || p.rootOEM || '').trim();
             if (c) {
               oemSet.add(c);
               const cNorm = c.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
@@ -271,8 +271,10 @@ async function executeHybridStoreSearch({
                   brand: p.brand || vehicleBrandResolved || 'OEM',
                   oemNumber: c,
                   oeNumber: c,
-                  name: p.name || `${c} Referans Parça`,
-                  crossReferences: Array.isArray(p.crossReferences) ? p.crossReferences : [],
+                  name: p.partName || p.name || `${c} Referans Parça`,
+                  category: p.categoryGroup || p.category || p.partGroup || 'Genel',
+                  partGroup: p.categoryGroup || p.partGroup || 'Genel',
+                  crossReferences: Array.isArray(p.crossReferences) ? p.crossReferences : (p.siblingOems ? Array.from(p.siblingOems) : []),
                   imageUrl: p.schemaImageUrl || p.imageUrl || null
                 });
               }
@@ -598,8 +600,9 @@ async function executeHybridStoreSearch({
   }
 
   // 4. Eğer aranan kod yerel stokta çıkmadıysa, ana OEM referansını da katalog kartı olarak ekle
+  // DİKKAT: Şasi (VIN) sorgularında 17 haneli şasi numarasını parça kodu olarak ekleme!
   const searchNorm = cleanSearchNorm;
-  if (searchNorm && !matchedCodesSet.has(searchNorm)) {
+  if (!isVinQuery && searchNorm && !matchedCodesSet.has(searchNorm)) {
     matchedCodesSet.add(searchNorm);
     finalResults.unshift({
       brand: vehicleBrandResolved || 'Orijinal OEM',
@@ -657,6 +660,8 @@ async function executeHybridStoreSearch({
     partName: partRealName || `${searchQuery} Referans Parça`,
     vehicleBrand: vehicleBrandResolved || 'OEM',
     compatibleModels: compatibleModelsResolved || 'Tüm Modeller',
+    compatiblePartsCount: vinLookupResult?.compatibleParts?.length || 0,
+    compatibleParts: vinLookupResult?.compatibleParts || [],
     schemaImageUrl: schemaImageUrl || null,
     technicalSpecs: technicalSpecsResolved || (vinLookupResult?.vehicleInfo ? {
       sasiNo: cleanSearchNorm,

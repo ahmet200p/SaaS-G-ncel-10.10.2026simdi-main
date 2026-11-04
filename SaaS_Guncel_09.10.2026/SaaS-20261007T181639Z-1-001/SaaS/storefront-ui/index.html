@@ -1651,6 +1651,10 @@
               brand: vInfo.brand
             };
           }
+          if (Array.isArray(data.meta.compatibleParts) && data.meta.compatibleParts.length > 0) {
+            window.currentVinNormalizedParts = data.meta.compatibleParts;
+            renderVinPartsTreeUI(window.currentVinNormalizedParts);
+          }
         } else if (currentSearchQuery) {
           const isVinQ = currentSearchType === 'vin' || isVinString(currentSearchQuery);
           if (isVinQ) {
@@ -2507,7 +2511,35 @@
               </div>
             </div>
           </div>
+
+          <!-- İNTERAKTİF ŞASİYE UYUMLU PARÇA AĞACI (4809 Uyumlu Parça) -->
+          <div id="vin-parts-tree-section" class="mt-5 pt-4 border-t border-slate-700/80">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-2.5">
+              <div class="flex items-center gap-2">
+                <span class="text-base text-sky-400">🔧</span>
+                <h3 class="text-sm font-extrabold text-white tracking-tight">Şasiye Uyumlu Parça Ağacı (Tıkla &amp; Sorgula)</h3>
+              </div>
+              <span id="vin-parts-tree-badge" class="px-3 py-1 rounded-full text-xs font-black bg-sky-500/20 text-sky-300 border border-sky-500/40">
+                0 Uyumlu Parça
+              </span>
+            </div>
+            <div class="relative mb-2.5">
+              <input type="text" id="vin-parts-tree-filter" oninput="filterVinPartsTree(this.value)"
+                placeholder="Parça adı veya OEM kodu filtrele (Örn: Triger, Balata, 7701209639, Disk)..."
+                class="w-full px-3.5 py-2 pl-9 rounded-xl bg-slate-950/80 border border-slate-700 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-orange-500 font-mono">
+              <span class="absolute left-3 top-2.5 text-xs text-slate-400">🔍</span>
+            </div>
+            <div id="vin-parts-tree-list" class="max-h-60 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+              <div class="text-xs text-slate-400 py-2 text-center animate-pulse">Parça ağacı yükleniyor...</div>
+            </div>
+          </div>
         `;
+
+        if (window.currentVinNormalizedParts && window.currentVinNormalizedParts.length > 0) {
+          renderVinPartsTreeUI(window.currentVinNormalizedParts);
+        } else if (currentSearchQuery && isVinString(currentSearchQuery)) {
+          fetchVinPartsTree(currentSearchQuery);
+        }
       } else {
         // ======================================================================
         // B) OEM PARÇA NUMARASI SORGUSU KARTI (Tekil Parça & Çapraz Referans)
@@ -3304,6 +3336,109 @@
       }
 
       showToast(`🚗 "${cleanVin}" şasi numarası sorgulanıyor...`, 'info');
+      fetchVinPartsTree(cleanVin);
+      loadProducts();
+    }
+
+    async function fetchVinPartsTree(vin) {
+      if (!vin) return;
+      try {
+        let treeData = null;
+        if (typeof apiFetch === 'function') {
+          treeData = await apiFetch(`/catalog/search-vin/${encodeURIComponent(vin)}`);
+        } else {
+          const res = await fetch(`https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api/catalog/search-vin/${encodeURIComponent(vin)}`);
+          if (res.ok) treeData = await res.json();
+        }
+        if (treeData) {
+          const parts = treeData.compatibleParts || (treeData.data && treeData.data.compatibleParts) || [];
+          if (Array.isArray(parts) && parts.length > 0) {
+            window.currentVinNormalizedParts = parts;
+            renderVinPartsTreeUI(parts);
+          }
+        }
+      } catch (err) {
+        console.warn('[VIN_TREE_FETCH_WARN]:', err.message);
+      }
+    }
+
+    function renderVinPartsTreeUI(parts, filterQuery = '') {
+      if (Array.isArray(parts) && parts.length > 0) {
+        window.currentVinNormalizedParts = parts;
+      }
+      const rawList = window.currentVinNormalizedParts || [];
+      const badgeEl = document.getElementById('vin-parts-tree-badge');
+      const listEl = document.getElementById('vin-parts-tree-list');
+      if (badgeEl) badgeEl.textContent = `${rawList.length} Uyumlu Parça`;
+      if (!listEl) return;
+
+      const q = (filterQuery || '').trim().toLowerCase();
+      let filtered = rawList;
+      if (q) {
+        filtered = filtered.filter(p => {
+          const name = String(p.partName || p.name || '').toLowerCase();
+          const code = String(p.oemCode || p.oeNumber || p.code || '').toLowerCase();
+          const cat = String(p.categoryGroup || p.category || '').toLowerCase();
+          return name.includes(q) || code.includes(q) || cat.includes(q);
+        });
+      }
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = `<div class="text-xs text-slate-400 py-3 text-center">Filtreye uygun parça bulunamadı.</div>`;
+        return;
+      }
+
+      const displaySlice = filtered.slice(0, 60);
+      let html = displaySlice.map(p => {
+        const code = String(p.oemCode || p.oeNumber || p.code || '').trim();
+        const name = String(p.partName || p.name || 'Uyumlu Parça').trim();
+        const cat = String(p.categoryGroup || p.category || '').trim();
+        return `
+          <div onclick="selectVinTreePart('${escapeJs(code)}', '${escapeJs(name)}')"
+            class="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800/80 hover:border-slate-700 transition-all cursor-pointer group/tree text-xs text-slate-200">
+            <div class="flex items-center gap-2 min-w-0 pr-2">
+              <span class="text-sky-400 text-sm shrink-0">⚙️</span>
+              <span class="font-bold text-slate-100 truncate">${escapeHtml(name)}</span>
+              <span class="font-mono font-black text-orange-400 bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded text-[11px] shrink-0">${escapeHtml(code)}</span>
+              ${cat ? `<span class="text-[10px] text-slate-400 hidden sm:inline truncate">(${escapeHtml(cat)})</span>` : ''}
+            </div>
+            <div class="flex items-center gap-1 text-slate-400 group-hover/tree:text-orange-400 font-bold shrink-0 text-xs transition-colors">
+              <span class="hidden sm:inline text-[11px]">Sorgula</span>
+              <span>➔</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      if (filtered.length > 60) {
+        html += `
+          <div class="text-[11px] text-slate-400 py-1.5 text-center bg-slate-900/40 rounded-lg">
+            ... ve ${filtered.length - 60} parça daha. Parça adı (örn: balata, filtre, triger) yazarak daraltabilirsiniz.
+          </div>
+        `;
+      }
+
+      listEl.innerHTML = html;
+    }
+
+    function filterVinPartsTree(query) {
+      renderVinPartsTreeUI(window.currentVinNormalizedParts || [], query);
+    }
+
+    function selectVinTreePart(oemCode, partName) {
+      if (!oemCode) return;
+      const input = document.getElementById('store-search-input');
+      if (input) input.value = oemCode;
+      const bannerInput = document.getElementById('vin-banner-input');
+      if (bannerInput) bannerInput.value = oemCode;
+      const textEl = document.getElementById('search-type-text');
+      if (textEl) textEl.textContent = '🔍 OEM / Parça No';
+
+      currentSearchType = 'all';
+      currentSearchQuery = oemCode;
+      currentPage = 1;
+
+      showToast(`🔍 "${oemCode}" (${partName || 'Parça'}) sorgulanıyor...`, 'info');
       loadProducts();
     }
 
@@ -3314,6 +3449,7 @@
       activeVehicle = null;
       currentBrand = '';
       window.lastSearchMeta = null;
+      window.currentVinNormalizedParts = [];
       currentPage = 1;
 
       const input = document.getElementById('store-search-input');
@@ -3353,6 +3489,10 @@
     }
 
     window.executeVinSearch = executeVinSearch;
+    window.fetchVinPartsTree = fetchVinPartsTree;
+    window.renderVinPartsTreeUI = renderVinPartsTreeUI;
+    window.filterVinPartsTree = filterVinPartsTree;
+    window.selectVinTreePart = selectVinTreePart;
     window.clearVinFilter = clearVinFilter;
     window.handleSearchSubmit = handleSearchSubmit;
     window.setSearchType = setSearchType;
@@ -4407,6 +4547,10 @@
     window.focusVinBanner = focusVinBanner;
     window.verifyBannerVin = verifyBannerVin;
     window.executeVinSearch = executeVinSearch;
+    window.fetchVinPartsTree = fetchVinPartsTree;
+    window.renderVinPartsTreeUI = renderVinPartsTreeUI;
+    window.filterVinPartsTree = filterVinPartsTree;
+    window.selectVinTreePart = selectVinTreePart;
     window.clearVinFilter = clearVinFilter;
     window.isVinString = isVinString;
     window.handleSearchSubmit = handleSearchSubmit;

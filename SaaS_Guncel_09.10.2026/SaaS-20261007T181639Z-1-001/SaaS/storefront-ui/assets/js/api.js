@@ -1752,12 +1752,36 @@
       if (!rawVin && body.vin) rawVin = body.vin;
 
       const vehicleInfo = decodeVinInfo(rawVin || 'VF1LB17C536060366');
+      const isRenault = (vehicleInfo && vehicleInfo.brand && vehicleInfo.brand.toLowerCase().includes('renault')) || String(rawVin).toUpperCase().startsWith('VF1');
+      const sampleCompatible = isRenault ? [
+        { partName: 'Brake pad - Fren Balata Takımı', oemCode: '7701209639', categoryGroup: 'Fren Sistemi' },
+        { partName: 'Brake pad - Fren Balata Takımı', oemCode: '7711130036', categoryGroup: 'Fren Sistemi' },
+        { partName: 'Brake pad - Fren Balata Takımı', oemCode: '7711130071', categoryGroup: 'Fren Sistemi' },
+        { partName: 'Brake pad - Fren Balata Takımı', oemCode: '8660004589', categoryGroup: 'Fren Sistemi' },
+        { partName: 'Front Brake Disc - Ön Fren Diski', oemCode: '7701208422', categoryGroup: 'Fren Sistemi' },
+        { partName: 'Rear Brake Drum - Arka Fren Kampanası', oemCode: '7700839322', categoryGroup: 'Fren Sistemi' },
+        { partName: 'Timing Belt Kit - Triger Kayış Seti', oemCode: '130C15339R', categoryGroup: 'Motor & Mekanik' },
+        { partName: 'Water Pump - Devirdaim Su Pompası', oemCode: '7701477028', categoryGroup: 'Motor & Mekanik' },
+        { partName: 'Oil Filter - Motor Yağ Filtresi', oemCode: '8200768913', categoryGroup: 'Filtre & Bakım' },
+        { partName: 'Air Filter - Hava Filtresi', oemCode: '8200431051', categoryGroup: 'Filtre & Bakım' },
+        { partName: 'Cabin Filter - Polen Filtresi', oemCode: '7701045787', categoryGroup: 'Filtre & Bakım' },
+        { partName: 'Shock Absorber Front - Ön Amortisör', oemCode: '8200662255', categoryGroup: 'Süspansiyon & Alt Takım' },
+        { partName: 'Control Arm - Ön Salıncak Takımı', oemCode: '8200737108', categoryGroup: 'Süspansiyon & Alt Takım' },
+        { partName: 'Tie Rod End - Rot Başı', oemCode: '7701474492', categoryGroup: 'Süspansiyon & Alt Takım' }
+      ] : [
+        { partName: 'Ön Fren Balata Takımı', oemCode: vehicleInfo.primaryOe || '5Q0698151B', categoryGroup: 'Fren Sistemi' },
+        { partName: 'Ön Fren Diski (Havalandırmalı)', oemCode: '5Q0615301H', categoryGroup: 'Fren Sistemi' },
+        { partName: 'Arka Fren Balatası', oemCode: '5Q0698451', categoryGroup: 'Fren Sistemi' },
+        { partName: 'Yağ Filtresi', oemCode: '03N115562B', categoryGroup: 'Filtre & Bakım' },
+        { partName: 'Hava Filtresi', oemCode: '5Q0129620B', categoryGroup: 'Filtre & Bakım' },
+        { partName: 'Triger Kayış Seti & Devirdaim', oemCode: '04L198119A', categoryGroup: 'Motor & Mekanik' }
+      ];
+
       return {
         success: true,
         vehicleInfo,
-        compatibleParts: [
-          { partName: 'Brake pad - Ön Fren Balata Takımı', oemCode: vehicleInfo.primaryOe, categoryGroup: 'Fren Sistemi' }
-        ]
+        compatibleParts: sampleCompatible,
+        totalCount: sampleCompatible.length
       };
     }
 
@@ -2441,7 +2465,7 @@
                 });
               }
             });
-          } else if (calculated.length === 0 && searchFilter) {
+          } else if (calculated.length === 0 && searchFilter && !isVinFormat(searchFilter)) {
             const sampleSchema = TECHNICAL_BLUEPRINT_SVG;
             const sampleName = `${sClean} Referans Parça`;
             calculated = [{
