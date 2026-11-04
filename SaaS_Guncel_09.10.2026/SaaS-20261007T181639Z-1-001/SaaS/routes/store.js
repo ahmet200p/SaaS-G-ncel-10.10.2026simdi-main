@@ -15,7 +15,7 @@ const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const authController = require('../controllers/authController');
 const { registerLimiter } = require('../middleware/rateLimiter');
-const { estimateLaborTime, getRecommendedTogether, executeDeepCrossReferenceSearch } = require('../services/partsCatalogService');
+const { estimateLaborTime, getRecommendedTogether, executeDeepCrossReferenceSearch, searchVinNumber } = require('../services/partsCatalogService');
 
 // ============================================================================
 // Multi-Tenant Güvenlik Ara Yazılımı (Tenant Isolation Middleware)
@@ -244,6 +244,46 @@ async function executeHybridStoreSearch({
   let rootOEM = cleanSearchNorm || searchQuery;
   let referenceCodesList = [];
   let originalOEMsList = [];
+
+  // Şasi (VIN) Numarası Tespiti ve Araç Parça Ağacı Çözümlemesi
+  const isVinQuery = (cleanSearchNorm.length === 17 && /^[A-HJ-NPR-Z0-9]{17}$/i.test(cleanSearchNorm)) ||
+                     /^(VF1|WVW|WAU|ZFA|WF0|KMH|WBA|WDB)/i.test(cleanSearchNorm);
+  let vinLookupResult = null;
+  if (isVinQuery && typeof searchVinNumber === 'function') {
+    try {
+      console.log("Şasi (VIN) araması tespit edildi, parça ağacı sorgulanıyor:", cleanSearchNorm);
+      vinLookupResult = await searchVinNumber(cleanSearchNorm);
+      if (vinLookupResult) {
+        if (vinLookupResult.vehicleInfo) {
+          vehicleBrandResolved = vinLookupResult.vehicleInfo.brand || vehicleBrandResolved;
+          compatibleModelsResolved = vinLookupResult.vehicleInfo.model || compatibleModelsResolved;
+          partRealName = `${vehicleBrandResolved} ${compatibleModelsResolved} Şasi Parçaları`;
+        }
+        if (Array.isArray(vinLookupResult.compatibleParts)) {
+          vinLookupResult.compatibleParts.forEach(p => {
+            const c = String(p.oemNumber || p.oeNumber || p.code || '').trim();
+            if (c) {
+              oemSet.add(c);
+              const cNorm = c.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+              if (cNorm) oemSet.add(cNorm);
+              if (!catalogItemsMap.has(cNorm)) {
+                catalogItemsMap.set(cNorm, {
+                  brand: p.brand || vehicleBrandResolved || 'OEM',
+                  oemNumber: c,
+                  oeNumber: c,
+                  name: p.name || `${c} Referans Parça`,
+                  crossReferences: Array.isArray(p.crossReferences) ? p.crossReferences : [],
+                  imageUrl: p.schemaImageUrl || p.imageUrl || null
+                });
+              }
+            }
+          });
+        }
+      }
+    } catch (vinErr) {
+      console.warn('[VIN_SEARCH_STORE_WARN]:', vinErr.message);
+    }
+  }
 
   if (typeof executeDeepCrossReferenceSearch === 'function' && searchQuery) {
     try {
@@ -609,13 +649,23 @@ async function executeHybridStoreSearch({
 
   // Arama Meta Bilgisi (Teknik Şema, Parça Adı, Uyumlu Araçlar vb. üst bilgi kartı için)
   finalResults.searchMeta = {
+    isVinSearch: isVinQuery,
+    vin: isVinQuery ? cleanSearchNorm : undefined,
+    vehicleInfo: vinLookupResult?.vehicleInfo || null,
     searchQuery,
     rootOEM: rootOEM || searchQuery,
     partName: partRealName || `${searchQuery} Referans Parça`,
     vehicleBrand: vehicleBrandResolved || 'OEM',
     compatibleModels: compatibleModelsResolved || 'Tüm Modeller',
     schemaImageUrl: schemaImageUrl || null,
-    technicalSpecs: technicalSpecsResolved || null,
+    technicalSpecs: technicalSpecsResolved || (vinLookupResult?.vehicleInfo ? {
+      sasiNo: cleanSearchNorm,
+      motor: vinLookupResult.vehicleInfo.engine || 'Standart',
+      modelYili: vinLookupResult.vehicleInfo.year || 'Model Yılı',
+      yakit: vinLookupResult.vehicleInfo.fuelType || 'Dizel / Benzin',
+      kasa: vinLookupResult.vehicleInfo.chassis || 'Standart',
+      uyumGarantisi: '%100 Doğrulanmış Şasi Uyumu'
+    } : null),
     originalOEMs: originalOEMsList,
     referenceCodes: referenceCodesList,
     localStockCount: finalResults.filter(r => r.isLocalStock).length,

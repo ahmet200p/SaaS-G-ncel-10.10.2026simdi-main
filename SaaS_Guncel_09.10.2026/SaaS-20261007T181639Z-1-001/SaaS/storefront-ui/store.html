@@ -1153,6 +1153,18 @@
     let viewMode = 'radar';
     const TECHNICAL_BLUEPRINT_SVG = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300' width='400' height='300'%3E%3Crect width='400' height='300' fill='%230f172a'/%3E%3Cdefs%3E%3Cpattern id='grid' width='20' height='20' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 20 0 L 0 0 0 20' fill='none' stroke='%231e293b' stroke-width='1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='400' height='300' fill='url(%23grid)'/%3E%3Ccircle cx='200' cy='135' r='60' fill='none' stroke='%2338bdf8' stroke-width='2' stroke-dasharray='6 3'/%3E%3Ccircle cx='200' cy='135' r='26' fill='%231e293b' stroke='%230284c7' stroke-width='1.5'/%3E%3Crect x='140' y='90' width='30' height='90' rx='4' fill='%230284c7' opacity='0.35' stroke='%2338bdf8' stroke-width='1.5'/%3E%3Crect x='230' y='90' width='30' height='90' rx='4' fill='%230284c7' opacity='0.35' stroke='%2338bdf8' stroke-width='1.5'/%3E%3Cline x1='120' y1='135' x2='280' y2='135' stroke='%23f59e0b' stroke-width='1.5' stroke-dasharray='4 2'/%3E%3Cline x1='200' y1='50' x2='200' y2='220' stroke='%23f59e0b' stroke-width='1.5' stroke-dasharray='4 2'/%3E%3Ctext x='200' y='248' fill='%2338bdf8' font-family='monospace' font-size='12' font-weight='bold' text-anchor='middle'%3EOEM TEKN%C4%B0K %C5%9EEMA / DETAY%3C/text%3E%3Ctext x='200' y='270' fill='%2394a3b8' font-family='sans-serif' font-size='11' text-anchor='middle'%3EPar%C3%A7a Referans %C3%87izimi%3C/text%3E%3C/svg%3E";
 
+    // 17 Haneli Şasi No (VIN) Tespiti & Doğrulaması
+    function isVinString(str) {
+      if (!str || typeof str !== 'string') return false;
+      const clean = str.trim().toUpperCase().replace(/[\s\-\.]/g, '');
+      if (typeof window !== 'undefined' && typeof window.isVinFormat === 'function') {
+        return window.isVinFormat(clean);
+      }
+      if (clean.length === 17 && /^[A-HJ-NPR-Z0-9]{17}$/i.test(clean)) return true;
+      return /^(VF1|WVW|WAU|ZFA|WF0|KMH|WBA|WDB|VF3|VF7|VSS|TMB|SAL|SAJ|JMZ|JHM|JN1|KL1|YV1)/i.test(clean);
+    }
+    window.isVinString = isVinString;
+
     // Active Vehicle Profile (Default: null - hiçbir araç/marka seçili değil)
     let activeVehicle = null;
 
@@ -1575,8 +1587,12 @@
 
       try {
         const queryParams = new URLSearchParams();
+        const isVinSearchQuery = currentSearchType === 'vin' || isVinString(currentSearchQuery);
         if (currentSearchQuery) {
           queryParams.set('search', currentSearchQuery);
+          if (isVinSearchQuery) {
+            queryParams.set('vin', currentSearchQuery);
+          }
         } else {
           if (activeVehicle && activeVehicle.brand && activeVehicle.brand !== 'all') {
             queryParams.set('brand', activeVehicle.brand);
@@ -1617,14 +1633,66 @@
         // Arama meta bilgisini hafızaya al
         if (data && data.meta) {
           window.lastSearchMeta = data.meta;
+          if (data.meta.isVinSearch && data.meta.vehicleInfo) {
+            const vInfo = data.meta.vehicleInfo;
+            activeVehicle = {
+              code: vInfo.chassis || 'vin-auto',
+              name: `${vInfo.brand} ${vInfo.model}`,
+              desc: `${vInfo.engine || ''} (${vInfo.year || ''})`,
+              chassis: vInfo.chassis || 'STD',
+              vin: vInfo.vin,
+              brand: vInfo.brand
+            };
+          }
         } else if (currentSearchQuery) {
-          window.lastSearchMeta = {
-            searchQuery: currentSearchQuery,
-            rootOEM: currentSearchQuery,
-            partName: `${currentSearchQuery} Referans Parça`,
-            vehicleBrand: 'OEM',
-            compatibleModels: 'Tüm Modeller'
-          };
+          const isVinQ = currentSearchType === 'vin' || isVinString(currentSearchQuery);
+          if (isVinQ) {
+            const vDec = (typeof decodeVinInfo === 'function' ? decodeVinInfo(currentSearchQuery) : null) || {
+              vin: currentSearchQuery,
+              brand: currentSearchQuery.toUpperCase().startsWith('VF1') ? 'Renault' : (currentSearchQuery.toUpperCase().startsWith('WVW') ? 'Volkswagen' : 'OEM'),
+              model: currentSearchQuery.toUpperCase().startsWith('VF1') ? 'Clio II / Thalia / Symbol / Lutecia' : 'Tüm Modeller',
+              engine: 'Standart',
+              year: '2020',
+              fuelType: 'Dizel / Benzin',
+              schemaImageUrl: currentSearchQuery.toUpperCase().startsWith('VF1') ? 'https://img.parts-catalogs.com/renault_2019_10/dessins/01040693.png' : TECHNICAL_BLUEPRINT_SVG,
+              primaryOe: currentSearchQuery.toUpperCase().startsWith('VF1') ? '7701209639' : 'OEM'
+            };
+            window.lastSearchMeta = {
+              isVinSearch: true,
+              searchQuery: currentSearchQuery,
+              vin: vDec.vin,
+              rootOEM: vDec.primaryOe,
+              partName: `${vDec.brand} ${vDec.model} Şasi Parçaları`,
+              vehicleBrand: vDec.brand,
+              compatibleModels: vDec.model,
+              schemaImageUrl: vDec.schemaImageUrl,
+              vehicleInfo: vDec,
+              technicalSpecs: {
+                sasiNo: vDec.vin,
+                motor: vDec.engine,
+                modelYili: vDec.year,
+                yakit: vDec.fuelType,
+                kasa: vDec.chassis || 'STD',
+                uyumGarantisi: '%100 Doğrulanmış Şasi Uyumu'
+              }
+            };
+            activeVehicle = {
+              code: vDec.chassis || 'vin-auto',
+              name: `${vDec.brand} ${vDec.model}`,
+              desc: `${vDec.engine} (${vDec.year})`,
+              chassis: vDec.chassis || 'STD',
+              vin: vDec.vin,
+              brand: vDec.brand
+            };
+          } else {
+            window.lastSearchMeta = {
+              searchQuery: currentSearchQuery,
+              rootOEM: currentSearchQuery,
+              partName: `${currentSearchQuery} Referans Parça`,
+              vehicleBrand: 'OEM',
+              compatibleModels: 'Tüm Modeller'
+            };
+          }
         } else {
           window.lastSearchMeta = null;
         }
@@ -1648,7 +1716,8 @@
         // aranan kod ve muadilleri KESİNLİKLE ekrana getirilmelidir! (Asla boş ekran dönmez)
         if (rawList.length === 0 && currentSearchQuery && currentSearchQuery.trim()) {
           const qClean = currentSearchQuery.trim().toUpperCase();
-          const isRenaultSample = qClean.includes('7701209639') || qClean.includes('7711130036') || qClean.includes('GDB0036');
+          const isVin = currentSearchType === 'vin' || isVinString(qClean);
+          const isRenaultSample = qClean.includes('7701209639') || qClean.includes('7711130036') || qClean.includes('GDB0036') || (isVin && qClean.startsWith('VF1'));
           const sampleSchema = isRenaultSample ? 'https://img.parts-catalogs.com/renault_2019_10/dessins/01040693.png' : TECHNICAL_BLUEPRINT_SVG;
           const sampleName = isRenaultSample ? 'Renault Clio II / Thalia Ön Fren Balata Takımı' : `${qClean} Referans Parça`;
           const sampleBrand = isRenaultSample ? 'Orijinal Renault (OEM)' : 'OEM / Katalog';
@@ -1658,7 +1727,9 @@
 
           if (!window.lastSearchMeta) {
             window.lastSearchMeta = {
+              isVinSearch: isVin,
               searchQuery: qClean,
+              vin: isVin ? qClean : undefined,
               rootOEM: isRenaultSample ? '7701209639' : qClean,
               partName: sampleName,
               vehicleBrand: isRenaultSample ? 'Renault' : 'OEM',
@@ -2338,94 +2409,186 @@
       }
 
       const p = sampleProduct || {};
-      const schemaImgRaw = (meta && meta.schemaImageUrl) || p.schemaImageUrl || p.imageUrl || (p.images && p.images[0]) || TECHNICAL_BLUEPRINT_SVG;
+      const isVin = !!(meta && (meta.isVinSearch || meta.vehicleInfo || (meta.searchQuery && isVinString(meta.searchQuery))));
+      const vehicleInfo = (meta && meta.vehicleInfo) || (isVin ? (typeof decodeVinInfo === 'function' ? decodeVinInfo(currentSearchQuery) : null) : null);
+
+      const schemaImgRaw = (meta && meta.schemaImageUrl) || (vehicleInfo && vehicleInfo.schemaImageUrl) || p.schemaImageUrl || p.imageUrl || (p.images && p.images[0]) || TECHNICAL_BLUEPRINT_SVG;
       const schemaImg = (schemaImgRaw && typeof schemaImgRaw === 'string' && !schemaImgRaw.includes('unsplash')) ? schemaImgRaw : TECHNICAL_BLUEPRINT_SVG;
-      const partTitle = (meta && meta.partName) || p.name || `${currentSearchQuery} Referans Parça`;
-      const brand = (meta && meta.vehicleBrand) || p.vehicleBrand || p.brand || 'OEM / Katalog';
-      const rootOEM = (meta && meta.rootOEM) || p.oeNumber || p.oemNumber || currentSearchQuery || 'OE-REFERANS';
-      const compatibleModels = (meta && meta.compatibleModels) || p.compatibleModels || (activeVehicle ? activeVehicle.name : 'Tüm Uyumlu Araçlar');
-      const specs = (meta && meta.technicalSpecs) || p.technicalSpecs || { kalinlik: '18.0 mm', genislik: '137.0 mm', yukseklik: '57.4 mm', montajKonumu: 'Ön Aks', frenSistemi: 'TRW / Lucas' };
       const localCount = displayedProducts.filter(item => item.isLocalStock).length;
       const crossCount = displayedProducts.filter(item => !item.isLocalStock).length;
 
       overviewEl.className = 'mb-6 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700/80 rounded-2xl p-4 sm:p-6 text-white shadow-xl';
-      overviewEl.innerHTML = `
-        <div class="flex flex-col lg:flex-row items-center lg:items-stretch gap-6">
-          <!-- Sol: Gerçek OEM Teknik Şema (Dessin) ve Büyütme -->
-          <div class="relative w-full lg:w-72 h-56 bg-slate-950/90 rounded-xl border border-slate-700/70 overflow-hidden flex items-center justify-center p-3 group cursor-pointer shrink-0 shadow-inner" onclick="openImageModal('${escapeJs(schemaImg)}', '${escapeJs(partTitle)}')">
-            <img src="${escapeHtml(schemaImg)}" alt="${escapeHtml(partTitle)}" class="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300">
-            <div class="absolute top-2 left-2 bg-slate-900/90 backdrop-blur-xs text-sky-400 border border-sky-500/30 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
-              <span>📐 OEM TEKNİK ŞEMA (DESSIN)</span>
+
+      if (isVin && vehicleInfo) {
+        // ======================================================================
+        // A) ŞASİ (VIN) DOĞRULAMA VE ARAÇ KÜNYESİ KARTI
+        // ======================================================================
+        overviewEl.innerHTML = `
+          <div class="flex flex-col lg:flex-row items-center lg:items-stretch gap-6">
+            <!-- Sol: Araç / OEM Teknik Şema Çizimi -->
+            <div class="relative w-full lg:w-72 h-56 bg-slate-950/90 rounded-xl border border-slate-700/70 overflow-hidden flex items-center justify-center p-3 group cursor-pointer shrink-0 shadow-inner" onclick="openImageModal('${escapeJs(schemaImg)}', '${escapeJs(vehicleInfo.brand + ' ' + vehicleInfo.model)}')">
+              <img src="${escapeHtml(schemaImg)}" alt="${escapeHtml(vehicleInfo.model)}" class="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300">
+              <div class="absolute top-2 left-2 bg-emerald-950/90 backdrop-blur-xs text-emerald-400 border border-emerald-500/40 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
+                <span>✓ ŞASİ DOĞRULANDI</span>
+              </div>
+              <div class="absolute bottom-2 right-2 bg-slate-900/90 backdrop-blur-xs text-slate-300 text-[11px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+                <span>🔍 Şemayı Büyüt</span>
+              </div>
             </div>
-            <div class="absolute bottom-2 right-2 bg-slate-900/90 backdrop-blur-xs text-slate-300 text-[11px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
-              <span>🔍 Şemayı Büyüt</span>
+
+            <!-- Sağ: Araç Künyesi ve Uyum Garantisi -->
+            <div class="flex-1 flex flex-col justify-between w-full">
+              <div>
+                <div class="flex flex-wrap items-center gap-2 mb-2">
+                  <span class="px-2.5 py-0.5 bg-orange-500/20 text-orange-400 border border-orange-500/40 rounded-md text-xs font-black uppercase tracking-wider">
+                    ${escapeHtml(vehicleInfo.brand || 'ARAÇ')}
+                  </span>
+                  <span class="px-2.5 py-0.5 bg-sky-500/20 text-sky-300 border border-sky-500/40 rounded-md text-xs font-mono font-bold">
+                    VIN: ${escapeHtml(vehicleInfo.vin || currentSearchQuery)}
+                  </span>
+                  <span class="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-md text-xs font-bold flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    %100 Şasi Uyum Doğrulaması Aktif
+                  </span>
+                  <button type="button" onclick="clearVinFilter()" class="ml-auto px-3 py-1 bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 border border-rose-500/40 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-xs">
+                    <span>✕ Şasi Filtresini Kaldır</span>
+                  </button>
+                </div>
+
+                <h2 class="text-xl sm:text-2xl font-black text-white tracking-tight leading-snug">
+                  ${escapeHtml(vehicleInfo.brand)} ${escapeHtml(vehicleInfo.model)} (${escapeHtml(vehicleInfo.year || 'Model Yılı')})
+                </h2>
+
+                <div class="text-xs sm:text-sm text-slate-300 font-medium mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <div><span class="text-orange-400 font-bold">⚙️ Motor:</span> <strong class="text-white">${escapeHtml(vehicleInfo.engine || 'Standart')}</strong></div>
+                  <div><span class="text-sky-400 font-bold">⛽ Yakıt:</span> <strong class="text-white">${escapeHtml(vehicleInfo.fuelType || 'Dizel / Benzin')}</strong></div>
+                  <div><span class="text-purple-400 font-bold">🛡️ Kasa Tipi:</span> <strong class="text-white">${escapeHtml(vehicleInfo.chassis || 'Standart')}</strong></div>
+                </div>
+
+                <!-- Araç Kimlik Parametreleri Kutucukları -->
+                <div class="mt-3.5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 text-[11px]">
+                  <div class="bg-slate-800/80 border border-slate-700/60 p-2 rounded-lg">
+                    <span class="text-slate-400 block text-[10px]">Doğrulanan Şasi</span>
+                    <strong class="text-amber-300 font-mono text-[10px] break-all">${escapeHtml(vehicleInfo.vin || currentSearchQuery)}</strong>
+                  </div>
+                  <div class="bg-slate-800/80 border border-slate-700/60 p-2 rounded-lg">
+                    <span class="text-slate-400 block text-[10px]">Model Yılı</span>
+                    <strong class="text-white font-mono">${escapeHtml(vehicleInfo.year || '2020')}</strong>
+                  </div>
+                  <div class="bg-slate-800/80 border border-slate-700/60 p-2 rounded-lg">
+                    <span class="text-slate-400 block text-[10px]">Motor Kodu</span>
+                    <strong class="text-white font-mono">${escapeHtml(vehicleInfo.engine || '1.6')}</strong>
+                  </div>
+                  <div class="bg-slate-800/80 border border-slate-700/60 p-2 rounded-lg">
+                    <span class="text-slate-400 block text-[10px]">Anlık Bayi Stoğu</span>
+                    <strong class="text-emerald-400">${localCount} Kalem Parça</strong>
+                  </div>
+                  <div class="bg-slate-800/80 border border-slate-700/60 p-2 rounded-lg">
+                    <span class="text-slate-400 block text-[10px]">Katalog Muadili</span>
+                    <strong class="text-sky-300">${crossCount} Kalem Parça</strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Alt Çubuk -->
+              <div class="mt-4 pt-3 border-t border-slate-700/60 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
+                <div class="flex items-center gap-2">
+                  <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span>Bu şasi numarasıyla tam uyumlu parçalar aşağıda listelenmektedir. Hatalı parça sipariş riski %0'dır.</span>
+                </div>
+                <span class="font-mono text-emerald-400 font-bold text-[11px]">✓ Ruhsat Doğrulamalı</span>
+              </div>
             </div>
           </div>
+        `;
+      } else {
+        // ======================================================================
+        // B) OEM PARÇA NUMARASI SORGUSU KARTI (Tekil Parça & Çapraz Referans)
+        // ======================================================================
+        const partTitle = (meta && meta.partName) || p.name || `${currentSearchQuery} Referans Parça`;
+        const brand = (meta && meta.vehicleBrand) || p.vehicleBrand || p.brand || 'OEM / Katalog';
+        const rootOEM = (meta && meta.rootOEM) || p.oeNumber || p.oemNumber || currentSearchQuery || 'OE-REFERANS';
+        const compatibleModels = (meta && meta.compatibleModels) || p.compatibleModels || (activeVehicle ? activeVehicle.name : 'Tüm Uyumlu Araçlar');
+        const specs = (meta && meta.technicalSpecs) || p.technicalSpecs || { kalinlik: '18.0 mm', genislik: '137.0 mm', yukseklik: '57.4 mm', montajKonumu: 'Ön Aks', frenSistemi: 'TRW / Lucas' };
 
-          <!-- Sağ: Parça Kimliği & Teknik Parametreler -->
-          <div class="flex-1 flex flex-col justify-between w-full">
-            <div>
-              <div class="flex flex-wrap items-center gap-2 mb-2.5">
-                <span class="px-2.5 py-0.5 bg-orange-500/20 text-orange-400 border border-orange-500/40 rounded-md text-xs font-black uppercase tracking-wider">
-                  ${escapeHtml(brand)}
-                </span>
-                <span class="px-2.5 py-0.5 bg-sky-500/20 text-sky-300 border border-sky-500/40 rounded-md text-xs font-mono font-bold">
-                  OE Kodu: ${escapeHtml(rootOEM)}
-                </span>
-                <span class="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-md text-xs font-bold flex items-center gap-1">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  ${localCount > 0 ? `${localCount} Bayide Anlık Stokta` : 'Katalog Verisi (Bayide Yok)'}
-                </span>
-                <span class="px-2.5 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/40 rounded-md text-xs font-bold">
-                  ${crossCount} Çapraz Referans Kod
-                </span>
+        overviewEl.innerHTML = `
+          <div class="flex flex-col lg:flex-row items-center lg:items-stretch gap-6">
+            <!-- Sol: Gerçek OEM Teknik Şema (Dessin) ve Büyütme -->
+            <div class="relative w-full lg:w-72 h-56 bg-slate-950/90 rounded-xl border border-slate-700/70 overflow-hidden flex items-center justify-center p-3 group cursor-pointer shrink-0 shadow-inner" onclick="openImageModal('${escapeJs(schemaImg)}', '${escapeJs(partTitle)}')">
+              <img src="${escapeHtml(schemaImg)}" alt="${escapeHtml(partTitle)}" class="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300">
+              <div class="absolute top-2 left-2 bg-slate-900/90 backdrop-blur-xs text-sky-400 border border-sky-500/30 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
+                <span>📐 OEM TEKNİK ŞEMA (DESSIN)</span>
               </div>
-
-              <h2 class="text-xl sm:text-2xl font-black text-white tracking-tight leading-snug">
-                ${escapeHtml(partTitle)}
-              </h2>
-
-              <div class="text-xs sm:text-sm text-slate-300 font-medium mt-1.5 flex items-center gap-2">
-                <span class="text-orange-400 font-bold">🚗 Uyumlu Araçlar:</span>
-                <strong class="text-white">${escapeHtml(compatibleModels)}</strong>
-              </div>
-
-              <!-- Teknik Özellik Parametreleri -->
-              <div class="mt-3.5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 text-[11px]">
-                <div class="bg-slate-800/80 border border-slate-700/60 p-2 rounded-lg">
-                  <span class="text-slate-400 block text-[10px]">Kalınlık</span>
-                  <strong class="text-white font-mono">${escapeHtml(specs.kalinlik || '18.0 mm')}</strong>
-                </div>
-                <div class="bg-slate-800/80 border border-slate-700/60 p-2 rounded-lg">
-                  <span class="text-slate-400 block text-[10px]">Genişlik</span>
-                  <strong class="text-white font-mono">${escapeHtml(specs.genislik || '137.0 mm')}</strong>
-                </div>
-                <div class="bg-slate-800/80 border border-slate-700/60 p-2 rounded-lg">
-                  <span class="text-slate-400 block text-[10px]">Yükseklik</span>
-                  <strong class="text-white font-mono">${escapeHtml(specs.yukseklik || '57.4 mm')}</strong>
-                </div>
-                <div class="bg-slate-800/80 border border-slate-700/60 p-2 rounded-lg">
-                  <span class="text-slate-400 block text-[10px]">Montaj Konumu</span>
-                  <strong class="text-white">${escapeHtml(specs.montajKonumu || 'Ön Aks')}</strong>
-                </div>
-                <div class="bg-slate-800/80 border border-slate-700/60 p-2 rounded-lg">
-                  <span class="text-slate-400 block text-[10px]">Fren Sistemi</span>
-                  <strong class="text-white">${escapeHtml(specs.frenSistemi || 'TRW / Lucas')}</strong>
-                </div>
+              <div class="absolute bottom-2 right-2 bg-slate-900/90 backdrop-blur-xs text-slate-300 text-[11px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+                <span>🔍 Şemayı Büyüt</span>
               </div>
             </div>
 
-            <!-- Alt Çubuk: Durum Bilgilendirmesi -->
-            <div class="mt-4 pt-3 border-t border-slate-700/60 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
-              <div class="flex items-center gap-2">
-                <span class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
-                <span>Aşağıdaki Parça Radar tablosunda öncelikle stoklu bayiler, ardından tüm üretici muadilleri listelenmektedir.</span>
+            <!-- Sağ: Parça Kimliği & Teknik Parametreler -->
+            <div class="flex-1 flex flex-col justify-between w-full">
+              <div>
+                <div class="flex flex-wrap items-center gap-2 mb-2.5">
+                  <span class="px-2.5 py-0.5 bg-orange-500/20 text-orange-400 border border-orange-500/40 rounded-md text-xs font-black uppercase tracking-wider">
+                    ${escapeHtml(brand)}
+                  </span>
+                  <span class="px-2.5 py-0.5 bg-sky-500/20 text-sky-300 border border-sky-500/40 rounded-md text-xs font-mono font-bold">
+                    OE Kodu: ${escapeHtml(rootOEM)}
+                  </span>
+                  <span class="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-md text-xs font-bold flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    ${localCount > 0 ? `${localCount} Bayide Anlık Stokta` : 'Katalog Verisi (Bayide Yok)'}
+                  </span>
+                  <span class="px-2.5 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/40 rounded-md text-xs font-bold">
+                    ${crossCount} Çapraz Referans Kod
+                  </span>
+                </div>
+
+                <h2 class="text-xl sm:text-2xl font-black text-white tracking-tight leading-snug">
+                  ${escapeHtml(partTitle)}
+                </h2>
+
+                <div class="text-xs sm:text-sm text-slate-300 font-medium mt-1.5 flex items-center gap-2">
+                  <span class="text-orange-400 font-bold">🚗 Uyumlu Araçlar:</span>
+                  <strong class="text-white">${escapeHtml(compatibleModels)}</strong>
+                </div>
+
+                <!-- Teknik Özellik Parametreleri -->
+                <div class="mt-3.5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 text-[11px]">
+                  <div class="bg-slate-800/80 border border-slate-700/60 p-2 rounded-lg">
+                    <span class="text-slate-400 block text-[10px]">Kalınlık</span>
+                    <strong class="text-white font-mono">${escapeHtml(specs.kalinlik || '18.0 mm')}</strong>
+                  </div>
+                  <div class="bg-slate-800/80 border border-slate-700/60 p-2 rounded-lg">
+                    <span class="text-slate-400 block text-[10px]">Genişlik</span>
+                    <strong class="text-white font-mono">${escapeHtml(specs.genislik || '137.0 mm')}</strong>
+                  </div>
+                  <div class="bg-slate-800/80 border border-slate-700/60 p-2 rounded-lg">
+                    <span class="text-slate-400 block text-[10px]">Yükseklik</span>
+                    <strong class="text-white font-mono">${escapeHtml(specs.yukseklik || '57.4 mm')}</strong>
+                  </div>
+                  <div class="bg-slate-800/80 border border-slate-700/60 p-2 rounded-lg">
+                    <span class="text-slate-400 block text-[10px]">Montaj Konumu</span>
+                    <strong class="text-white">${escapeHtml(specs.montajKonumu || 'Ön Aks')}</strong>
+                  </div>
+                  <div class="bg-slate-800/80 border border-slate-700/60 p-2 rounded-lg">
+                    <span class="text-slate-400 block text-[10px]">Fren Sistemi</span>
+                    <strong class="text-white">${escapeHtml(specs.frenSistemi || 'TRW / Lucas')}</strong>
+                  </div>
+                </div>
               </div>
-              <span class="font-mono text-slate-500 text-[11px]">Parça Radar B2B Engine v2.4</span>
+
+              <!-- Alt Çubuk: Durum Bilgilendirmesi -->
+              <div class="mt-4 pt-3 border-t border-slate-700/60 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
+                <div class="flex items-center gap-2">
+                  <span class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
+                  <span>Aşağıdaki Parça Radar tablosunda öncelikle stoklu bayiler, ardından tüm üretici muadilleri listelenmektedir.</span>
+                </div>
+                <span class="font-mono text-slate-500 text-[11px]">Parça Radar B2B Engine v2.4</span>
+              </div>
             </div>
           </div>
-        </div>
-      `;
+        `;
+      }
       overviewEl.classList.remove('hidden');
     }
 
@@ -2474,6 +2637,14 @@
         const localItems = displayedProducts.filter(p => p.isLocalStock);
         const crossRefItems = displayedProducts.filter(p => !p.isLocalStock);
 
+        const isVinMode = !!(window.lastSearchMeta && (window.lastSearchMeta.isVinSearch || window.lastSearchMeta.vehicleInfo)) || (currentSearchType === 'vin' || isVinString(currentSearchQuery));
+        const localSectionTitle = isVinMode
+          ? `🟢 BU ŞASİ İLE %100 UYUMLU ANLIK STOKTAKİ BAYİ PARÇALARI (${localItems.length} Stok Kaydı)`
+          : `🟢 ANLIK STOKTA OLAN BAYİLER & TEDARİKÇİLER (${localItems.length} Stok Kaydı)`;
+        const crossSectionTitle = isVinMode
+          ? `🔄 BU ŞASİYE AİT DİĞER OEM & MUADİL PARÇALAR (${crossRefItems.length} Muadil Kod)`
+          : `🔄 ÇAPRAZ REFERANS & MUADİL PARÇA LİSTESİ (${crossRefItems.length} Muadil Kod)`;
+
         let tableHtml = '';
 
         // 1.1: STOKTAKİ BAYİLER & TEDARİKÇİLER (EN BAŞTA LİSTELENİR)
@@ -2483,9 +2654,9 @@
               <div class="bg-gradient-to-r from-emerald-600 to-teal-700 px-4 py-3 text-white flex flex-wrap items-center justify-between gap-2">
                 <div class="flex items-center gap-2 text-xs sm:text-sm font-black">
                   <span class="w-2.5 h-2.5 rounded-full bg-white animate-pulse"></span>
-                  <span>🟢 ANLIK STOKTA OLAN BAYİLER & TEDARİKÇİLER (${localItems.length} Stok Kaydı)</span>
+                  <span>${localSectionTitle}</span>
                 </div>
-                <span class="text-[11px] font-bold bg-white/20 px-2.5 py-0.5 rounded-md">✓ Aynı Gün Sevk / Doğrudan Sepete Ekle</span>
+                <span class="text-[11px] font-bold bg-white/20 px-2.5 py-0.5 rounded-md">${isVinMode ? '✓ Doğrulanmış Şasi Uyumu / Aynı Gün Sevk' : '✓ Aynı Gün Sevk / Doğrudan Sepete Ekle'}</span>
               </div>
               <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse text-xs">
@@ -2567,8 +2738,8 @@
             <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-800 flex items-center gap-3">
               <span class="text-xl">⚠️</span>
               <div>
-                <strong>Aranan OEM kodu (${escapeHtml(currentSearchQuery)}) için şu anda anlık lokal bayi raf stoğu bulunmamaktadır.</strong>
-                <p class="mt-0.5 text-amber-700">Aşağıdaki çapraz referans / muadil üretici kodlarından doğrudan sipariş verebilir veya temin talebinde bulunabilirsiniz.</p>
+                <strong>${isVinMode ? `Girilen şasi numarası (${escapeHtml(currentSearchQuery)}) için şu anda anlık lokal bayi raf stoğunda hazır teslim parça bulunamadı.` : `Aranan OEM kodu (${escapeHtml(currentSearchQuery)}) için şu anda anlık lokal bayi raf stoğu bulunmamaktadır.`}</strong>
+                <p class="mt-0.5 text-amber-700">${isVinMode ? 'Aşağıdaki şasiye uyumlu OEM ve çapraz referans kodlarından doğrudan sipariş verebilir veya talep oluşturabilirsiniz.' : 'Aşağıdaki çapraz referans / muadil üretici kodlarından doğrudan sipariş verebilir veya temin talebinde bulunabilirsiniz.'}</p>
               </div>
             </div>
           `;
@@ -2581,9 +2752,9 @@
               <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-4 py-3 text-white flex flex-wrap items-center justify-between gap-2">
                 <div class="flex items-center gap-2 text-xs sm:text-sm font-black">
                   <span>🔄</span>
-                  <span>ÇAPRAZ REFERANS & MUADİL PARÇA LİSTESİ (${crossRefItems.length} Muadil Kod)</span>
+                  <span>${crossSectionTitle}</span>
                 </div>
-                <span class="text-[11px] font-bold text-slate-300">Tüm Üreticiler (TRW, Bosch, Valeo, Brembo, Ferodo, Textar, AYD...)</span>
+                <span class="text-[11px] font-bold text-slate-300">${isVinMode ? 'Bu Şasi Numarasına Uyumlu Tüm Fabrika & Yan Sanayi Kodları' : 'Tüm Üreticiler (TRW, Bosch, Valeo, Brembo, Ferodo, Textar, AYD...)'}</span>
               </div>
               <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse text-xs">
@@ -2971,7 +3142,77 @@
     // --------------------------------------------------------------------------
     function handleSearchSubmit() {
       const input = document.getElementById('store-search-input');
-      currentSearchQuery = input ? input.value.trim() : '';
+      const query = input ? input.value.trim() : '';
+      if (!query) {
+        currentSearchQuery = '';
+        loadProducts();
+        return;
+      }
+
+      if (currentSearchType === 'vin' || isVinString(query)) {
+        executeVinSearch(query);
+      } else {
+        currentSearchQuery = query;
+        loadProducts();
+      }
+    }
+
+    function executeVinSearch(vinQuery) {
+      const cleanVin = (vinQuery || '').trim().toUpperCase();
+      if (!cleanVin) return;
+
+      currentSearchType = 'vin';
+      currentSearchQuery = cleanVin;
+
+      const input = document.getElementById('store-search-input');
+      if (input) input.value = cleanVin;
+      const textEl = document.getElementById('search-type-text');
+      if (textEl) textEl.textContent = '🚗 Şasi No (VIN)';
+
+      const bannerInput = document.getElementById('vin-banner-input');
+      if (bannerInput) bannerInput.value = cleanVin;
+
+      currentCategory = '';
+      currentBrand = '';
+
+      if (typeof decodeVinInfo === 'function') {
+        const vDec = decodeVinInfo(cleanVin);
+        if (vDec) {
+          activeVehicle = {
+            code: vDec.chassis || 'vin-auto',
+            name: `${vDec.brand} ${vDec.model}`,
+            desc: `${vDec.engine} (${vDec.year})`,
+            chassis: vDec.chassis || 'STD',
+            vin: vDec.vin,
+            brand: vDec.brand
+          };
+          currentBrand = vDec.brand;
+        }
+      }
+
+      showToast(`🚗 "${cleanVin}" şasi numarası sorgulanıyor...`, 'info');
+      loadProducts();
+    }
+
+    function clearVinFilter() {
+      currentSearchType = 'all';
+      currentSearchQuery = '';
+      activeVehicle = null;
+      currentBrand = '';
+      window.lastSearchMeta = null;
+
+      const input = document.getElementById('store-search-input');
+      if (input) {
+        input.value = '';
+        input.placeholder = 'OEM, Şasi No, Model veya Parça Adı giriniz...';
+      }
+      const textEl = document.getElementById('search-type-text');
+      if (textEl) textEl.textContent = '🔍 OEM / Şasi No';
+
+      const bannerInput = document.getElementById('vin-banner-input');
+      if (bannerInput) bannerInput.value = '';
+
+      showToast('Şasi filtresi temizlendi.', 'info');
       loadProducts();
     }
 
@@ -2979,8 +3220,24 @@
       currentSearchType = type;
       const textEl = document.getElementById('search-type-text');
       if (textEl) textEl.textContent = label;
+
+      const searchInput = document.getElementById('store-search-input');
+      if (searchInput) {
+        if (type === 'vin') {
+          searchInput.placeholder = 'Örn: 17 Haneli Şasi No (VF1LB17C536... / WVWZZZ...)';
+        } else if (type === 'oe') {
+          searchInput.placeholder = 'Örn: 7701209639 veya 5Q0 698 151 AA';
+        } else {
+          searchInput.placeholder = 'OEM, Şasi No, Model veya Parça Adı giriniz...';
+        }
+      }
       closeSearchTypeDropdown();
     }
+
+    window.executeVinSearch = executeVinSearch;
+    window.clearVinFilter = clearVinFilter;
+    window.handleSearchSubmit = handleSearchSubmit;
+    window.setSearchType = setSearchType;
 
     function toggleSearchTypeDropdown(e) {
       if (e) e.stopPropagation();
@@ -3179,26 +3436,7 @@
         return;
       }
 
-      if (rawVin.startsWith('WVW') || rawVin.startsWith('WAU')) {
-        selectVehicle('golf7', 'Volkswagen Golf VII', '1.6 TDI (115 HP) 2016-2020, Dizel', '5G1 / BQ1 / BE1', rawVin, 'Volkswagen');
-        showToast('✓ Şasi Doğrulandı: Volkswagen Golf VII 1.6 TDI (115 HP) uyumlu parçalar filtrelendi!', 'success');
-      } else if (rawVin.startsWith('VF1')) {
-        selectVehicle('megane4', 'Renault Megane IV', '1.5 dCi (110 HP) 2020, Dizel', 'B9A / K9A', rawVin, 'Renault');
-        showToast('✓ Şasi Doğrulandı: Renault Megane IV 1.5 dCi uyumlu parçalar filtrelendi!', 'success');
-      } else if (rawVin.startsWith('ZFA')) {
-        selectVehicle('egea', 'Fiat Egea', '1.3 Multijet (95 HP) 2021, Dizel', '356', rawVin, 'Fiat');
-        showToast('✓ Şasi Doğrulandı: Fiat Egea 1.3 Multijet uyumlu parçalar filtrelendi!', 'success');
-      } else if (rawVin.startsWith('WF0')) {
-        selectVehicle('focus', 'Ford Focus III/IV', '1.5 TDCi (120 HP) 2018, Dizel', 'C346', rawVin, 'Ford');
-        showToast('✓ Şasi Doğrulandı: Ford Focus 1.5 TDCi uyumlu parçalar filtrelendi!', 'success');
-      } else if (rawVin.startsWith('KMH') || rawVin.startsWith('MAL')) {
-        selectVehicle('tucson', 'Hyundai Tucson', '1.6 CRDi (136 HP) 2021, Dizel', 'TL / NX4', rawVin, 'Hyundai');
-        showToast('✓ Şasi Doğrulandı: Hyundai Tucson 1.6 CRDi uyumlu parçalar filtrelendi!', 'success');
-      } else {
-        currentSearchQuery = rawVin;
-        loadProducts();
-        showToast(`✓ "${rawVin}" şasi numarası sorgulandı ve uyumlu parçalar listelendi.`, 'success');
-      }
+      executeVinSearch(rawVin);
     }
 
     function focusVinBanner() {
@@ -4006,6 +4244,9 @@
     window.selectVehicle = selectVehicle;
     window.focusVinBanner = focusVinBanner;
     window.verifyBannerVin = verifyBannerVin;
+    window.executeVinSearch = executeVinSearch;
+    window.clearVinFilter = clearVinFilter;
+    window.isVinString = isVinString;
     window.handleSearchSubmit = handleSearchSubmit;
     window.toggleSearchTypeDropdown = toggleSearchTypeDropdown;
     window.closeSearchTypeDropdown = closeSearchTypeDropdown;

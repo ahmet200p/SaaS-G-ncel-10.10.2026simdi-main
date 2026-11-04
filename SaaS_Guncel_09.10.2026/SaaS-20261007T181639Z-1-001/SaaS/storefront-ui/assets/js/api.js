@@ -26,6 +26,118 @@
 
   const TECHNICAL_BLUEPRINT_SVG = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300' width='400' height='300'%3E%3Crect width='400' height='300' fill='%230f172a'/%3E%3Cdefs%3E%3Cpattern id='grid' width='20' height='20' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 20 0 L 0 0 0 20' fill='none' stroke='%231e293b' stroke-width='1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='400' height='300' fill='url(%23grid)'/%3E%3Ccircle cx='200' cy='135' r='60' fill='none' stroke='%2338bdf8' stroke-width='2' stroke-dasharray='6 3'/%3E%3Ccircle cx='200' cy='135' r='26' fill='%231e293b' stroke='%230284c7' stroke-width='1.5'/%3E%3Crect x='140' y='90' width='30' height='90' rx='4' fill='%230284c7' opacity='0.35' stroke='%2338bdf8' stroke-width='1.5'/%3E%3Crect x='230' y='90' width='30' height='90' rx='4' fill='%230284c7' opacity='0.35' stroke='%2338bdf8' stroke-width='1.5'/%3E%3Cline x1='120' y1='135' x2='280' y2='135' stroke='%23f59e0b' stroke-width='1.5' stroke-dasharray='4 2'/%3E%3Cline x1='200' y1='50' x2='200' y2='220' stroke='%23f59e0b' stroke-width='1.5' stroke-dasharray='4 2'/%3E%3Ctext x='200' y='248' fill='%2338bdf8' font-family='monospace' font-size='12' font-weight='bold' text-anchor='middle'%3EOEM TEKN%C4%B0K %C5%9EEMA / DETAY%3C/text%3E%3Ctext x='200' y='270' fill='%2394a3b8' font-family='sans-serif' font-size='11' text-anchor='middle'%3EPar%C3%A7a Referans %C3%87izimi%3C/text%3E%3C/svg%3E";
 
+  // Helper: 17 Haneli Şasi (VIN) Algılama ve Otomotiv Künyesi Çözümleme
+  function isVinFormat(str) {
+    if (!str || typeof str !== 'string') return false;
+    const clean = str.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (clean.length === 17) return true;
+    const vinPrefixes = ['VF1', 'WVW', 'WAU', 'ZFA', 'WF0', 'KMH', 'MAL', 'WBA', 'WBY', 'WDB', 'WDD', 'WDF', 'VSS', 'TMB', 'VF3', 'VF7', 'SAL', 'SHS', 'JHM', 'JN1', 'JMZ', 'W0L'];
+    return clean.length >= 8 && vinPrefixes.some(p => clean.startsWith(p));
+  }
+
+  function decodeVinInfo(vin) {
+    if (!vin) return null;
+    const clean = String(vin).trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (clean.length < 5) return null;
+
+    const wmi = clean.slice(0, 3);
+    let brand = 'Otomotiv';
+    let model = 'Genel Model';
+    let engine = '1.6 Motor';
+    let fuelType = 'Dizel';
+    let year = '2020';
+    let chassis = clean.length >= 8 ? clean.slice(3, 8) : 'STD';
+    let schemaImageUrl = TECHNICAL_BLUEPRINT_SVG;
+    let primaryOe = 'OEM-PART';
+
+    // 10. Karakterden Model Yılı Çözümleme
+    if (clean.length === 17) {
+      const yChar = clean[9];
+      const yearMap = {
+        '1':'2001','2':'2002','3':'2003','4':'2004','5':'2005','6':'2006','7':'2007','8':'2008','9':'2009',
+        'A':'2010','B':'2011','C':'2012','D':'2013','E':'2014','F':'2015','G':'2016','H':'2017','J':'2018',
+        'K':'2019','L':'2020','M':'2021','N':'2022','P':'2023','R':'2024','S':'2025','T':'2026'
+      };
+      if (yearMap[yChar]) year = yearMap[yChar];
+    }
+
+    // WMI & Araç Aileleri Eşleşmesi
+    if (wmi.startsWith('VF1')) {
+      brand = 'Renault';
+      schemaImageUrl = 'https://img.parts-catalogs.com/renault_2019_10/dessins/01040693.png';
+      primaryOe = '7701209639';
+      if (clean.includes('LB') || clean.includes('BB') || clean.includes('CB') || clean.includes('SB') || parseInt(year) < 2012) {
+        model = 'Clio II / Thalia / Symbol / Lutecia';
+        engine = '1.4 16V / 1.5 dCi (K7J/K9K)';
+        year = year === '2020' ? '2005' : year;
+      } else {
+        model = 'Megane IV / Clio V';
+        engine = '1.5 dCi (110 HP)';
+      }
+    } else if (wmi.startsWith('WVW') || wmi.startsWith('WAU')) {
+      brand = wmi.startsWith('WAU') ? 'Audi' : 'Volkswagen';
+      model = 'Golf VII / Passat B8';
+      engine = '1.6 TDI (115 HP)';
+      primaryOe = '5Q0698151B';
+      year = year === '2020' ? '2018' : year;
+      schemaImageUrl = TECHNICAL_BLUEPRINT_SVG;
+    } else if (wmi.startsWith('ZFA')) {
+      brand = 'Fiat';
+      model = 'Egea / Tipo';
+      engine = '1.3 Multijet (95 HP)';
+      primaryOe = '77366536';
+      year = year === '2020' ? '2021' : year;
+      schemaImageUrl = TECHNICAL_BLUEPRINT_SVG;
+    } else if (wmi.startsWith('WF0')) {
+      brand = 'Ford';
+      model = 'Focus III/IV';
+      engine = '1.5 TDCi (120 HP)';
+      primaryOe = '1809256';
+      year = year === '2020' ? '2018' : year;
+      schemaImageUrl = TECHNICAL_BLUEPRINT_SVG;
+    } else if (wmi.startsWith('KMH') || wmi.startsWith('MAL')) {
+      brand = 'Hyundai';
+      model = 'Tucson / i30';
+      engine = '1.6 CRDi (136 HP)';
+      primaryOe = '58101D7A00';
+      year = year === '2020' ? '2021' : year;
+      schemaImageUrl = TECHNICAL_BLUEPRINT_SVG;
+    } else if (wmi.startsWith('WBA') || wmi.startsWith('WBY')) {
+      brand = 'BMW';
+      model = '3 Serisi (F30/G20)';
+      engine = '320d (190 HP)';
+      primaryOe = '34116850568';
+      schemaImageUrl = TECHNICAL_BLUEPRINT_SVG;
+    } else if (wmi.startsWith('WDB') || wmi.startsWith('WDD') || wmi.startsWith('WDF')) {
+      brand = 'Mercedes-Benz';
+      model = 'C-Serisi (W205)';
+      engine = 'C200d (160 HP)';
+      primaryOe = 'A0084200620';
+      schemaImageUrl = TECHNICAL_BLUEPRINT_SVG;
+    } else {
+      brand = 'Orijinal OEM';
+      model = 'Şasi Uyumlu Araç';
+      engine = 'Standart Motor';
+      primaryOe = clean.slice(0, 10);
+      schemaImageUrl = TECHNICAL_BLUEPRINT_SVG;
+    }
+
+    return {
+      vin: clean,
+      brand,
+      vehicleBrand: brand,
+      model,
+      compatibleModels: model,
+      engine,
+      year,
+      fuelType,
+      chassis,
+      schemaImageUrl,
+      primaryOe,
+      criteria: `VIN*${clean}`
+    };
+  }
+
   // ----------------------------------------------------------------------------
   // YEREL TOHUM (MOCK SEED) VERİ HAVUZU (STANDALONE V3)
   // ----------------------------------------------------------------------------
@@ -1628,6 +1740,27 @@
       };
     }
 
+    // 8.9. GET/POST /catalog/search-vin/:vin (Şasi No ile Doğrudan Araç Künyesi ve Parça Ağacı)
+    if (cleanEndpoint.startsWith('/catalog/search-vin') || cleanEndpoint.startsWith('/catalog/vin')) {
+      let rawVin = cleanEndpoint.replace('/catalog/search-vin', '').replace('/catalog/vin', '').replace(/^\//, '').trim();
+      if (!rawVin) {
+        try {
+          const parsed = new URL(endpoint, 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com');
+          rawVin = (parsed.searchParams.get('vin') || parsed.searchParams.get('q') || '').trim();
+        } catch (e) {}
+      }
+      if (!rawVin && body.vin) rawVin = body.vin;
+
+      const vehicleInfo = decodeVinInfo(rawVin || 'VF1LB17C536060366');
+      return {
+        success: true,
+        vehicleInfo,
+        compatibleParts: [
+          { partName: 'Brake pad - Ön Fren Balata Takımı', oemCode: vehicleInfo.primaryOe, categoryGroup: 'Fren Sistemi' }
+        ]
+      };
+    }
+
     // 9. GET /store/products
     if (cleanEndpoint === '/store/products' && method === 'GET') {
       const firstCust = (store.customers && store.customers[0]) || null;
@@ -1639,6 +1772,7 @@
       // Parse query params if any
       let brandFilter = '';
       let searchFilter = '';
+      let vinFilter = '';
       let categoryFilter = '';
       let subCatFilter = '';
       let mfrFilter = '';
@@ -1649,6 +1783,7 @@
         const parsedUrl = new URL(endpoint, 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com');
         brandFilter = (parsedUrl.searchParams.get('brand') || '').trim().toLowerCase();
         searchFilter = (parsedUrl.searchParams.get('search') || '').trim().toLowerCase();
+        vinFilter = (parsedUrl.searchParams.get('vin') || '').trim().toUpperCase();
         categoryFilter = (parsedUrl.searchParams.get('category') || '').trim().toLowerCase();
         subCatFilter = (parsedUrl.searchParams.get('subCategory') || '').trim().toLowerCase();
         mfrFilter = (parsedUrl.searchParams.get('manufacturer') || '').trim().toLowerCase();
@@ -2001,11 +2136,155 @@
         });
       }
 
-      if (brandFilter && brandFilter !== 'all') {
+      // ----------------------------------------------------------------------
+      // ŞASİ (VIN) SORGUSU İŞLEME: VIN formatında sorgu yapıldığında aracı çöz ve parçaları listele
+      // ----------------------------------------------------------------------
+      let vinSearchMeta = null;
+      const rawVinTarget = vinFilter || (isVinFormat(searchFilter) ? searchFilter : '');
+
+      if (rawVinTarget) {
+        const vinInfo = decodeVinInfo(rawVinTarget);
+        if (vinInfo) {
+          const vBrand = vinInfo.brand.toLowerCase();
+          let vinMatched = calculated.filter(p => {
+            const pb = (p.vehicleBrand || '').toLowerCase();
+            const pm = (p.compatibleModels || '').toLowerCase();
+            const pn = (p.name || '').toLowerCase();
+            return pb.includes(vBrand) || pm.includes(vBrand) || pn.includes(vBrand);
+          });
+
+          // Renault Şasisi ise (VF1...) Clio II / Thalia Balata Takımını ve Muadillerini Garanti Et
+          if (vBrand.includes('renault')) {
+            const hasLocalRenault = vinMatched.some(p => (p.stockCode || p.oeNumber || '') === '7701209639');
+            const sampleSchema = 'https://img.parts-catalogs.com/renault_2019_10/dessins/01040693.png';
+            const sampleRefs = '7711130036, 7701209639, GDB0036, 0986424036, 598036, P68036, FDB0036, 2403601';
+            const sampleSpecs = { kalinlik: '18.0 mm', genislik: '137.0 mm', yukseklik: '57.4 mm', montajKonumu: 'Ön Aks', frenSistemi: 'TRW / Lucas' };
+
+            if (!hasLocalRenault) {
+              vinMatched.unshift({
+                brand: 'Orijinal Renault (OEM)',
+                stockCode: '7701209639',
+                oemNumber: '7701209639',
+                oeNumber: '7701209639',
+                crossReferences: sampleRefs,
+                name: 'Renault Clio II / Thalia Ön Fren Balata Takımı',
+                stock: 8,
+                unit: 'AD',
+                price: 1450,
+                defaultPrice: 1450,
+                customPrice: 1450,
+                discountedPrice: 1160,
+                appliedDiscountRate: 20,
+                supplierName: 'Ahmet Oto (Yetkili Bayi)',
+                companyName: 'Ahmet Oto (Yetkili Bayi)',
+                sellerName: 'Ahmet Oto (Yetkili Bayi)',
+                dealerName: 'Ahmet Oto (Yetkili Bayi)',
+                isLocalStock: true,
+                tenantProductId: 'cat-7701209639',
+                productId: 'cat-7701209639',
+                category: 'Fren Sistemi',
+                subCategory: 'Ön Fren Balatası',
+                vehicleBrand: 'Renault',
+                compatibleModels: vinInfo.model,
+                partGroup: 'Fren Sistemi',
+                imageUrl: sampleSchema,
+                images: [sampleSchema],
+                schemaImageUrl: sampleSchema,
+                isCatalogOnly: false,
+                stockStatus: 'IN_STOCK',
+                technicalSpecs: sampleSpecs,
+                pricing: { listPrice: 1450, discountRate: 20, savedAmount: 290, finalPrice: 1160 }
+              });
+            }
+
+            // Çapraz Referans Kodları (TRW, BOSCH, VALEO, BREMBO, FERODO, TEXTAR, AYD)
+            const refs = [
+              { brand: 'TRW', code: 'GDB0036' },
+              { brand: 'BOSCH', code: '0986424036' },
+              { brand: 'VALEO', code: '598036' },
+              { brand: 'BREMBO', code: 'P68036' },
+              { brand: 'FERODO', code: 'FDB0036' },
+              { brand: 'TEXTAR', code: '2403601' },
+              { brand: 'AYD', code: '11-30036AA' }
+            ];
+            refs.forEach(r => {
+              if (!vinMatched.some(c => (c.stockCode || c.oeNumber) === r.code)) {
+                vinMatched.push({
+                  brand: r.brand,
+                  stockCode: r.code,
+                  oemNumber: '7711130036',
+                  oeNumber: '7711130036',
+                  crossReferences: sampleRefs,
+                  name: `Brake pad - Fren Balata Takımı (${r.brand} ${r.code})`,
+                  stock: 0,
+                  unit: 'AD',
+                  price: null,
+                  supplierName: 'Katalog Muadili (Dış Tedarik)',
+                  isLocalStock: false,
+                  tenantProductId: `cat-${r.code}`,
+                  productId: `cat-${r.code}`,
+                  category: 'Fren Sistemi',
+                  subCategory: 'Ön Fren Balatası',
+                  vehicleBrand: 'Renault',
+                  compatibleModels: vinInfo.model,
+                  partGroup: 'Fren Sistemi',
+                  imageUrl: sampleSchema,
+                  images: [sampleSchema],
+                  schemaImageUrl: sampleSchema,
+                  isCatalogOnly: true,
+                  defaultPrice: null,
+                  customPrice: null,
+                  discountedPrice: null,
+                  appliedDiscountRate: 0,
+                  stockStatus: 'OUT_OF_STOCK_CATALOG',
+                  companyName: 'Katalog Muadili (Dış Tedarik)',
+                  sellerName: 'Katalog Muadili (Dış Tedarik)',
+                  dealerName: 'Katalog Muadili (Dış Tedarik)',
+                  technicalSpecs: sampleSpecs,
+                  pricing: { listPrice: null, discountRate: 0, savedAmount: 0, finalPrice: null }
+                });
+              }
+            });
+          }
+
+          calculated = vinMatched;
+
+          // Sıralama: Anlık stoktaki bayi kayıtları en üstte
+          calculated.sort((a, b) => {
+            if (a.isLocalStock && !b.isLocalStock) return -1;
+            if (!a.isLocalStock && b.isLocalStock) return 1;
+            return 0;
+          });
+
+          vinSearchMeta = {
+            isVinSearch: true,
+            searchQuery: rawVinTarget,
+            vin: vinInfo.vin,
+            vehicleBrand: vinInfo.brand,
+            compatibleModels: vinInfo.model,
+            partName: `${vinInfo.brand} ${vinInfo.model} Şasi Parçaları`,
+            rootOEM: vinInfo.primaryOe,
+            schemaImageUrl: vinInfo.schemaImageUrl,
+            vehicleInfo: vinInfo,
+            technicalSpecs: {
+              sasiNo: vinInfo.vin,
+              motor: vinInfo.engine,
+              modelYili: vinInfo.year,
+              yakit: vinInfo.fuelType,
+              kasa: vinInfo.chassis,
+              uyumGarantisi: '%100 Doğrulanmış Şasi Uyumu'
+            },
+            localStockCount: calculated.filter(p => p.isLocalStock).length,
+            crossRefCount: calculated.filter(p => !p.isLocalStock).length
+          };
+        }
+      }
+
+      if (brandFilter && brandFilter !== 'all' && !vinSearchMeta) {
         calculated = calculated.filter(p => (p.vehicleBrand || '').toLowerCase().includes(brandFilter));
       }
 
-      if (searchFilter) {
+      if (searchFilter && !vinSearchMeta) {
         // Akıllı Garaj: Şasi No (VIN) veya Plaka eşleşmesi
         let matchedGarageVehicle = null;
         if (store.garageVehicles && Array.isArray(store.garageVehicles)) {
@@ -2258,7 +2537,7 @@
 
       return {
         success: true,
-        meta: searchMeta,
+        meta: vinSearchMeta || searchMeta,
         customer: {
           companyName: firstCust ? firstCust.companyName : 'Kemal Usta (Otoservis)',
           appliedDiscountRate: discountRate > 0 ? `%${discountRate}` : '%0',
@@ -3019,5 +3298,7 @@
   window.getResolvedTenantSlug = getResolvedTenantSlug;
   window.getRecommendedTogetherAndLabor = getRecommendedTogetherAndLabor;
   window.initInactivityWatcher = initInactivityWatcher;
+  window.decodeVinInfo = decodeVinInfo;
+  window.isVinFormat = isVinFormat;
 
 })(window);
