@@ -192,8 +192,16 @@
           </div>
         </button>
 
-        <!-- Kullanıcı / Bayi Profili -->
-        <div class="relative" id="user-profile-wrapper">
+        <!-- Misafir / Giriş Yap Butonu (Giriş yapılmamışsa görünür) -->
+        <div id="guest-auth-wrapper" class="flex items-center gap-2">
+          <button type="button" onclick="openAuthModal()" class="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-[#f97316] hover:bg-[#ea580c] text-white font-extrabold text-xs shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer" title="B2B Bayi Girişi">
+            <span class="text-sm">👤</span>
+            <span class="whitespace-nowrap">Giriş Yap</span>
+          </button>
+        </div>
+
+        <!-- Kullanıcı / Bayi Profili (Giriş yapıldığında görünür) -->
+        <div class="relative hidden" id="user-profile-wrapper">
           <button type="button" onclick="toggleUserDropdown(event)" class="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl hover:bg-slate-800 transition-colors cursor-pointer text-left" id="btn-user-profile" title="Bayi Hesabı">
             <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-orange-600 text-white font-black text-xs flex items-center justify-center shadow-sm uppercase" id="header-avatar-initials">
               AP
@@ -1059,11 +1067,11 @@
       <form onsubmit="handleLoginSubmit(event)" class="space-y-3 pt-4 text-xs">
         <div>
           <label class="block font-bold text-slate-700 mb-1">E-Posta Adresi</label>
-          <input type="email" id="login-email" required value="ahmet@otomotiv.com" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 font-medium">
+          <input type="email" id="login-email" required placeholder="ornek@firma.com" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 font-medium">
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Şifre</label>
-          <input type="password" id="login-password" required value="123456" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 font-medium">
+          <input type="password" id="login-password" required placeholder="••••••••" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 font-medium">
         </div>
         <button type="submit" class="w-full py-2.5 bg-[#f97316] hover:bg-[#ea580c] text-white font-black text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer mt-2">
           Giriş Yap ➔
@@ -4293,6 +4301,12 @@
     }
 
     async function openMyOrdersModal() {
+      if (!isLoggedIn()) {
+        showToast('Siparişlerinizi görüntülemek için lütfen B2B Bayi Girişi yapınız.', 'warning');
+        openAuthModal();
+        return;
+      }
+
       const modal = document.getElementById('modal-my-orders');
       const backdrop = document.getElementById('modal-orders-backdrop');
       const container = document.getElementById('orders-list-container');
@@ -4351,20 +4365,47 @@
     // 9. AUTH STATE & USER DROPDOWN
     // --------------------------------------------------------------------------
     function isLoggedIn() {
-      const token = (typeof localStorage !== 'undefined' && localStorage.getItem('token')) || 
-                    (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('token'));
-      return !!token;
+      try {
+        const token = (typeof localStorage !== 'undefined' && localStorage.getItem('token')) || 
+                      (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('token'));
+        return !!token;
+      } catch (e) {
+        return false;
+      }
     }
 
     function checkAuthState() {
+      const isAuth = isLoggedIn();
+      const userWrapper = document.getElementById('user-profile-wrapper');
+      const guestWrapper = document.getElementById('guest-auth-wrapper');
       const nameEl = document.getElementById('header-user-name');
       const initialsEl = document.getElementById('header-avatar-initials');
-      const token = (typeof localStorage !== 'undefined' && localStorage.getItem('token')) || 
-                    (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('token'));
+      const dropdownFullname = document.getElementById('dropdown-user-fullname');
+      const dropdownEmail = document.getElementById('dropdown-user-email');
 
-      if (token) {
-        if (nameEl) nameEl.textContent = 'Ahmet Parça';
-        if (initialsEl) initialsEl.textContent = 'AP';
+      if (isAuth) {
+        // Oturum açılmış: Bayi profilini göster, Misafir Giriş Yap butonunu gizle
+        if (guestWrapper) guestWrapper.classList.add('hidden');
+        if (userWrapper) userWrapper.classList.remove('hidden');
+
+        let userData = null;
+        try {
+          const stored = localStorage.getItem('user') || sessionStorage.getItem('user');
+          if (stored) userData = JSON.parse(stored);
+        } catch (e) {}
+
+        const displayName = userData?.name || userData?.company || 'B2B Bayi Hesabı';
+        const displayEmail = userData?.email || 'bayi@otomotiv.com';
+        const initials = displayName.split(' ').map(n => n[0]).filter(Boolean).join('').substring(0, 2).toUpperCase() || 'AP';
+
+        if (nameEl) nameEl.textContent = displayName;
+        if (initialsEl) initialsEl.textContent = initials;
+        if (dropdownFullname) dropdownFullname.textContent = displayName;
+        if (dropdownEmail) dropdownEmail.textContent = displayEmail;
+      } else {
+        // Misafir Modu: Bayi profilini KESİNLİKLE gizle, Giriş Yap butonunu göster
+        if (userWrapper) userWrapper.classList.add('hidden');
+        if (guestWrapper) guestWrapper.classList.remove('hidden');
       }
     }
 
@@ -4415,16 +4456,23 @@
           checkAuthState();
           showToast('Başarıyla giriş yapıldı!', 'success');
         } else {
-          // Mock login fallback
-          localStorage.setItem('token', 'mock_jwt_token_ahmet');
-          sessionStorage.setItem('token', 'mock_jwt_token_ahmet');
+          // B2B Bayi Girişi Mock Onaylama
+          const namePart = email ? email.split('@')[0].toUpperCase() : 'Bayi';
+          const mockUser = {
+            name: `${namePart} Otomotiv`,
+            email: email || 'bayi@otomotiv.com',
+            company: `${namePart} Yedek Parça Ltd.`
+          };
+          localStorage.setItem('token', 'mock_jwt_token_b2b');
+          sessionStorage.setItem('token', 'mock_jwt_token_b2b');
+          localStorage.setItem('user', JSON.stringify(mockUser));
+          sessionStorage.setItem('user', JSON.stringify(mockUser));
           closeAuthModal();
           checkAuthState();
           showToast('Bayi girişi yapıldı (Onaylı B2B Modu)!', 'success');
         }
       } catch (err) {
-        showToast('Giriş yapıldı!', 'success');
-        closeAuthModal();
+        showToast('Giriş başarısız: ' + (err.message || 'Lütfen bilgilerinizi kontrol edin.'), 'danger');
       }
     }
 
@@ -4436,8 +4484,8 @@
         sessionStorage.removeItem('user');
       } catch (e) {}
       closeUserDropdown();
-      showToast('Oturum sonlandırıldı.', 'info');
-      setTimeout(() => location.reload(), 600);
+      checkAuthState();
+      showToast('Oturum kapatıldı. Misafir modundasınız.', 'info');
     }
 
     // --------------------------------------------------------------------------
@@ -4576,7 +4624,10 @@
     window.toggleMegaMenu = toggleMegaMenu;
     window.closeMegaMenu = closeMegaMenu;
     window.handleLoginSubmit = handleLoginSubmit;
+    window.openAuthModal = openAuthModal;
     window.closeAuthModal = closeAuthModal;
+    window.checkAuthState = checkAuthState;
+    window.isLoggedIn = isLoggedIn;
     window.logout = logout;
     window.openMyOrdersModal = openMyOrdersModal;
     window.closeMyOrdersModal = closeMyOrdersModal;
