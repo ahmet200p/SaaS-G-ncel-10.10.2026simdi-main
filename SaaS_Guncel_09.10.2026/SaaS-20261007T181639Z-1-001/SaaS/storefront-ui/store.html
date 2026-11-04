@@ -380,10 +380,10 @@
           <h4 class="font-black text-xs text-slate-900 uppercase tracking-wider mb-1">OEM / Parça Kodu ile Filtrele</h4>
           <p class="text-[11px] text-slate-500 mb-2.5">Özel Parça Kodu veya OE Numarası girin</p>
           <div class="relative">
-            <input type="text" id="sidebar-oem-input" oninput="handleOemFilterInput(this.value)"
+            <input type="text" id="sidebar-oem-input" oninput="handleOemFilterInput(this.value)" onkeydown="if(event.key==='Enter') submitSidebarOemSearch();"
               placeholder="Örn: 5Q0 698 151 AA"
-              class="w-full py-2 px-3 text-xs font-mono font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 focus:bg-white transition-all uppercase">
-            <span class="absolute right-3 top-2.5 text-xs text-slate-400">🔍</span>
+              class="w-full py-2 px-3 pr-8 text-xs font-mono font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 focus:bg-white transition-all uppercase">
+            <button type="button" onclick="submitSidebarOemSearch()" class="absolute right-2.5 top-2 text-xs text-slate-400 hover:text-orange-600 cursor-pointer" title="Parça Ara">🔍</button>
           </div>
         </div>
 
@@ -618,24 +618,25 @@
               <span>🛡️</span> ARAÇ BİLGİLERİ DOĞRULANDI - %100 UYUMLULUK GARANTİSİ
             </span>
             <h2 class="text-base sm:text-lg font-black tracking-tight text-white">
-              Şasi (VIN) Numarası İle %100 Uyum Teyidi
+              Şasi (VIN) veya OEM Numarası İle %100 Uyum Teyidi
             </h2>
             <p class="text-xs text-slate-300 font-medium mt-1 leading-relaxed max-w-2xl">
-              Ruhsatınızda yer alan 17 haneli şasi numarasını girin; motor, şanzıman ve donanım koduna tam uyumlu parçalar anında filtrelensin. Hatalı parça gelme ihtimalini sıfıra indirin.
+              Ruhsatınızda yer alan 17 haneli şasi numarasını veya OEM parça kodunu girin; motor, şanzıman ve donanım koduna tam uyumlu parçalar anında filtrelensin. Hatalı parça gelme ihtimalini sıfıra indirin.
             </p>
           </div>
 
           <!-- Sağ Input & Buton -->
           <div class="w-full md:w-auto shrink-0 flex items-center gap-2">
-            <div class="relative w-full md:w-64">
-              <input type="text" id="vin-banner-input" maxlength="17"
-                placeholder="17 HANELİ ŞASİ NO..."
-                value="WVWZZZAUZHP129841"
-                class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-white placeholder-slate-500 text-xs font-mono font-bold focus:outline-none focus:border-orange-500 uppercase tracking-widest">
+            <div class="relative w-full md:w-80">
+              <input type="text" id="vin-banner-input" maxlength="30"
+                placeholder="OEM No veya 17 Haneli Şasi No..."
+                value=""
+                onkeydown="if(event.key==='Enter') verifyBannerVin();"
+                class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-white placeholder-slate-500 text-xs font-mono font-bold focus:outline-none focus:border-orange-500 uppercase tracking-wider">
             </div>
             <button type="button" onclick="verifyBannerVin()"
-              class="px-5 py-2.5 rounded-xl bg-[#f97316] hover:bg-[#ea580c] text-white font-black text-xs shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer shrink-0">
-              ✓ Doğrula & Listele
+              class="px-5 py-2.5 rounded-xl bg-[#f97316] hover:bg-[#ea580c] text-white font-black text-xs shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer shrink-0 flex items-center gap-1.5">
+              <span>✓ Doğrula & Listele</span>
             </button>
           </div>
 
@@ -644,18 +645,14 @@
         <!-- ==================================================================
              PAGINATION BAR
              ================================================================== -->
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 py-2 text-xs text-slate-500 border-t border-slate-200">
-          <div>
-            Toplam <strong class="text-slate-900 font-bold" id="pagination-total">348</strong> sonuçtan <span id="pagination-range">1 - 24</span> arası gösteriliyor (Sayfa 1 / 15)
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 py-2 text-xs text-slate-500 border-t border-slate-200" id="pagination-container">
+          <div id="pagination-info">
+            Toplam <strong class="text-slate-900 font-bold" id="pagination-total">0</strong> sonuçtan <span id="pagination-range">0 - 0</span> arası gösteriliyor (<span id="pagination-page-info">Sayfa 1 / 1</span>)
           </div>
-          <div class="flex items-center gap-1 font-bold">
-            <button type="button" class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-white text-slate-600 disabled:opacity-40 cursor-pointer" disabled>&lt; Önceki</button>
-            <button type="button" class="px-3 py-1.5 rounded-lg bg-slate-900 text-white cursor-pointer">1</button>
-            <button type="button" class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-white text-slate-700 cursor-pointer">2</button>
-            <button type="button" class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-white text-slate-700 cursor-pointer">3</button>
-            <span class="px-1.5 text-slate-400">...</span>
-            <button type="button" class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-white text-slate-700 cursor-pointer">15</button>
-            <button type="button" class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-white text-slate-600 cursor-pointer">Sonraki &gt;</button>
+          <div class="flex items-center gap-1 font-bold" id="pagination-buttons">
+            <button type="button" class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-400 opacity-40 cursor-not-allowed" disabled>&lt; Önceki</button>
+            <button type="button" class="px-3 py-1.5 rounded-lg bg-slate-900 text-white cursor-default">1</button>
+            <button type="button" class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-400 opacity-40 cursor-not-allowed" disabled>Sonraki &gt;</button>
           </div>
         </div>
 
@@ -1151,6 +1148,8 @@
     let currentInStockOnly = false;
     let currentSort = 'smart';
     let viewMode = 'radar';
+    let currentPage = 1;
+    const pageSize = 12;
     const TECHNICAL_BLUEPRINT_SVG = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300' width='400' height='300'%3E%3Crect width='400' height='300' fill='%230f172a'/%3E%3Cdefs%3E%3Cpattern id='grid' width='20' height='20' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 20 0 L 0 0 0 20' fill='none' stroke='%231e293b' stroke-width='1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='400' height='300' fill='url(%23grid)'/%3E%3Ccircle cx='200' cy='135' r='60' fill='none' stroke='%2338bdf8' stroke-width='2' stroke-dasharray='6 3'/%3E%3Ccircle cx='200' cy='135' r='26' fill='%231e293b' stroke='%230284c7' stroke-width='1.5'/%3E%3Crect x='140' y='90' width='30' height='90' rx='4' fill='%230284c7' opacity='0.35' stroke='%2338bdf8' stroke-width='1.5'/%3E%3Crect x='230' y='90' width='30' height='90' rx='4' fill='%230284c7' opacity='0.35' stroke='%2338bdf8' stroke-width='1.5'/%3E%3Cline x1='120' y1='135' x2='280' y2='135' stroke='%23f59e0b' stroke-width='1.5' stroke-dasharray='4 2'/%3E%3Cline x1='200' y1='50' x2='200' y2='220' stroke='%23f59e0b' stroke-width='1.5' stroke-dasharray='4 2'/%3E%3Ctext x='200' y='248' fill='%2338bdf8' font-family='monospace' font-size='12' font-weight='bold' text-anchor='middle'%3EOEM TEKN%C4%B0K %C5%9EEMA / DETAY%3C/text%3E%3Ctext x='200' y='270' fill='%2394a3b8' font-family='sans-serif' font-size='11' text-anchor='middle'%3EPar%C3%A7a Referans %C3%87izimi%3C/text%3E%3C/svg%3E";
 
     // 17 Haneli Şasi No (VIN) Tespiti & Doğrulaması
@@ -1559,6 +1558,14 @@
     // 1. INITIALIZATION & DATA FETCHING
     // --------------------------------------------------------------------------
     document.addEventListener('DOMContentLoaded', async function() {
+      // Sayfa ilk açıldığında şasi & oem arama kutularını sıfırla (Kullanıcı manuel arama yapar)
+      const vinBannerInput = document.getElementById('vin-banner-input');
+      if (vinBannerInput) vinBannerInput.value = '';
+      const sidebarOemInput = document.getElementById('sidebar-oem-input');
+      if (sidebarOemInput) sidebarOemInput.value = '';
+      const storeSearchInput = document.getElementById('store-search-input');
+      if (storeSearchInput && !currentSearchQuery) storeSearchInput.value = '';
+
       loadCartFromStorage();
       loadFavoritesFromStorage();
       checkAuthState();
@@ -2593,7 +2600,109 @@
     }
 
     // ==========================================================================
-    // 2. ÜRÜN LİSTELEME / RENDER FONKSİYONU (PARÇA RADAR TABLOSU + LİSTE + GRID)
+    // 2. DİNAMİK SAYFALAMA MOTORU & KONTROLLERİ (PAGINATION)
+    // ==========================================================================
+    function renderPaginationControls(totalItems) {
+      const paginationTotal = document.getElementById('pagination-total');
+      const paginationRange = document.getElementById('pagination-range');
+      const paginationPageInfo = document.getElementById('pagination-page-info');
+      const paginationButtons = document.getElementById('pagination-buttons');
+      const paginationContainer = document.getElementById('pagination-container');
+
+      if (!totalItems || totalItems <= 0) {
+        if (paginationTotal) paginationTotal.textContent = '0';
+        if (paginationRange) paginationRange.textContent = '0 - 0';
+        if (paginationPageInfo) paginationPageInfo.textContent = 'Sayfa 0 / 0';
+        if (paginationButtons) paginationButtons.innerHTML = '';
+        if (paginationContainer) paginationContainer.classList.add('opacity-40');
+        return;
+      }
+
+      if (paginationContainer) paginationContainer.classList.remove('opacity-40');
+
+      const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+      if (currentPage > totalPages) currentPage = totalPages;
+      if (currentPage < 1) currentPage = 1;
+
+      const startIdx = (currentPage - 1) * pageSize + 1;
+      const endIdx = Math.min(totalItems, currentPage * pageSize);
+
+      if (paginationTotal) paginationTotal.textContent = String(totalItems);
+      if (paginationRange) paginationRange.textContent = `${startIdx} - ${endIdx}`;
+      if (paginationPageInfo) paginationPageInfo.textContent = `Sayfa ${currentPage} / ${totalPages}`;
+
+      if (!paginationButtons) return;
+
+      let btnHtml = '';
+
+      // Önceki Butonu
+      const prevDisabled = currentPage <= 1;
+      btnHtml += `
+        <button type="button" onclick="goToPage(${currentPage - 1})"
+          class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold transition-all ${prevDisabled ? 'opacity-40 cursor-not-allowed bg-slate-50 text-slate-400' : 'hover:bg-slate-100 text-slate-700 cursor-pointer'}"
+          ${prevDisabled ? 'disabled' : ''}>
+          &lt; Önceki
+        </button>
+      `;
+
+      // Sayfa Numaraları
+      const maxButtons = 5;
+      let startPage = Math.max(1, currentPage - 2);
+      let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+      if (endPage - startPage < maxButtons - 1) {
+        startPage = Math.max(1, endPage - maxButtons + 1);
+      }
+
+      if (startPage > 1) {
+        btnHtml += `<button type="button" onclick="goToPage(1)" class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold cursor-pointer transition-all">1</button>`;
+        if (startPage > 2) {
+          btnHtml += `<span class="px-1.5 text-slate-400 text-xs select-none">...</span>`;
+        }
+      }
+
+      for (let p = startPage; p <= endPage; p++) {
+        if (p === currentPage) {
+          btnHtml += `<button type="button" class="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-bold cursor-default shadow-xs">${p}</button>`;
+        } else {
+          btnHtml += `<button type="button" onclick="goToPage(${p})" class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold cursor-pointer transition-all">${p}</button>`;
+        }
+      }
+
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+          btnHtml += `<span class="px-1.5 text-slate-400 text-xs select-none">...</span>`;
+        }
+        btnHtml += `<button type="button" onclick="goToPage(${totalPages})" class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold cursor-pointer transition-all">${totalPages}</button>`;
+      }
+
+      // Sonraki Butonu
+      const nextDisabled = currentPage >= totalPages;
+      btnHtml += `
+        <button type="button" onclick="goToPage(${currentPage + 1})"
+          class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold transition-all ${nextDisabled ? 'opacity-40 cursor-not-allowed bg-slate-50 text-slate-400' : 'hover:bg-slate-100 text-slate-700 cursor-pointer'}"
+          ${nextDisabled ? 'disabled' : ''}>
+          Sonraki &gt;
+        </button>
+      `;
+
+      paginationButtons.innerHTML = btnHtml;
+    }
+
+    function goToPage(page) {
+      const totalPages = Math.max(1, Math.ceil(displayedProducts.length / pageSize));
+      if (page < 1 || page > totalPages) return;
+      currentPage = page;
+      renderProducts();
+      const targetEl = document.getElementById('products-container') || document.getElementById('products-grid');
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+    window.goToPage = goToPage;
+    window.renderPaginationControls = renderPaginationControls;
+
+    // ==========================================================================
+    // 3. ÜRÜN LİSTELEME / RENDER FONKSİYONU (PARÇA RADAR TABLOSU + LİSTE + GRID)
     // ==========================================================================
     function renderProducts(itemsToRender) {
       if (Array.isArray(itemsToRender)) {
@@ -2603,14 +2712,13 @@
       const emptyState = document.getElementById('empty-catalog-state');
       const activePartsBadge = document.getElementById('stat-active-parts');
       const totalCountTitle = document.getElementById('title-total-count');
-      const paginationTotal = document.getElementById('pagination-total');
-      const paginationRange = document.getElementById('pagination-range');
 
       const count = displayedProducts.length;
       if (activePartsBadge) activePartsBadge.textContent = String(count);
       if (totalCountTitle) totalCountTitle.textContent = String(count);
-      if (paginationTotal) paginationTotal.textContent = String(count);
-      if (paginationRange) paginationRange.textContent = count > 0 ? `1 - ${count}` : '0 - 0';
+
+      // Dinamik Sayfalama Kontrollerini Çiz
+      renderPaginationControls(count);
 
       if (count === 0) {
         if (container) container.innerHTML = '';
@@ -2635,7 +2743,10 @@
         container.className = 'w-full flex flex-col space-y-6';
 
         const localItems = displayedProducts.filter(p => p.isLocalStock);
-        const crossRefItems = displayedProducts.filter(p => !p.isLocalStock);
+        const allCrossItems = displayedProducts.filter(p => !p.isLocalStock);
+        const crossRefItems = allCrossItems.length > pageSize
+          ? allCrossItems.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+          : allCrossItems;
 
         const isVinMode = !!(window.lastSearchMeta && (window.lastSearchMeta.isVinSearch || window.lastSearchMeta.vehicleInfo)) || (currentSearchType === 'vin' || isVinString(currentSearchQuery));
         const localSectionTitle = isVinMode
@@ -2854,7 +2965,8 @@
       // ========================================================================
       if (viewMode === 'list' || viewMode === 'table') {
         container.className = 'flex flex-col space-y-4';
-        container.innerHTML = displayedProducts.map((p, idx) => {
+        const pagedProducts = displayedProducts.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+        container.innerHTML = pagedProducts.map((p, idx) => {
           const id = p.tenantProductId || p.productId || p.id || `prod-${idx}`;
           const oe = p.oeNumber || p.oemNumber || 'OE';
           const name = p.name || 'Yedek Parça';
@@ -2996,7 +3108,8 @@
       // 3. GÖRÜNÜM: IZGARA (GRID) GÖRÜNÜMÜ
       // ========================================================================
       container.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6';
-      container.innerHTML = displayedProducts.map((p, idx) => {
+      const pagedProducts = displayedProducts.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+      container.innerHTML = pagedProducts.map((p, idx) => {
         const id = p.tenantProductId || p.productId || p.id || `prod-${idx}`;
         const oe = p.oeNumber || p.oemNumber || 'OE';
         const name = p.name || 'Yedek Parça';
@@ -3197,9 +3310,11 @@
     function clearVinFilter() {
       currentSearchType = 'all';
       currentSearchQuery = '';
+      currentOemFilter = '';
       activeVehicle = null;
       currentBrand = '';
       window.lastSearchMeta = null;
+      currentPage = 1;
 
       const input = document.getElementById('store-search-input');
       if (input) {
@@ -3212,7 +3327,10 @@
       const bannerInput = document.getElementById('vin-banner-input');
       if (bannerInput) bannerInput.value = '';
 
-      showToast('Şasi filtresi temizlendi.', 'info');
+      const sidebarOemInput = document.getElementById('sidebar-oem-input');
+      if (sidebarOemInput) sidebarOemInput.value = '';
+
+      showToast('Şasi / OEM filtresi temizlendi.', 'info');
       loadProducts();
     }
 
@@ -3237,6 +3355,9 @@
     window.executeVinSearch = executeVinSearch;
     window.clearVinFilter = clearVinFilter;
     window.handleSearchSubmit = handleSearchSubmit;
+    window.submitSidebarOemSearch = submitSidebarOemSearch;
+    window.goToPage = goToPage;
+    window.renderPaginationControls = renderPaginationControls;
     window.setSearchType = setSearchType;
 
     function toggleSearchTypeDropdown(e) {
@@ -3425,18 +3546,62 @@
     }
 
     // --------------------------------------------------------------------------
-    // 4. DARK NAVY VIN VERIFICATION BANNER
+    // 4. DARK NAVY VIN / OEM VERIFICATION BANNER
     // --------------------------------------------------------------------------
     function verifyBannerVin() {
       const input = document.getElementById('vin-banner-input');
-      const rawVin = input ? input.value.trim().toUpperCase() : '';
+      const rawQuery = input ? input.value.trim() : '';
 
-      if (!rawVin || rawVin.length < 5) {
-        showToast('Lütfen geçerli bir 17 haneli Şasi (VIN) Numarası giriniz.', 'warning');
+      if (!rawQuery) {
+        showToast('Lütfen bir OEM Parça Kodu veya 17 Haneli Şasi No (VIN) giriniz.', 'warning');
         return;
       }
 
-      executeVinSearch(rawVin);
+      // Üst arama kutusunu da eşzamanla
+      const topInput = document.getElementById('store-search-input');
+      if (topInput) topInput.value = rawQuery;
+
+      currentPage = 1;
+
+      if (isVinString(rawQuery)) {
+        executeVinSearch(rawQuery);
+      } else {
+        currentSearchType = 'all';
+        currentSearchQuery = rawQuery;
+        const textEl = document.getElementById('search-type-text');
+        if (textEl) textEl.textContent = '🔍 OEM / Parça No';
+        showToast(`🔍 "${rawQuery}" OEM parça kodu sorgulanıyor...`, 'info');
+        loadProducts();
+      }
+    }
+
+    function submitSidebarOemSearch() {
+      const input = document.getElementById('sidebar-oem-input');
+      const val = input ? input.value.trim() : '';
+      if (!val) {
+        currentOemFilter = '';
+        currentSearchQuery = '';
+        currentPage = 1;
+        loadProducts();
+        return;
+      }
+      const topInput = document.getElementById('store-search-input');
+      if (topInput) topInput.value = val;
+      const bannerInput = document.getElementById('vin-banner-input');
+      if (bannerInput) bannerInput.value = val;
+
+      currentPage = 1;
+
+      if (isVinString(val)) {
+        executeVinSearch(val);
+      } else {
+        currentSearchType = 'all';
+        currentSearchQuery = val;
+        const textEl = document.getElementById('search-type-text');
+        if (textEl) textEl.textContent = '🔍 OEM / Parça No';
+        showToast(`🔍 "${val}" OEM parça kodu sorgulanıyor...`, 'info');
+        loadProducts();
+      }
     }
 
     function focusVinBanner() {
@@ -4248,6 +4413,9 @@
     window.clearVinFilter = clearVinFilter;
     window.isVinString = isVinString;
     window.handleSearchSubmit = handleSearchSubmit;
+    window.submitSidebarOemSearch = submitSidebarOemSearch;
+    window.goToPage = goToPage;
+    window.renderPaginationControls = renderPaginationControls;
     window.toggleSearchTypeDropdown = toggleSearchTypeDropdown;
     window.closeSearchTypeDropdown = closeSearchTypeDropdown;
     window.setSearchType = setSearchType;
