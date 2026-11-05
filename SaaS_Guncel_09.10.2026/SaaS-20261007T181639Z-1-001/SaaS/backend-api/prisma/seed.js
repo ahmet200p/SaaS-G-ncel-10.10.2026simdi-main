@@ -134,6 +134,44 @@ async function main() {
 
   console.log(`👔 Bayi Yöneticisi yapılandırıldı: ${tenantAdmin.email} (Bayi: ${tenant.name})`);
 
+  // 4.1 'Mehmet Oto' Adlı Bayi (Tenant) Oluşturma / Güncelleme
+  const mehmetTenant = await prisma.tenant.upsert({
+    where: { subdomain: 'mehmetoto' },
+    update: {
+      name: 'Mehmet Oto',
+      themeColor: '#3b82f6',
+      isActive: true,
+      status: 'APPROVED'
+    },
+    create: {
+      name: 'Mehmet Oto',
+      subdomain: 'mehmetoto',
+      themeColor: '#3b82f6',
+      isActive: true,
+      status: 'APPROVED'
+    }
+  });
+  console.log(`🏪 Bayi (Tenant) oluşturuldu: ${mehmetTenant.name} (Subdomain: ${mehmetTenant.subdomain}.sistem.com)`);
+
+  const mehmetAdmin = await prisma.user.upsert({
+    where: { email: 'mehmetoto@sistem.com' },
+    update: {
+      password: hashedDealerPassword,
+      role: 'TENANT_ADMIN',
+      status: 'APPROVED',
+      tenantId: mehmetTenant.id
+    },
+    create: {
+      email: 'mehmetoto@sistem.com',
+      password: hashedDealerPassword,
+      role: 'TENANT_ADMIN',
+      status: 'APPROVED',
+      tenantId: mehmetTenant.id,
+      name: 'Mehmet Oto'
+    }
+  });
+  console.log(`👔 Bayi Yöneticisi yapılandırıldı: ${mehmetAdmin.email} (Bayi: ${mehmetTenant.name})`);
+
   // 5. Otoservis Müşterisi (CUSTOMER) Oluşturma
   // kemal@kemaloto.com / DEFAULT_CUSTOMER_PASSWORD / CUSTOMER (Kemal Usta)
   const customerUser = await prisma.user.upsert({

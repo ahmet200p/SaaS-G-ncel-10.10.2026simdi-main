@@ -413,7 +413,7 @@ async function executeHybridStoreSearch({
     }
     const crossRefString = crossRefList.join(', ') || 'Muadil kodları mevcut';
 
-    const supplier = (tp.tenant && tp.tenant.name) || (prod.bayi && prod.bayi.name) || 'Ahmet Oto Yedek Parça';
+    const supplier = (tp.tenant && tp.tenant.name) || (prod.bayi && prod.bayi.name) || (targetTenant && targetTenant.name) || 'Yetkili Bayi';
     const itemStock = (tp.stock !== null && tp.stock !== undefined) ? tp.stock : (prod.stock !== undefined ? prod.stock : 14);
     const itemPrice = (tp.customPrice !== null && tp.customPrice !== undefined)
       ? parseFloat(tp.customPrice)
@@ -465,7 +465,7 @@ async function executeHybridStoreSearch({
     if (stockCodeNorm) matchedCodesSet.add(stockCodeNorm);
 
     const firstTp = prod.tenantProducts && prod.tenantProducts[0];
-    const supplier = (firstTp && firstTp.tenant && firstTp.tenant.name) || (prod.bayi && prod.bayi.name) || (prod.tenant && prod.tenant.name) || 'Ahmet Oto Yedek Parça';
+    const supplier = (firstTp && firstTp.tenant && firstTp.tenant.name) || (prod.bayi && prod.bayi.name) || (prod.tenant && prod.tenant.name) || (targetTenant && targetTenant.name) || 'Yetkili Bayi';
     const itemStock = (firstTp && firstTp.stock !== null && firstTp.stock !== undefined) ? firstTp.stock : (prod.stock !== undefined ? prod.stock : 14);
     const itemPrice = (firstTp && firstTp.customPrice !== null && firstTp.customPrice !== undefined)
       ? parseFloat(firstTp.customPrice)
@@ -1026,22 +1026,8 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
       where: whereCondition,
       include: {
         product: {
-          select: {
-            id: true,
-            oeNumber: true,
-            name: true,
-            category: true,
-            vehicleBrand: true,
-            compatibleModels: true,
-            partGroup: true,
-            defaultPrice: true,
-            imageUrl: true,
-            images: true,
-            crossReferences: true,
-            compatibleVehicles: true,
-            attributes: true,
-            diagramUrl: true,
-            diagrams: true
+          include: {
+            bayi: true
           }
         },
         tenant: true
@@ -1054,32 +1040,73 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
     // prompt.md ADIM 2: Eğer tenantProduct boşsa, Product tablosundaki tüm ürünleri vitrine yansıt (Sıfır veri kaybı)
     if ((!tenantProducts || tenantProducts.length === 0) && andConditions.length === 0) {
       const directProducts = await prisma.product.findMany({
+        include: {
+          bayi: true,
+          tenantProducts: {
+            include: {
+              tenant: true
+            }
+          }
+        },
         take: limitNum,
         skip: skip,
         orderBy: { createdAt: 'desc' }
       });
       if (directProducts && directProducts.length > 0) {
         totalCount = directProducts.length;
-        tenantProducts = directProducts.map(p => ({
-          id: p.id,
-          tenantId: p.bayiId || tenantId || 'tenant-ahmet-oto',
-          productId: p.id,
-          stock: 15,
-          customPrice: p.defaultPrice,
-          isDiscounted: false,
-          product: p,
-          tenant: targetTenant || null
-        }));
+        tenantProducts = directProducts.map(p => {
+          const directBayi = p.bayi || (p.tenantProducts && p.tenantProducts[0] && p.tenantProducts[0].tenant) || targetTenant || null;
+          return {
+            id: p.id,
+            tenantId: p.bayiId || (directBayi ? directBayi.id : 'tenant-ahmet-oto'),
+            productId: p.id,
+            stock: (p.tenantProducts && p.tenantProducts[0] && p.tenantProducts[0].stock !== undefined) ? p.tenantProducts[0].stock : 15,
+            customPrice: (p.tenantProducts && p.tenantProducts[0] && p.tenantProducts[0].customPrice !== undefined) ? p.tenantProducts[0].customPrice : p.defaultPrice,
+            isDiscounted: false,
+            product: p,
+            tenant: directBayi
+          };
+        });
       }
     }
 
     // 5. REST Standardı: Saf JSON Dönüşümü (Ziyaretçi vs Müşteri İskonto Hesaplaması)
     const calculatedProducts = tenantProducts.map(item => {
+      // Sahibinden Tarzı Pazaryeri: Her ürünün kendi bayisinin adı dinamik olarak çözülür
+      const dealerName = (item.tenant && item.tenant.name) || (item.product && item.product.bayi && item.product.bayi.name) || (targetTenant && targetTenant.name) || 'Onaylı Bayi';
+      const tenantSubdomain = (item.tenant && item.tenant.subdomain) || (item.product && item.product.bayi && item.product.bayi.subdomain) || (targetTenant && targetTenant.subdomain) || 'bayi';
+
+      const tenantObj = item.tenant ? {
+        id: item.tenant.id,
+        name: item.tenant.name,
+        subdomain: item.tenant.subdomain,
+        themeColor: item.tenant.themeColor,
+        logoUrl: item.tenant.logoUrl
+      } : (item.product && item.product.bayi ? {
+        id: item.product.bayi.id,
+        name: item.product.bayi.name,
+        subdomain: item.product.bayi.subdomain
+      } : {
+        id: item.tenantId,
+        name: dealerName,
+        subdomain: tenantSubdomain
+      });
+
       // Ziyaretçi Modu (Guest Mode - SEO botları ve üye olmayanlar):
       if (isGuest) {
         return {
           tenantProductId: item.id,
           productId: item.productId,
+          dealerName: dealerName,
+          tenantName: dealerName,
+          companyName: dealerName,
+          sellerName: dealerName,
+          supplierName: dealerName,
+          tenant: tenantObj,
+          user: {
+            companyName: dealerName,
+            name: dealerName
+          },
           oeNumber: item.product.oeNumber,
           name: item.product.name,
           category: item.product.category,
@@ -1117,9 +1144,6 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
       const finalPrice = parseFloat((listPrice * discountMultiplier).toFixed(2));
       const savedAmount = parseFloat((listPrice - finalPrice).toFixed(2));
 
-      const dealerName = (item.tenant && item.tenant.name) || (targetTenant && targetTenant.name) || 'Ahmet Oto (Yetkili Bayi)';
-      const rawPrice = (item.customPrice !== null && item.customPrice !== undefined) ? parseFloat(item.customPrice) : parseFloat(item.product.defaultPrice || 500);
-
       return {
         tenantProductId: item.id,
         productId: item.productId,
@@ -1127,6 +1151,8 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
         tenantName: dealerName,
         companyName: dealerName,
         sellerName: dealerName,
+        supplierName: dealerName,
+        tenant: tenantObj,
         user: {
           companyName: dealerName,
           name: dealerName

@@ -149,6 +149,46 @@ const ensureInitialData = async () => {
         data: { password: dealerHash, status: 'APPROVED' }
       });
     }
+
+    // Bayi (Mehmet Oto) ve Bayi Yöneticisi (mehmetoto@sistem.com)
+    let mehmetTenant = await prisma.tenant.findUnique({ where: { subdomain: 'mehmetoto' } });
+    if (!mehmetTenant) {
+      mehmetTenant = await prisma.tenant.create({
+        data: {
+          name: 'Mehmet Oto',
+          subdomain: 'mehmetoto',
+          themeColor: '#3b82f6',
+          isActive: true,
+          status: 'APPROVED'
+        }
+      });
+      console.log('🏪 Bayi (Mehmet Oto) veritabanına eklendi.');
+    } else {
+      await prisma.tenant.update({
+        where: { id: mehmetTenant.id },
+        data: { status: 'APPROVED', isActive: true }
+      });
+    }
+
+    const mehmetAdmin = await prisma.user.findUnique({ where: { email: 'mehmetoto@sistem.com' } });
+    if (!mehmetAdmin) {
+      await prisma.user.create({
+        data: {
+          email: 'mehmetoto@sistem.com',
+          password: dealerHash,
+          role: 'TENANT_ADMIN',
+          status: 'APPROVED',
+          tenantId: mehmetTenant.id,
+          name: 'Mehmet Oto'
+        }
+      });
+      console.log('👔 Bayi Yöneticisi (mehmetoto@sistem.com) veritabanına eklendi.');
+    } else {
+      await prisma.user.update({
+        where: { email: 'mehmetoto@sistem.com' },
+        data: { password: dealerHash, status: 'APPROVED', tenantId: mehmetTenant.id, role: 'TENANT_ADMIN' }
+      });
+    }
   } catch (err) {
     console.error('[DB_INIT_CHECK]:', err.message);
     throw err;
@@ -515,6 +555,32 @@ const ensureNeonTables = async () => {
         }
       });
       console.log('✅ [NEON_SYNC] ahmet@ahmetoto.com şifresi 123456 olarak senkronize edildi.');
+
+      let mehmetTenant = await prisma.tenant.findUnique({ where: { subdomain: 'mehmetoto' } });
+      if (!mehmetTenant) {
+        mehmetTenant = await prisma.tenant.create({
+          data: {
+            name: 'Mehmet Oto',
+            subdomain: 'mehmetoto',
+            themeColor: '#3b82f6',
+            status: 'APPROVED',
+            isActive: true
+          }
+        });
+      }
+      await prisma.user.upsert({
+        where: { email: 'mehmetoto@sistem.com' },
+        update: { password: dealerHash, status: 'APPROVED', role: 'TENANT_ADMIN', tenantId: mehmetTenant.id },
+        create: {
+          email: 'mehmetoto@sistem.com',
+          password: dealerHash,
+          role: 'TENANT_ADMIN',
+          status: 'APPROVED',
+          tenantId: mehmetTenant.id,
+          name: 'Mehmet Oto'
+        }
+      });
+      console.log('✅ [NEON_SYNC] mehmetoto@sistem.com şifresi 123456 olarak senkronize edildi.');
     }
   } catch (err) {
     console.warn('⚠️ [NEON_NOTICE] Tablo / Başlangıç denetimi:', err.message);

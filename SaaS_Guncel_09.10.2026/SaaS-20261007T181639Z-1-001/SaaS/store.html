@@ -2135,7 +2135,7 @@
           const rawImg = p.schemaImageUrl || prod.schemaImageUrl || p.imageUrl || prod.imageUrl || (p.images && p.images[0]) || (prod.images && prod.images[0]);
           const imageUrl = (rawImg && typeof rawImg === 'string' && !rawImg.includes('unsplash')) ? rawImg : TECHNICAL_BLUEPRINT_SVG;
           
-          const sellerName = p.supplierName || p.companyName || p.sellerName || p.dealerName || p.tenantName || (p.tenant && p.tenant.name) || (p.user && (p.user.companyName || p.user.name)) || (prod.user && (prod.user.companyName || prod.user.name)) || 'Ahmet Oto (Yetkili Bayi)';
+          const sellerName = p.supplierName || p.companyName || p.sellerName || p.dealerName || p.tenantName || (p.tenant && p.tenant.name) || (p.user && (p.user.companyName || p.user.name)) || (prod.user && (prod.user.companyName || prod.user.name)) || (prod.bayi && prod.bayi.name) || 'Onaylı Bayi';
           const technicalSpecs = p.technicalSpecs || prod.technicalSpecs || null;
 
           return {
@@ -3010,7 +3010,7 @@
                       const stockCode = p.stockCode || oe;
                       const name = p.name || 'Yedek Parça';
                       const brand = p.brand || p.vehicleBrand || 'OEM';
-                      const sellerName = p.supplierName || p.companyName || p.sellerName || 'Ahmet Oto (Yetkili Bayi)';
+                      const sellerName = p.supplierName || p.companyName || p.sellerName || p.dealerName || p.tenantName || (p.tenant && p.tenant.name) || (p.user && (p.user.companyName || p.user.name)) || 'Onaylı Bayi';
                       const listPrice = (p.price !== null && p.price !== undefined) ? parseFloat(p.price) : 0;
                       const netPrice = (p.discountedPrice !== null && p.discountedPrice !== undefined) ? parseFloat(p.discountedPrice) : (listPrice > 0 ? listPrice * 0.8 : 0);
                       const stockVal = (p.stock !== undefined && p.stock !== null) ? parseInt(p.stock, 10) : 0;
@@ -3191,7 +3191,7 @@
           const name = p.name || 'Yedek Parça';
           const brand = p.manufacturer || p.vehicleBrand || p.brand || 'OEM';
           const models = p.compatibleModels || (activeVehicle ? activeVehicle.name : 'Tüm Modeller');
-          const sellerName = p.supplierName || (p.user && (p.user.companyName || p.user.name)) || p.companyName || p.sellerName || 'Ahmet Oto (Yetkili Bayi)';
+          const sellerName = p.supplierName || p.companyName || p.sellerName || p.dealerName || p.tenantName || (p.tenant && p.tenant.name) || (p.user && (p.user.companyName || p.user.name)) || 'Onaylı Bayi';
           const isLocal = !!p.isLocalStock;
           const listPrice = (p.price !== null && p.price !== undefined) ? parseFloat(p.price) : 0;
           const netPrice = (p.discountedPrice !== null && p.discountedPrice !== undefined) ? parseFloat(p.discountedPrice) : (listPrice > 0 ? listPrice * 0.8 : 0);
@@ -3334,7 +3334,7 @@
         const name = p.name || 'Yedek Parça';
         const brand = p.manufacturer || p.vehicleBrand || p.brand || 'OEM';
         const models = p.compatibleModels || (activeVehicle ? activeVehicle.name : 'Tüm Modeller');
-        const sellerName = p.supplierName || (p.user && (p.user.companyName || p.user.name)) || p.companyName || p.sellerName || 'Ahmet Oto (Yetkili Bayi)';
+        const sellerName = p.supplierName || p.companyName || p.sellerName || p.dealerName || p.tenantName || (p.tenant && p.tenant.name) || (p.user && (p.user.companyName || p.user.name)) || 'Onaylı Bayi';
         const isLocal = !!p.isLocalStock;
         const listPrice = (p.price !== null && p.price !== undefined) ? parseFloat(p.price) : 0;
         const netPrice = (p.discountedPrice !== null && p.discountedPrice !== undefined) ? parseFloat(p.discountedPrice) : (listPrice > 0 ? listPrice * 0.8 : 0);
