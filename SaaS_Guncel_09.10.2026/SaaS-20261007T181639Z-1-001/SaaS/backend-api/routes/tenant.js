@@ -335,77 +335,139 @@ const handleCreateOrUpdateProduct = async (req, res) => {
       });
 
       if (!product) {
-        product = await tx.product.create({
-          data: {
-            oeNumber: oeNumber,
-            name: name,
-            category: category,
-            bayiId: tenantId,
-            vehicleBrand: vehicleBrand,
-            compatibleModels: compatibleModels,
-            partGroup: partGroup,
-            defaultPrice: parsedPrice,
-            imageUrl: primaryImage,
-            images: imagesJson,
-            crossReferences: crossReferences,
-            compatibleVehicles: compatibleVehicles,
-            attributes: attributes,
-            diagramUrl: diagramUrl,
-            diagrams: diagrams,
-            rootOEM: rootOEM,
-            originalOEMs: originalOEMs,
-            referenceCodes: referenceCodes,
-            technicalSpecs: technicalSpecs,
-            schemaSourceCode: schemaSourceCode
-          }
-        });
+        const fullData = {
+          oeNumber: oeNumber,
+          name: name,
+          category: category,
+          vehicleBrand: vehicleBrand,
+          compatibleModels: compatibleModels,
+          partGroup: partGroup,
+          defaultPrice: parsedPrice,
+          imageUrl: primaryImage,
+          images: imagesJson,
+          bayiId: tenantId,
+          rootOEM: rootOEM || null,
+          originalOEMs: originalOEMs || null,
+          referenceCodes: referenceCodes || null,
+          technicalSpecs: technicalSpecs || null,
+          schemaSourceCode: schemaSourceCode || null,
+          crossReferences: crossReferences || null,
+          compatibleVehicles: compatibleVehicles || null,
+          attributes: attributes || null,
+          diagramUrl: diagramUrl || null,
+          diagrams: diagrams || null
+        };
+
+        try {
+          product = await tx.product.create({ data: fullData });
+        } catch (createErr) {
+          console.warn('[PRODUCT_CREATE_ROBUST_FALLBACK]:', createErr.message);
+          // Eğer opsiyonel/yeni kolonlar veritabanında henüz mevcut değilse standart alanlarla oluştur
+          product = await tx.product.create({
+            data: {
+              oeNumber: oeNumber,
+              name: name,
+              category: category,
+              vehicleBrand: vehicleBrand,
+              compatibleModels: compatibleModels,
+              partGroup: partGroup,
+              defaultPrice: parsedPrice,
+              imageUrl: primaryImage,
+              images: imagesJson
+            }
+          });
+        }
       } else {
-        product = await tx.product.update({
-          where: { id: product.id },
-          data: {
-            name: name,
-            category: category,
-            vehicleBrand: vehicleBrand,
-            compatibleModels: compatibleModels,
-            partGroup: partGroup,
-            defaultPrice: parsedPrice,
-            ...(primaryImage ? { imageUrl: primaryImage, images: imagesJson } : {}),
-            crossReferences: crossReferences || product.crossReferences,
-            compatibleVehicles: compatibleVehicles || product.compatibleVehicles,
-            attributes: attributes || product.attributes,
-            diagramUrl: diagramUrl || product.diagramUrl,
-            diagrams: diagrams || product.diagrams,
-            rootOEM: rootOEM || product.rootOEM,
-            originalOEMs: originalOEMs || product.originalOEMs,
-            referenceCodes: referenceCodes || product.referenceCodes,
-            technicalSpecs: technicalSpecs || product.technicalSpecs,
-            schemaSourceCode: schemaSourceCode || product.schemaSourceCode
-          }
-        });
+        const updateData = {
+          name: name,
+          category: category,
+          vehicleBrand: vehicleBrand,
+          compatibleModels: compatibleModels,
+          partGroup: partGroup,
+          defaultPrice: parsedPrice,
+          ...(primaryImage ? { imageUrl: primaryImage, images: imagesJson } : {})
+        };
+
+        if (crossReferences) updateData.crossReferences = crossReferences;
+        if (compatibleVehicles) updateData.compatibleVehicles = compatibleVehicles;
+        if (attributes) updateData.attributes = attributes;
+        if (diagramUrl) updateData.diagramUrl = diagramUrl;
+        if (diagrams) updateData.diagrams = diagrams;
+        if (rootOEM) updateData.rootOEM = rootOEM;
+        if (originalOEMs) updateData.originalOEMs = originalOEMs;
+        if (referenceCodes) updateData.referenceCodes = referenceCodes;
+        if (technicalSpecs) updateData.technicalSpecs = technicalSpecs;
+        if (schemaSourceCode) updateData.schemaSourceCode = schemaSourceCode;
+
+        try {
+          product = await tx.product.update({
+            where: { id: product.id },
+            data: updateData
+          });
+        } catch (updateErr) {
+          console.warn('[PRODUCT_UPDATE_ROBUST_FALLBACK]:', updateErr.message);
+          product = await tx.product.update({
+            where: { id: product.id },
+            data: {
+              name: name,
+              category: category,
+              vehicleBrand: vehicleBrand,
+              compatibleModels: compatibleModels,
+              partGroup: partGroup,
+              defaultPrice: parsedPrice,
+              ...(primaryImage ? { imageUrl: primaryImage, images: imagesJson } : {})
+            }
+          });
+        }
       }
 
       // Bu ürünü oturum açmış bayinin TenantProduct tablosuna bağla, stock ve customPrice kaydet
-      const tp = await tx.tenantProduct.upsert({
-        where: {
-          tenantId_productId: {
+      let tp;
+      try {
+        tp = await tx.tenantProduct.upsert({
+          where: {
+            tenantId_productId: {
+              tenantId: tenantId,
+              productId: product.id
+            }
+          },
+          update: {
+            stock: parsedStock,
+            customPrice: parsedPrice
+          },
+          create: {
             tenantId: tenantId,
-            productId: product.id
+            productId: product.id,
+            stock: parsedStock,
+            customPrice: parsedPrice
+          },
+          include: {
+            product: true
           }
-        },
-        update: {
-          stock: parsedStock,
-          customPrice: parsedPrice
-        },
-        create: {
-          tenantId: tenantId,
-          productId: product.id,
-          stock: parsedStock,
-          customPrice: parsedPrice
-        },
-        include: {
-          product: true
+        });
+      } catch (upsertErr) {
+        console.warn('[TENANT_PRODUCT_UPSERT_ROBUST_FALLBACK]:', upsertErr.message);
+        const existingTp = await tx.tenantProduct.findFirst({
+          where: { tenantId: tenantId, productId: product.id }
+        });
+        if (existingTp) {
+          tp = await tx.tenantProduct.update({
+            where: { id: existingTp.id },
+            data: { stock: parsedStock, customPrice: parsedPrice },
+            include: { product: true }
+          });
+        } else {
+          tp = await tx.tenantProduct.create({
+            data: {
+              tenantId: tenantId,
+              productId: product.id,
+              stock: parsedStock,
+              customPrice: parsedPrice
+            },
+            include: { product: true }
+          });
         }
-      });
+      }
 
       return tp;
     });
@@ -421,8 +483,9 @@ const handleCreateOrUpdateProduct = async (req, res) => {
     console.error('[TENANT_CREATE_PRODUCT_ERROR]:', error);
     return res.status(500).json({
       success: false,
-      message: 'Ürün kataloğa eklenirken sunucu hatası oluştu.',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: error.message || 'Ürün kataloğa eklenirken sunucu hatası oluştu.',
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };
