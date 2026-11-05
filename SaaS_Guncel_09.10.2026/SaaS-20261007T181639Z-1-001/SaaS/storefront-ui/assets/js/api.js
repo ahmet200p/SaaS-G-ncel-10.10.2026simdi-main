@@ -186,6 +186,23 @@
               status: 'APPROVED',
               isActive: true
             }
+          },
+          {
+            id: 'usr-mehmet-admin',
+            email: 'mehmetoto@sistem.com',
+            password: '123456',
+            role: 'TENANT_ADMIN',
+            name: 'Mehmet Oto',
+            status: 'APPROVED',
+            tenantId: 'tenant-mehmet-oto',
+            tenant: {
+              id: 'tenant-mehmet-oto',
+              name: 'Mehmet Oto',
+              subdomain: 'mehmetoto',
+              themeColor: '#3b82f6',
+              status: 'APPROVED',
+              isActive: true
+            }
           }
         ],
         tenants: [
@@ -194,6 +211,16 @@
             name: 'Ahmet Oto Yedek Parça',
             subdomain: 'ahmetoto',
             themeColor: '#f97316',
+            status: 'APPROVED',
+            isActive: true,
+            createdAt: '2026-03-01T10:00:00.000Z',
+            _count: { tenantProducts: 0, customerProfiles: 0, orders: 0 }
+          },
+          {
+            id: 'tenant-mehmet-oto',
+            name: 'Mehmet Oto',
+            subdomain: 'mehmetoto',
+            themeColor: '#3b82f6',
             status: 'APPROVED',
             isActive: true,
             createdAt: '2026-03-01T10:00:00.000Z',
@@ -2899,16 +2926,24 @@
       headers.set('Authorization', `Bearer ${token}`);
     }
 
-    // 5. ADIM: Sabit Bayi Kimliği Enjeksiyonu ('x-tenant-slug': 'ahmetoto')
-    headers.set('x-tenant-slug', TENANT_SLUG);
-    headers.set('X-Tenant-Slug', TENANT_SLUG);
+    // 5. ADIM: Pazaryeri (Sahibinden) Modeli - Çoklu Bayi Desteği
+    // Kullanıcı veya URL özellikle tek bir bayiyi talep etmişse (subdomain/tenant) o bayiyi enjekte et.
+    // Aksi takdirde tüm aktif bayilerin (Mehmet Oto, Ahmet Oto, Firuze Oto vb.) ürünleri ortak vitrinde listelenir.
+    let activeTenantSlug = window.targetTenantSlug || null;
+    if (!activeTenantSlug && typeof window !== 'undefined' && window.location && window.location.search) {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        activeTenantSlug = urlParams.get('tenant') || urlParams.get('subdomain');
+      } catch (e) {}
+    }
 
-    // 6. ADIM: Katalog / Vitrin API İsteklerinde Query Parametresine Tenant Dahil Etme
-    // Backend resolveTenant hem Header hem Query parametresi (?tenant= veya ?subdomain=) destekler.
-    if (url.includes('/store/') || url.includes('/products') || url.includes('/catalog/')) {
-      if (!url.includes('tenant=')) {
+    if (activeTenantSlug && SAFE_SLUG_REGEX.test(activeTenantSlug)) {
+      headers.set('x-tenant-slug', activeTenantSlug);
+      headers.set('X-Tenant-Slug', activeTenantSlug);
+
+      if ((url.includes('/store/') || url.includes('/products') || url.includes('/catalog/')) && !url.includes('tenant=')) {
         const separator = url.includes('?') ? '&' : '?';
-        url = `${url}${separator}tenant=${encodeURIComponent(TENANT_SLUG)}&subdomain=${encodeURIComponent(TENANT_SLUG)}`;
+        url = `${url}${separator}tenant=${encodeURIComponent(activeTenantSlug)}&subdomain=${encodeURIComponent(activeTenantSlug)}`;
       }
     }
 

@@ -16,19 +16,138 @@
 (function (window) {
   'use strict';
 
-  // Sunucu Adresi Yapılandırması (Headless Mimari prompt.md gereği doğrudan absolute URL):
-  const API_BASE = (typeof window !== 'undefined' && window.API_BASE) ? window.API_BASE : 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api';
+  // Headless Mimari Sabit Bayi Kimliği (prompt.md):
+  const TENANT_SLUG = 'ahmetoto';
+  const SAFE_SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i;
+
+  // Sunucu Adresi Yapılandırması (Headless Mimari prompt.md - Netlify engeli için KESİN VE SABİT):
+  const API_BASE = 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api';
   const isDirectExpress = false;
 
+  const TECHNICAL_BLUEPRINT_SVG = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300' width='400' height='300'%3E%3Crect width='400' height='300' fill='%230f172a'/%3E%3Cdefs%3E%3Cpattern id='grid' width='20' height='20' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 20 0 L 0 0 0 20' fill='none' stroke='%231e293b' stroke-width='1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='400' height='300' fill='url(%23grid)'/%3E%3Ccircle cx='200' cy='135' r='60' fill='none' stroke='%2338bdf8' stroke-width='2' stroke-dasharray='6 3'/%3E%3Ccircle cx='200' cy='135' r='26' fill='%231e293b' stroke='%230284c7' stroke-width='1.5'/%3E%3Crect x='140' y='90' width='30' height='90' rx='4' fill='%230284c7' opacity='0.35' stroke='%2338bdf8' stroke-width='1.5'/%3E%3Crect x='230' y='90' width='30' height='90' rx='4' fill='%230284c7' opacity='0.35' stroke='%2338bdf8' stroke-width='1.5'/%3E%3Cline x1='120' y1='135' x2='280' y2='135' stroke='%23f59e0b' stroke-width='1.5' stroke-dasharray='4 2'/%3E%3Cline x1='200' y1='50' x2='200' y2='220' stroke='%23f59e0b' stroke-width='1.5' stroke-dasharray='4 2'/%3E%3Ctext x='200' y='248' fill='%2338bdf8' font-family='monospace' font-size='12' font-weight='bold' text-anchor='middle'%3EOEM TEKN%C4%B0K %C5%9EEMA / DETAY%3C/text%3E%3Ctext x='200' y='270' fill='%2394a3b8' font-family='sans-serif' font-size='11' text-anchor='middle'%3EPar%C3%A7a Referans %C3%87izimi%3C/text%3E%3C/svg%3E";
+
+  // Helper: 17 Haneli Şasi (VIN) Algılama ve Otomotiv Künyesi Çözümleme
+  function isVinFormat(str) {
+    if (!str || typeof str !== 'string') return false;
+    const clean = str.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (clean.length === 17) return true;
+    const vinPrefixes = ['VF1', 'WVW', 'WAU', 'ZFA', 'WF0', 'KMH', 'MAL', 'WBA', 'WBY', 'WDB', 'WDD', 'WDF', 'VSS', 'TMB', 'VF3', 'VF7', 'SAL', 'SHS', 'JHM', 'JN1', 'JMZ', 'W0L'];
+    return clean.length >= 8 && vinPrefixes.some(p => clean.startsWith(p));
+  }
+
+  function decodeVinInfo(vin) {
+    if (!vin) return null;
+    const clean = String(vin).trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (clean.length < 5) return null;
+
+    const wmi = clean.slice(0, 3);
+    let brand = 'Otomotiv';
+    let model = 'Genel Model';
+    let engine = '1.6 Motor';
+    let fuelType = 'Dizel';
+    let year = '2020';
+    let chassis = clean.length >= 8 ? clean.slice(3, 8) : 'STD';
+    let schemaImageUrl = TECHNICAL_BLUEPRINT_SVG;
+    let primaryOe = 'OEM-PART';
+
+    // 10. Karakterden Model Yılı Çözümleme
+    if (clean.length === 17) {
+      const yChar = clean[9];
+      const yearMap = {
+        '1':'2001','2':'2002','3':'2003','4':'2004','5':'2005','6':'2006','7':'2007','8':'2008','9':'2009',
+        'A':'2010','B':'2011','C':'2012','D':'2013','E':'2014','F':'2015','G':'2016','H':'2017','J':'2018',
+        'K':'2019','L':'2020','M':'2021','N':'2022','P':'2023','R':'2024','S':'2025','T':'2026'
+      };
+      if (yearMap[yChar]) year = yearMap[yChar];
+    }
+
+    // WMI & Araç Aileleri Eşleşmesi
+    if (wmi.startsWith('VF1')) {
+      brand = 'Renault';
+      schemaImageUrl = 'https://img.parts-catalogs.com/renault_2019_10/dessins/01040693.png';
+      primaryOe = '7701209639';
+      if (clean.includes('LB') || clean.includes('BB') || clean.includes('CB') || clean.includes('SB') || parseInt(year) < 2012) {
+        model = 'Clio II / Thalia / Symbol / Lutecia';
+        engine = '1.4 16V / 1.5 dCi (K7J/K9K)';
+        year = year === '2020' ? '2005' : year;
+      } else {
+        model = 'Megane IV / Clio V';
+        engine = '1.5 dCi (110 HP)';
+      }
+    } else if (wmi.startsWith('WVW') || wmi.startsWith('WAU')) {
+      brand = wmi.startsWith('WAU') ? 'Audi' : 'Volkswagen';
+      model = 'Golf VII / Passat B8';
+      engine = '1.6 TDI (115 HP)';
+      primaryOe = '5Q0698151B';
+      year = year === '2020' ? '2018' : year;
+      schemaImageUrl = TECHNICAL_BLUEPRINT_SVG;
+    } else if (wmi.startsWith('ZFA')) {
+      brand = 'Fiat';
+      model = 'Egea / Tipo';
+      engine = '1.3 Multijet (95 HP)';
+      primaryOe = '77366536';
+      year = year === '2020' ? '2021' : year;
+      schemaImageUrl = TECHNICAL_BLUEPRINT_SVG;
+    } else if (wmi.startsWith('WF0')) {
+      brand = 'Ford';
+      model = 'Focus III/IV';
+      engine = '1.5 TDCi (120 HP)';
+      primaryOe = '1809256';
+      year = year === '2020' ? '2018' : year;
+      schemaImageUrl = TECHNICAL_BLUEPRINT_SVG;
+    } else if (wmi.startsWith('KMH') || wmi.startsWith('MAL')) {
+      brand = 'Hyundai';
+      model = 'Tucson / i30';
+      engine = '1.6 CRDi (136 HP)';
+      primaryOe = '58101D7A00';
+      year = year === '2020' ? '2021' : year;
+      schemaImageUrl = TECHNICAL_BLUEPRINT_SVG;
+    } else if (wmi.startsWith('WBA') || wmi.startsWith('WBY')) {
+      brand = 'BMW';
+      model = '3 Serisi (F30/G20)';
+      engine = '320d (190 HP)';
+      primaryOe = '34116850568';
+      schemaImageUrl = TECHNICAL_BLUEPRINT_SVG;
+    } else if (wmi.startsWith('WDB') || wmi.startsWith('WDD') || wmi.startsWith('WDF')) {
+      brand = 'Mercedes-Benz';
+      model = 'C-Serisi (W205)';
+      engine = 'C200d (160 HP)';
+      primaryOe = 'A0084200620';
+      schemaImageUrl = TECHNICAL_BLUEPRINT_SVG;
+    } else {
+      brand = 'Orijinal OEM';
+      model = 'Şasi Uyumlu Araç';
+      engine = 'Standart Motor';
+      primaryOe = clean.slice(0, 10);
+      schemaImageUrl = TECHNICAL_BLUEPRINT_SVG;
+    }
+
+    return {
+      vin: clean,
+      brand,
+      vehicleBrand: brand,
+      model,
+      compatibleModels: model,
+      engine,
+      year,
+      fuelType,
+      chassis,
+      schemaImageUrl,
+      primaryOe,
+      criteria: `VIN*${clean}`
+    };
+  }
+
   // ----------------------------------------------------------------------------
-  // YEREL TOHUM (MOCK SEED) VERİ HAVUZU
+  // YEREL TOHUM (MOCK SEED) VERİ HAVUZU (STANDALONE V3)
   // ----------------------------------------------------------------------------
-  const MOCK_STORAGE_KEY = 'saas_b2b_standalone_data_v2';
+  const MOCK_STORAGE_KEY = 'saas_b2b_standalone_data_v3';
 
   function initMockStore() {
     // Eski mock kalıntılarını tarayıcıdan temizle
     try {
       localStorage.removeItem('saas_b2b_standalone_data_v1');
+      localStorage.removeItem('saas_b2b_standalone_data_v2');
     } catch (e) {}
 
     let store = null;
@@ -67,6 +186,23 @@
               status: 'APPROVED',
               isActive: true
             }
+          },
+          {
+            id: 'usr-mehmet-admin',
+            email: 'mehmetoto@sistem.com',
+            password: '123456',
+            role: 'TENANT_ADMIN',
+            name: 'Mehmet Oto',
+            status: 'APPROVED',
+            tenantId: 'tenant-mehmet-oto',
+            tenant: {
+              id: 'tenant-mehmet-oto',
+              name: 'Mehmet Oto',
+              subdomain: 'mehmetoto',
+              themeColor: '#3b82f6',
+              status: 'APPROVED',
+              isActive: true
+            }
           }
         ],
         tenants: [
@@ -75,6 +211,16 @@
             name: 'Ahmet Oto Yedek Parça',
             subdomain: 'ahmetoto',
             themeColor: '#f97316',
+            status: 'APPROVED',
+            isActive: true,
+            createdAt: '2026-03-01T10:00:00.000Z',
+            _count: { tenantProducts: 0, customerProfiles: 0, orders: 0 }
+          },
+          {
+            id: 'tenant-mehmet-oto',
+            name: 'Mehmet Oto',
+            subdomain: 'mehmetoto',
+            themeColor: '#3b82f6',
             status: 'APPROVED',
             isActive: true,
             createdAt: '2026-03-01T10:00:00.000Z',
@@ -216,6 +362,209 @@
    * Backend sunucusuna ulaşılamadığında kullanıcının sistemde tam fonksiyonel
    * olarak gezinmesini, işlem yapmasını ve oturum açmasını sağlar.
    */
+  
+  // =========================================================================
+  // Birlikte Alınanlar (Cross-Sell / Bakım Kiti) ve Tahmini İşçilik Süresi Motoru (Prompt.md Modül 2 & 3)
+  // =========================================================================
+  function getRecommendedTogetherAndLabor(name, group, oeCode) {
+    const combined = `${name || ''} ${group || ''} ${oeCode || ''}`.toLowerCase();
+
+    // 1. Triger / Sente / Zamanlama Mekanizması
+    if (combined.includes('triger') || combined.includes('sente') || combined.includes('zamanlama') || combined.includes('130c15339r') || combined.includes('1872496')) {
+      return {
+        estimatedLaborTime: '2.5 Saat',
+        recommendedTogether: [
+          {
+            id: 'rec-wp',
+            tenantProductId: 'rec-wp',
+            name: 'Devirdaim Su Pompası (Metal Yüksek Debi Çark)',
+            oeNumber: '210100495R',
+            brand: 'VALEO',
+            defaultPrice: 1500,
+            unitPrice: 1200,
+            discountedPrice: 1200,
+            laborTime: '+0.5 Saat',
+            reason: 'Triger değişirken devirdaim sökülür; işçilik tasarrufu için birlikte değişmelidir.'
+          },
+          {
+            id: 'rec-vbelt',
+            tenantProductId: 'rec-vbelt',
+            name: 'V Kayışı (Alternatör Kayışı 6PK1200)',
+            oeNumber: '7701477028',
+            brand: 'GATES',
+            defaultPrice: 400,
+            unitPrice: 320,
+            discountedPrice: 320,
+            laborTime: '+0.2 Saat',
+            reason: 'Triger seti söküldüğünde V kayışı da doğrudan serbest kalır.'
+          },
+          {
+            id: 'rec-antifreeze',
+            tenantProductId: 'rec-antifreeze',
+            name: 'Organik Kırmızı Antifriz Konsantre -37°C (3 Litre)',
+            oeNumber: 'AFS-ANT-03',
+            brand: 'CASTROL',
+            defaultPrice: 350,
+            unitPrice: 280,
+            discountedPrice: 280,
+            laborTime: '+0.1 Saat',
+            reason: 'Devirdaim su pompası yenilendiğinde soğutma suyu tamamen tazelenmelidir.'
+          }
+        ]
+      };
+    }
+
+    // 2. Fren Balatası / Disk / Kaliper
+    if (combined.includes('fren') || combined.includes('balata') || combined.includes('disk') || combined.includes('410601241r') || combined.includes('5q0698151b') || combined.includes('77366536')) {
+      return {
+        estimatedLaborTime: '1 Saat',
+        recommendedTogether: [
+          {
+            id: 'rec-disc',
+            tenantProductId: 'rec-disc',
+            name: 'Ön Fren Diski Havalandırmalı (280mm Takım)',
+            oeNumber: '402060010R',
+            brand: 'TRW',
+            defaultPrice: 1800,
+            unitPrice: 1440,
+            discountedPrice: 1440,
+            laborTime: '+0.4 Saat',
+            reason: 'Aşınmış diske yeni balata takıldığında ötme ve erken aşınma yaşanır.'
+          },
+          {
+            id: 'rec-dot4',
+            tenantProductId: 'rec-dot4',
+            name: 'DOT-4 Sentetik Fren Hidrolik Sıvısı 500ml',
+            oeNumber: 'AFS-DOT4-500',
+            brand: 'BREMBO',
+            defaultPrice: 200,
+            unitPrice: 160,
+            discountedPrice: 160,
+            laborTime: '+0.2 Saat',
+            reason: 'Kaliper pistonları geriye itildiğinde hidrolik basınç ve seviye yenilenmelidir.'
+          },
+          {
+            id: 'rec-spray',
+            tenantProductId: 'rec-spray',
+            name: 'Balata & Fren Parça Temizleme Spreyi 500ml',
+            oeNumber: 'AFS-SPR-500',
+            brand: 'WÜRTH',
+            defaultPrice: 120,
+            unitPrice: 95,
+            discountedPrice: 95,
+            laborTime: '+0.1 Saat',
+            reason: 'Kumpas yuvalarındaki balata tozları ve pası temizlemek için kullanılır.'
+          }
+        ]
+      };
+    }
+
+    // 3. Yağ & Filtre Bakım Seti
+    if (combined.includes('filtre') || combined.includes('yağ') || combined.includes('yag') || combined.includes('8200768913') || combined.includes('03n115562')) {
+      return {
+        estimatedLaborTime: '45 Dk',
+        recommendedTogether: [
+          {
+            id: 'rec-air',
+            tenantProductId: 'rec-air',
+            name: 'Hava Filtresi Paneli',
+            oeNumber: '165467674R',
+            brand: 'MANN-FILTER',
+            defaultPrice: 280,
+            unitPrice: 220,
+            discountedPrice: 220,
+            laborTime: '+15 Dk',
+            reason: 'Periyodik bakımda motor ömrü için hava filtresi yağla birlikte değişmelidir.'
+          },
+          {
+            id: 'rec-cabin',
+            tenantProductId: 'rec-cabin',
+            name: 'Karbonlu Polen Kabin Filtresi',
+            oeNumber: '272778970R',
+            brand: 'FILTRON',
+            defaultPrice: 320,
+            unitPrice: 250,
+            discountedPrice: 250,
+            laborTime: '+15 Dk',
+            reason: 'Klima havasının temizliği ve koku önleme için periyodik değişimi önerilir.'
+          },
+          {
+            id: 'rec-oil',
+            tenantProductId: 'rec-oil',
+            name: '5W-30 C3 Tam Sentetik Motor Yağı (5 Litre)',
+            oeNumber: 'AFS-OIL-5W30',
+            brand: 'ELF EVOLUTION',
+            defaultPrice: 1250,
+            unitPrice: 990,
+            discountedPrice: 990,
+            laborTime: '+20 Dk',
+            reason: 'DPF uyumlu tam sentetik motor yağı dolumu.'
+          }
+        ]
+      };
+    }
+
+    // 4. Amortisör & Süspansiyon
+    if (combined.includes('amortisör') || combined.includes('amortisor') || combined.includes('yay') || combined.includes('salıncak') || combined.includes('543028126r')) {
+      return {
+        estimatedLaborTime: '2 Saat',
+        recommendedTogether: [
+          {
+            id: 'rec-mount',
+            tenantProductId: 'rec-mount',
+            name: 'Ön Amortisör Üst Takozu & Bilyası',
+            oeNumber: '543A08126R',
+            brand: 'SNR',
+            defaultPrice: 520,
+            unitPrice: 410,
+            discountedPrice: 410,
+            laborTime: '+0.5 Saat',
+            reason: 'Amortisör sökülmüşken takoz ve bilyanın değişmesi direksiyon sertliğini önler.'
+          },
+          {
+            id: 'rec-zrot',
+            tenantProductId: 'rec-zrot',
+            name: 'Ön Viraj Askı Rotu (Z-Rot Sol/Sağ)',
+            oeNumber: '546182198R',
+            brand: 'TRW',
+            defaultPrice: 300,
+            unitPrice: 240,
+            discountedPrice: 240,
+            laborTime: '+0.2 Saat',
+            reason: 'Süspansiyon yenilemede rot başları ve Z-rotlar birlikte kontrol edilmelidir.'
+          }
+        ]
+      };
+    }
+
+    // 5. Devirdaim / Soğutma
+    if (combined.includes('devirdaim') || combined.includes('termostat') || combined.includes('radyatör') || combined.includes('radyator')) {
+      return {
+        estimatedLaborTime: '1.5 Saat',
+        recommendedTogether: [
+          {
+            id: 'rec-antifreeze-c',
+            tenantProductId: 'rec-antifreeze-c',
+            name: 'Organik Kırmızı Antifriz Konsantre -37°C (3 Litre)',
+            oeNumber: 'AFS-ANT-03',
+            brand: 'CASTROL',
+            defaultPrice: 350,
+            unitPrice: 280,
+            discountedPrice: 280,
+            laborTime: '+0.1 Saat',
+            reason: 'Soğutma sistemi açıldığında antifrizli su yenilenmelidir.'
+          }
+        ]
+      };
+    }
+
+    // Varsayılan
+    return {
+      estimatedLaborTime: '1 Saat',
+      recommendedTogether: []
+    };
+  }
+
   function handleOfflineMock(endpoint, options = {}) {
     const store = initMockStore();
     const method = (options.method || 'GET').toUpperCase();
@@ -326,8 +675,8 @@
       };
     }
 
-    // 0. POST /auth/register
-    if (cleanEndpoint === '/auth/register' && method === 'POST') {
+    // 0. POST /auth/register ve /store/auth/register (Multi-tenant Müşteri/Otoservis Kaydı)
+    if ((cleanEndpoint === '/auth/register' || cleanEndpoint === '/store/auth/register') && method === 'POST') {
       // NVİ kontrolü
       const rawTc = body.tcKimlikNo || body.tcNo || (body.taxNumber && String(body.taxNumber).length === 11 ? body.taxNumber : null);
       const rawDogumYili = body.dogumYili || body.birthYear;
@@ -343,7 +692,23 @@
       const email = (body.email || '').toLowerCase().trim();
       const password = (body.password || '').trim();
       const role = body.role || 'CUSTOMER';
-      const tenantId = body.tenantId || 'tenant-ahmet-oto';
+
+      // prompt.md Kuralı: İsteğin header'ından gelen x-tenant-slug bilgisine bakarak doğrudan o bayinin altına bağla
+      let headerSlug = null;
+      if (options && options.headers) {
+        if (typeof Headers !== 'undefined' && options.headers instanceof Headers) {
+          headerSlug = options.headers.get('x-tenant-slug') || options.headers.get('X-Tenant-Slug');
+        } else if (typeof options.headers === 'object') {
+          headerSlug = options.headers['x-tenant-slug'] || options.headers['X-Tenant-Slug'];
+        }
+      }
+      const subToFind = headerSlug || body.subdomain || body.tenantSlug || TENANT_SLUG || 'ahmetoto';
+      const cleanSub = String(subToFind).trim().toLowerCase();
+      const matchedTenant = (store.tenants && store.tenants.find(t => (t.subdomain || '').toLowerCase() === cleanSub || t.id === cleanSub)) 
+        || (store.tenants && store.tenants[0]) 
+        || { id: 'tenant-ahmet-oto', subdomain: 'ahmetoto', name: 'Ahmet Oto' };
+      const tenantId = body.tenantId || matchedTenant.id;
+
       const customerType = (body.customerType || 'MECHANIC').toUpperCase();
       const fullName = (body.fullName || body.name || email.split('@')[0]).trim();
       const companyName = (body.companyName || '').trim() || (customerType === 'MECHANIC' ? `${fullName} Oto Servis` : fullName);
@@ -352,10 +717,17 @@
         return { success: false, message: 'E-posta ve şifre zorunludur.' };
       }
 
+      if (password.length < 6) {
+        return { success: false, message: 'Şifre en az 6 karakter olmalıdır.' };
+      }
+
       const existingUser = store.users.find(u => u.email.toLowerCase() === email);
       if (existingUser) {
         return { success: false, message: 'Bu e-posta adresi ile kayıtlı kullanıcı zaten mevcut.' };
       }
+
+      // Şifre güvenliği: bcrypt formatında güvenli hashleme simülasyonu
+      const bcryptHashedPassword = `$2b$10$eXampleHashMock${btoa(password).slice(0, 22)}`;
 
       const newProfile = {
         id: `cust-${Date.now().toString(36)}`,
@@ -366,16 +738,18 @@
         discountRate: 0.0,
         balance: 0.0,
         status: customerType === 'MECHANIC' ? 'PENDING_APPROVAL' : 'APPROVED',
-        tenantId: tenantId
+        tenantId: tenantId,
+        tenant: matchedTenant
       };
 
       const newUser = {
         id: `usr-${Date.now().toString(36)}`,
         email,
-        password,
+        password: bcryptHashedPassword,
         name: fullName,
         role,
         tenantId,
+        tenant: matchedTenant,
         customerProfile: newProfile,
         createdAt: new Date().toISOString()
       };
@@ -527,7 +901,7 @@
     if (cleanEndpoint === '/auth/me' && method === 'GET') {
       let currentUser = null;
       try {
-        currentUser = JSON.parse(localStorage.getItem('user'));
+        currentUser = JSON.parse(sessionStorage.getItem('user') || localStorage.getItem('user'));
       } catch (e) {}
       if (currentUser && currentUser.email) {
         const dbUser = (store.users || []).find(u => u.email.toLowerCase() === currentUser.email.toLowerCase()) || currentUser;
@@ -998,7 +1372,7 @@
     if ((cleanEndpoint === '/tenant/products' || cleanEndpoint === '/tenant/catalog') && method === 'POST') {
       // Onay Kontrolü (requireApprovedDealer)
       let storedUser = null;
-      try { storedUser = JSON.parse(localStorage.getItem('user')); } catch (e) {}
+      try { storedUser = JSON.parse(sessionStorage.getItem('user') || localStorage.getItem('user')); } catch (e) {}
       if (storedUser && storedUser.role !== 'SUPER_ADMIN') {
         const uStatus = storedUser.status || (storedUser.tenant ? storedUser.tenant.status : 'APPROVED');
         if (uStatus === 'PENDING') {
@@ -1393,6 +1767,51 @@
       };
     }
 
+    // 8.9. GET/POST /catalog/search-vin/:vin (Şasi No ile Doğrudan Araç Künyesi ve Parça Ağacı)
+    if (cleanEndpoint.startsWith('/catalog/search-vin') || cleanEndpoint.startsWith('/catalog/vin')) {
+      let rawVin = cleanEndpoint.replace('/catalog/search-vin', '').replace('/catalog/vin', '').replace(/^\//, '').trim();
+      if (!rawVin) {
+        try {
+          const parsed = new URL(endpoint, 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com');
+          rawVin = (parsed.searchParams.get('vin') || parsed.searchParams.get('q') || '').trim();
+        } catch (e) {}
+      }
+      if (!rawVin && body.vin) rawVin = body.vin;
+
+      const vehicleInfo = decodeVinInfo(rawVin || 'VF1LB17C536060366');
+      const isRenault = (vehicleInfo && vehicleInfo.brand && vehicleInfo.brand.toLowerCase().includes('renault')) || String(rawVin).toUpperCase().startsWith('VF1');
+      const sampleCompatible = isRenault ? [
+        { partName: 'Brake pad - Fren Balata Takımı', oemCode: '7701209639', categoryGroup: 'Fren Sistemi' },
+        { partName: 'Brake pad - Fren Balata Takımı', oemCode: '7711130036', categoryGroup: 'Fren Sistemi' },
+        { partName: 'Brake pad - Fren Balata Takımı', oemCode: '7711130071', categoryGroup: 'Fren Sistemi' },
+        { partName: 'Brake pad - Fren Balata Takımı', oemCode: '8660004589', categoryGroup: 'Fren Sistemi' },
+        { partName: 'Front Brake Disc - Ön Fren Diski', oemCode: '7701208422', categoryGroup: 'Fren Sistemi' },
+        { partName: 'Rear Brake Drum - Arka Fren Kampanası', oemCode: '7700839322', categoryGroup: 'Fren Sistemi' },
+        { partName: 'Timing Belt Kit - Triger Kayış Seti', oemCode: '130C15339R', categoryGroup: 'Motor & Mekanik' },
+        { partName: 'Water Pump - Devirdaim Su Pompası', oemCode: '7701477028', categoryGroup: 'Motor & Mekanik' },
+        { partName: 'Oil Filter - Motor Yağ Filtresi', oemCode: '8200768913', categoryGroup: 'Filtre & Bakım' },
+        { partName: 'Air Filter - Hava Filtresi', oemCode: '8200431051', categoryGroup: 'Filtre & Bakım' },
+        { partName: 'Cabin Filter - Polen Filtresi', oemCode: '7701045787', categoryGroup: 'Filtre & Bakım' },
+        { partName: 'Shock Absorber Front - Ön Amortisör', oemCode: '8200662255', categoryGroup: 'Süspansiyon & Alt Takım' },
+        { partName: 'Control Arm - Ön Salıncak Takımı', oemCode: '8200737108', categoryGroup: 'Süspansiyon & Alt Takım' },
+        { partName: 'Tie Rod End - Rot Başı', oemCode: '7701474492', categoryGroup: 'Süspansiyon & Alt Takım' }
+      ] : [
+        { partName: 'Ön Fren Balata Takımı', oemCode: vehicleInfo.primaryOe || '5Q0698151B', categoryGroup: 'Fren Sistemi' },
+        { partName: 'Ön Fren Diski (Havalandırmalı)', oemCode: '5Q0615301H', categoryGroup: 'Fren Sistemi' },
+        { partName: 'Arka Fren Balatası', oemCode: '5Q0698451', categoryGroup: 'Fren Sistemi' },
+        { partName: 'Yağ Filtresi', oemCode: '03N115562B', categoryGroup: 'Filtre & Bakım' },
+        { partName: 'Hava Filtresi', oemCode: '5Q0129620B', categoryGroup: 'Filtre & Bakım' },
+        { partName: 'Triger Kayış Seti & Devirdaim', oemCode: '04L198119A', categoryGroup: 'Motor & Mekanik' }
+      ];
+
+      return {
+        success: true,
+        vehicleInfo,
+        compatibleParts: sampleCompatible,
+        totalCount: sampleCompatible.length
+      };
+    }
+
     // 9. GET /store/products
     if (cleanEndpoint === '/store/products' && method === 'GET') {
       const firstCust = (store.customers && store.customers[0]) || null;
@@ -1404,10 +1823,24 @@
       // Parse query params if any
       let brandFilter = '';
       let searchFilter = '';
+      let vinFilter = '';
+      let categoryFilter = '';
+      let subCatFilter = '';
+      let mfrFilter = '';
+      let inStockFilter = false;
+      let minPriceFilter = 0;
+      let maxPriceFilter = 0;
       try {
-        const parsedUrl = new URL(endpoint, 'http://localhost');
+        const parsedUrl = new URL(endpoint, 'https://saas-g-ncel-10-10-2026simdi-main.onrender.com');
         brandFilter = (parsedUrl.searchParams.get('brand') || '').trim().toLowerCase();
         searchFilter = (parsedUrl.searchParams.get('search') || '').trim().toLowerCase();
+        vinFilter = (parsedUrl.searchParams.get('vin') || '').trim().toUpperCase();
+        categoryFilter = (parsedUrl.searchParams.get('category') || '').trim().toLowerCase();
+        subCatFilter = (parsedUrl.searchParams.get('subCategory') || '').trim().toLowerCase();
+        mfrFilter = (parsedUrl.searchParams.get('manufacturer') || '').trim().toLowerCase();
+        inStockFilter = parsedUrl.searchParams.get('inStock') === 'true';
+        minPriceFilter = parseFloat(parsedUrl.searchParams.get('minPrice') || '0') || 0;
+        maxPriceFilter = parseFloat(parsedUrl.searchParams.get('maxPrice') || '0') || 0;
       } catch (e) {}
 
       let calculated = (store.tenantCatalog || []).map(tc => {
@@ -1427,11 +1860,16 @@
           imageUrl: prod.imageUrl || '',
           images: prod.images || (prod.imageUrl ? [prod.imageUrl] : []),
           stock: tc.stock !== undefined ? tc.stock : 10,
+          isLocalStock: true,
           isDiscounted: tc.isDiscounted,
           defaultPrice: listPrice,
           customPrice: tc.customPrice,
           discountedPrice: finalPrice,
           appliedDiscountRate: discountRate,
+          estimatedLaborTime: prod.estimatedLaborTime || getRecommendedTogetherAndLabor(prod.name, prod.category, prod.oeNumber).estimatedLaborTime,
+          recommendedTogether: (Array.isArray(prod.recommendedTogether) && prod.recommendedTogether.length > 0)
+            ? prod.recommendedTogether
+            : getRecommendedTogetherAndLabor(prod.name, prod.category, prod.oeNumber).recommendedTogether,
           pricing: {
             listPrice: listPrice,
             discountRate: discountRate,
@@ -1441,24 +1879,716 @@
         };
       });
 
-      if (brandFilter && brandFilter !== 'all') {
+      
+      // Otomotiv Seed Kataloğu (Yerel Demo & Çevrimdışı Güvencesi)
+      if (calculated.length === 0) {
+        const defaultSeeds = [
+          // ============================================================
+          // VOLKSWAGEN GOLF VII FREN SİSTEMİ & PARÇAPRO KATALOĞU
+          // ============================================================
+          {
+            name: 'Volkswagen Golf VII Ön Fren Balatası (Sensörlü)',
+            oeNumber: '5Q0698151B',
+            vehicleBrand: 'Volkswagen',
+            category: 'Fren Sistemi',
+            partGroup: 'Fren Sistemi',
+            subCategory: 'Ön Fren Balatası',
+            manufacturer: 'Bosch',
+            compatibleModels: 'Volkswagen Golf VII (1.6 TDI, 1.4 TSI), Passat B8, Octavia III',
+            defaultPrice: 1450,
+            stock: 14,
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
+            estimatedLaborTime: '45 Dk'
+          },
+          {
+            name: 'Volkswagen Golf VII Ön Fren Balata Takımı (Orijinal VAG)',
+            oeNumber: '5Q0698151AA',
+            vehicleBrand: 'Volkswagen',
+            category: 'Fren Sistemi',
+            partGroup: 'Fren Sistemi',
+            subCategory: 'Ön Fren Balatası',
+            manufacturer: 'Orijinal VAG (OEM)',
+            compatibleModels: 'Volkswagen Golf VII 2016-2020, Seat Leon 5F, Audi A3 8V',
+            defaultPrice: 2150,
+            stock: 24,
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
+            estimatedLaborTime: '45 Dk'
+          },
+          {
+            name: 'Volkswagen Golf VII Ön Fren Balatası (Yüksek Performans)',
+            oeNumber: '5Q0698151',
+            vehicleBrand: 'Volkswagen',
+            category: 'Fren Sistemi',
+            partGroup: 'Fren Sistemi',
+            subCategory: 'Ön Fren Balatası',
+            manufacturer: 'Ferodo',
+            compatibleModels: 'Volkswagen Golf VII 1.6 TDI 115 HP, 2.0 TDI',
+            defaultPrice: 1320,
+            stock: 19,
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
+            estimatedLaborTime: '45 Dk'
+          },
+          {
+            name: 'Volkswagen Golf VII Arka Fren Balatası (Elektrikli Park Freni)',
+            oeNumber: '5Q0698451',
+            vehicleBrand: 'Volkswagen',
+            category: 'Fren Sistemi',
+            partGroup: 'Fren Sistemi',
+            subCategory: 'Arka Fren Balatası',
+            manufacturer: 'TRW / ZF',
+            compatibleModels: 'Volkswagen Golf VII Tüm Modeller, Passat B8, Tiguan',
+            defaultPrice: 1150,
+            stock: 12,
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
+            estimatedLaborTime: '40 Dk'
+          },
+          {
+            name: 'Volkswagen Golf VII Arka Fren Balata Takımı (Sessiz Tip)',
+            oeNumber: '8V0698451',
+            vehicleBrand: 'Volkswagen',
+            category: 'Fren Sistemi',
+            partGroup: 'Fren Sistemi',
+            subCategory: 'Arka Fren Balatası',
+            manufacturer: 'Textar',
+            compatibleModels: 'Volkswagen Golf VII, Audi A3 8V, Skoda Octavia III',
+            defaultPrice: 1080,
+            stock: 22,
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
+            estimatedLaborTime: '40 Dk'
+          },
+          {
+            name: 'Volkswagen Golf VII Ön Fren Diski 288x25mm Havalandırmalı (Takım)',
+            oeNumber: '5Q0615301H',
+            vehicleBrand: 'Volkswagen',
+            category: 'Fren Sistemi',
+            partGroup: 'Fren Sistemi',
+            subCategory: 'Ön Fren Diski',
+            manufacturer: 'Brembo',
+            compatibleModels: 'Volkswagen Golf VII 1.6 TDI (PR-1ZA, 1ZE), Passat B8',
+            defaultPrice: 2850,
+            stock: 18,
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
+            estimatedLaborTime: '1 Saat'
+          },
+          {
+            name: 'Volkswagen Golf VII Ön Fren Diski 276mm (Hava Soğutmalı Takım)',
+            oeNumber: '5Q0615301G',
+            vehicleBrand: 'Volkswagen',
+            category: 'Fren Sistemi',
+            partGroup: 'Fren Sistemi',
+            subCategory: 'Ön Fren Diski',
+            manufacturer: 'Bosch',
+            compatibleModels: 'Volkswagen Golf VII 1.2 TSI, 1.6 TDI (PR-1ZF)',
+            defaultPrice: 2450,
+            stock: 15,
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
+            estimatedLaborTime: '1 Saat'
+          },
+          {
+            name: 'Volkswagen Golf VII Arka Fren Diski 272x10mm Dolu Tip (Takım)',
+            oeNumber: '5Q0615601F',
+            vehicleBrand: 'Volkswagen',
+            category: 'Fren Sistemi',
+            partGroup: 'Fren Sistemi',
+            subCategory: 'Arka Fren Diski',
+            manufacturer: 'TRW / ZF',
+            compatibleModels: 'Volkswagen Golf VII, Skoda Octavia III, Seat Leon 5F',
+            defaultPrice: 1950,
+            stock: 16,
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
+            estimatedLaborTime: '50 Dk'
+          },
+          {
+            name: 'Volkswagen Golf VII Fren Kaliperi Ön Sol (Komple Döküm)',
+            oeNumber: '5Q0615123',
+            vehicleBrand: 'Volkswagen',
+            category: 'Fren Sistemi',
+            partGroup: 'Fren Sistemi',
+            subCategory: 'Fren Kaliperi & Hortumlar',
+            manufacturer: 'TRW / ZF',
+            compatibleModels: 'Volkswagen Golf VII 2016-2020 Platformu',
+            defaultPrice: 3450,
+            stock: 8,
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
+            estimatedLaborTime: '1.5 Saat'
+          },
+          {
+            name: 'Volkswagen Golf VII Çelik Örgülü Fren Hortumu Ön Takım',
+            oeNumber: '5Q0611701C',
+            vehicleBrand: 'Volkswagen',
+            category: 'Fren Sistemi',
+            partGroup: 'Fren Sistemi',
+            subCategory: 'Fren Kaliperi & Hortumlar',
+            manufacturer: 'Valeo',
+            compatibleModels: 'Volkswagen Golf VII 1.6 TDI, GTD, R-Line',
+            defaultPrice: 680,
+            stock: 14,
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
+            estimatedLaborTime: '30 Dk'
+          },
+          {
+            name: 'Volkswagen Golf VII Yağ & Yakıt Filtre Bakım Kiti',
+            oeNumber: '03N115562',
+            vehicleBrand: 'Volkswagen',
+            category: 'Filtreler',
+            partGroup: 'Filtre & Bakım',
+            subCategory: 'Filtre & Bakım',
+            manufacturer: 'Bosch',
+            compatibleModels: 'Volkswagen Golf VII 1.6 TDI, Passat B8',
+            defaultPrice: 850,
+            stock: 35,
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
+            estimatedLaborTime: '45 Dk'
+          },
+          {
+            name: 'Volkswagen Golf VII Triger Kayış Seti & Devirdaim Pompası',
+            oeNumber: '04L198119A',
+            vehicleBrand: 'Volkswagen',
+            category: 'Motor Parçaları',
+            partGroup: 'Motor & Şanzıman',
+            subCategory: 'Motor & Şanzıman',
+            manufacturer: 'Bosch',
+            compatibleModels: 'Volkswagen Golf VII 1.6 TDI (115 HP) 2016-2020',
+            defaultPrice: 4200,
+            stock: 12,
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
+            estimatedLaborTime: '2.5 Saat'
+          },
+
+          // ============================================================
+          // DİĞER MODELLER (RENAULT, FIAT, FORD, BMW)
+          // ============================================================
+          {
+            name: 'Renault Clio II / Thalia Ön Fren Balata Takımı',
+            oeNumber: '7701209639',
+            stockCode: '7701209639',
+            vehicleBrand: 'Renault',
+            category: 'Fren Sistemi',
+            partGroup: 'Fren Sistemi',
+            subCategory: 'Ön Fren Balatası',
+            manufacturer: 'Orijinal Renault (OEM)',
+            compatibleModels: 'Clio II / Thalia / Symbol / Lutecia',
+            defaultPrice: 1450,
+            stock: 8,
+            imageUrl: 'https://img.parts-catalogs.com/renault_2019_10/dessins/01040693.png',
+            schemaImageUrl: 'https://img.parts-catalogs.com/renault_2019_10/dessins/01040693.png',
+            crossReferences: '7711130036, 7701209639, GDB0036, 0986424036, 598036, P68036, FDB0036, 2403601',
+            technicalSpecs: { kalinlik: '18.0 mm', genislik: '137.0 mm', yukseklik: '57.4 mm', montajKonumu: 'Ön Aks', frenSistemi: 'TRW / Lucas' },
+            estimatedLaborTime: '45 Dk'
+          },
+          {
+            name: 'Renault Megane IV Triger Kayış Kiti & Gergi Rulmanı',
+            oeNumber: '130C15339R',
+            vehicleBrand: 'Renault',
+            category: 'Motor Parçaları',
+            partGroup: 'Motor & Şanzıman',
+            subCategory: 'Motor & Şanzıman',
+            manufacturer: 'Orijinal VAG (OEM)',
+            compatibleModels: 'Megane IV, Clio V, Captur II 1.5 dCi',
+            defaultPrice: 2850,
+            stock: 20,
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
+            estimatedLaborTime: '2.5 Saat'
+          },
+          {
+            name: 'Renault Megane IV Ön Fren Balata Takımı (Sensörlü)',
+            oeNumber: '410601241R',
+            vehicleBrand: 'Renault',
+            category: 'Fren Sistemi',
+            partGroup: 'Fren Sistemi',
+            subCategory: 'Ön Fren Balatası',
+            manufacturer: 'Ferodo',
+            compatibleModels: 'Megane IV, Clio V, Talisman, Kadjar',
+            defaultPrice: 1250,
+            stock: 18,
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
+            estimatedLaborTime: '45 Dk'
+          },
+          {
+            name: 'Fiat Egea Ön Fren Balata Takımı',
+            oeNumber: '77366536',
+            vehicleBrand: 'Fiat',
+            category: 'Fren Sistemi',
+            partGroup: 'Fren Sistemi',
+            subCategory: 'Ön Fren Balatası',
+            manufacturer: 'Bosch',
+            compatibleModels: 'Fiat Egea 1.3 / 1.6 Multijet, 500L',
+            defaultPrice: 1100,
+            stock: 30,
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
+            estimatedLaborTime: '40 Dk'
+          },
+          {
+            name: 'Ford Focus Triger Kayış & Rulman Seti',
+            oeNumber: '1872496',
+            vehicleBrand: 'Ford',
+            category: 'Motor Parçaları',
+            partGroup: 'Motor & Şanzıman',
+            subCategory: 'Motor & Şanzıman',
+            manufacturer: 'Continental',
+            compatibleModels: 'Ford Focus 1.5 TDCi, C-Max, Kuga',
+            defaultPrice: 2950,
+            stock: 15,
+            imageUrl: TECHNICAL_BLUEPRINT_SVG,
+            estimatedLaborTime: '2 Saat'
+          }
+        ];
+
+        calculated = defaultSeeds.map((seed, sIdx) => {
+          const listP = seed.defaultPrice;
+          const discAmt = discountRate > 0 ? listP * (discountRate / 100) : 0;
+          const finP = parseFloat((listP - discAmt).toFixed(2));
+          const lr = getRecommendedTogetherAndLabor(seed.name, seed.partGroup, seed.oeNumber);
+          return {
+            tenantProductId: `tp-seed-${sIdx + 1}`,
+            productId: `prod-seed-${sIdx + 1}`,
+            oeNumber: seed.oeNumber,
+            oemNumber: seed.oeNumber,
+            stockCode: seed.stockCode || seed.oeNumber,
+            name: seed.name,
+            brand: seed.manufacturer || seed.vehicleBrand || 'OEM',
+            category: seed.category,
+            vehicleBrand: seed.vehicleBrand,
+            compatibleModels: seed.compatibleModels,
+            partGroup: seed.partGroup,
+            imageUrl: seed.schemaImageUrl || seed.imageUrl,
+            images: [seed.schemaImageUrl || seed.imageUrl],
+            schemaImageUrl: seed.schemaImageUrl || seed.imageUrl,
+            technicalSpecs: seed.technicalSpecs || null,
+            stock: seed.stock || 25,
+            unit: 'AD',
+            price: listP,
+            isLocalStock: true,
+            subCategory: seed.subCategory || '',
+            manufacturer: seed.manufacturer || '',
+            estimatedLaborTime: seed.estimatedLaborTime || lr.estimatedLaborTime,
+            isDiscounted: discountRate > 0,
+            supplierName: 'Ahmet Oto (Yetkili Bayi)',
+            companyName: 'Ahmet Oto (Yetkili Bayi)',
+            dealerName: 'Ahmet Oto (Yetkili Bayi)',
+            sellerName: 'Ahmet Oto (Yetkili Bayi)',
+            user: {
+              companyName: 'Ahmet Oto (Yetkili Bayi)',
+              name: 'Ahmet Oto'
+            },
+            defaultPrice: listP,
+            customPrice: listP,
+            discountedPrice: finP,
+            appliedDiscountRate: discountRate,
+            pricing: {
+              listPrice: listP,
+              discountRate: discountRate,
+              savedAmount: parseFloat((listP - finP).toFixed(2)),
+              finalPrice: finP
+            },
+            estimatedLaborTime: lr.estimatedLaborTime,
+            recommendedTogether: lr.recommendedTogether
+          };
+        });
+      }
+
+      // ----------------------------------------------------------------------
+      // ŞASİ (VIN) SORGUSU İŞLEME: VIN formatında sorgu yapıldığında aracı çöz ve parçaları listele
+      // ----------------------------------------------------------------------
+      let vinSearchMeta = null;
+      const rawVinTarget = vinFilter || (isVinFormat(searchFilter) ? searchFilter : '');
+
+      if (rawVinTarget) {
+        const vinInfo = decodeVinInfo(rawVinTarget);
+        if (vinInfo) {
+          const vBrand = vinInfo.brand.toLowerCase();
+          let vinMatched = calculated.filter(p => {
+            const pb = (p.vehicleBrand || '').toLowerCase();
+            const pm = (p.compatibleModels || '').toLowerCase();
+            const pn = (p.name || '').toLowerCase();
+            return pb.includes(vBrand) || pm.includes(vBrand) || pn.includes(vBrand);
+          });
+
+          // Renault Şasisi ise (VF1...) Clio II / Thalia Balata Takımını ve Muadillerini Garanti Et
+          if (vBrand.includes('renault')) {
+            const hasLocalRenault = vinMatched.some(p => (p.stockCode || p.oeNumber || '') === '7701209639');
+            const sampleSchema = 'https://img.parts-catalogs.com/renault_2019_10/dessins/01040693.png';
+            const sampleRefs = '7711130036, 7701209639, GDB0036, 0986424036, 598036, P68036, FDB0036, 2403601';
+            const sampleSpecs = { kalinlik: '18.0 mm', genislik: '137.0 mm', yukseklik: '57.4 mm', montajKonumu: 'Ön Aks', frenSistemi: 'TRW / Lucas' };
+
+            if (!hasLocalRenault) {
+              vinMatched.unshift({
+                brand: 'Orijinal Renault (OEM)',
+                stockCode: '7701209639',
+                oemNumber: '7701209639',
+                oeNumber: '7701209639',
+                crossReferences: sampleRefs,
+                name: 'Renault Clio II / Thalia Ön Fren Balata Takımı',
+                stock: 8,
+                unit: 'AD',
+                price: 1450,
+                defaultPrice: 1450,
+                customPrice: 1450,
+                discountedPrice: 1160,
+                appliedDiscountRate: 20,
+                supplierName: 'Ahmet Oto (Yetkili Bayi)',
+                companyName: 'Ahmet Oto (Yetkili Bayi)',
+                sellerName: 'Ahmet Oto (Yetkili Bayi)',
+                dealerName: 'Ahmet Oto (Yetkili Bayi)',
+                isLocalStock: true,
+                tenantProductId: 'cat-7701209639',
+                productId: 'cat-7701209639',
+                category: 'Fren Sistemi',
+                subCategory: 'Ön Fren Balatası',
+                vehicleBrand: 'Renault',
+                compatibleModels: vinInfo.model,
+                partGroup: 'Fren Sistemi',
+                imageUrl: sampleSchema,
+                images: [sampleSchema],
+                schemaImageUrl: sampleSchema,
+                isCatalogOnly: false,
+                stockStatus: 'IN_STOCK',
+                technicalSpecs: sampleSpecs,
+                pricing: { listPrice: 1450, discountRate: 20, savedAmount: 290, finalPrice: 1160 }
+              });
+            }
+
+            // Çapraz Referans Kodları (TRW, BOSCH, VALEO, BREMBO, FERODO, TEXTAR, AYD)
+            const refs = [
+              { brand: 'TRW', code: 'GDB0036' },
+              { brand: 'BOSCH', code: '0986424036' },
+              { brand: 'VALEO', code: '598036' },
+              { brand: 'BREMBO', code: 'P68036' },
+              { brand: 'FERODO', code: 'FDB0036' },
+              { brand: 'TEXTAR', code: '2403601' },
+              { brand: 'AYD', code: '11-30036AA' }
+            ];
+            refs.forEach(r => {
+              if (!vinMatched.some(c => (c.stockCode || c.oeNumber) === r.code)) {
+                vinMatched.push({
+                  brand: r.brand,
+                  stockCode: r.code,
+                  oemNumber: '7711130036',
+                  oeNumber: '7711130036',
+                  crossReferences: sampleRefs,
+                  name: `Brake pad - Fren Balata Takımı (${r.brand} ${r.code})`,
+                  stock: 0,
+                  unit: 'AD',
+                  price: null,
+                  supplierName: 'Katalog Muadili (Dış Tedarik)',
+                  isLocalStock: false,
+                  tenantProductId: `cat-${r.code}`,
+                  productId: `cat-${r.code}`,
+                  category: 'Fren Sistemi',
+                  subCategory: 'Ön Fren Balatası',
+                  vehicleBrand: 'Renault',
+                  compatibleModels: vinInfo.model,
+                  partGroup: 'Fren Sistemi',
+                  imageUrl: sampleSchema,
+                  images: [sampleSchema],
+                  schemaImageUrl: sampleSchema,
+                  isCatalogOnly: true,
+                  defaultPrice: null,
+                  customPrice: null,
+                  discountedPrice: null,
+                  appliedDiscountRate: 0,
+                  stockStatus: 'OUT_OF_STOCK_CATALOG',
+                  companyName: 'Katalog Muadili (Dış Tedarik)',
+                  sellerName: 'Katalog Muadili (Dış Tedarik)',
+                  dealerName: 'Katalog Muadili (Dış Tedarik)',
+                  technicalSpecs: sampleSpecs,
+                  pricing: { listPrice: null, discountRate: 0, savedAmount: 0, finalPrice: null }
+                });
+              }
+            });
+          }
+
+          calculated = vinMatched;
+
+          // Sıralama: Anlık stoktaki bayi kayıtları en üstte
+          calculated.sort((a, b) => {
+            if (a.isLocalStock && !b.isLocalStock) return -1;
+            if (!a.isLocalStock && b.isLocalStock) return 1;
+            return 0;
+          });
+
+          vinSearchMeta = {
+            isVinSearch: true,
+            searchQuery: rawVinTarget,
+            vin: vinInfo.vin,
+            vehicleBrand: vinInfo.brand,
+            compatibleModels: vinInfo.model,
+            partName: `${vinInfo.brand} ${vinInfo.model} Şasi Parçaları`,
+            rootOEM: vinInfo.primaryOe,
+            schemaImageUrl: vinInfo.schemaImageUrl,
+            vehicleInfo: vinInfo,
+            technicalSpecs: {
+              sasiNo: vinInfo.vin,
+              motor: vinInfo.engine,
+              modelYili: vinInfo.year,
+              yakit: vinInfo.fuelType,
+              kasa: vinInfo.chassis,
+              uyumGarantisi: '%100 Doğrulanmış Şasi Uyumu'
+            },
+            localStockCount: calculated.filter(p => p.isLocalStock).length,
+            crossRefCount: calculated.filter(p => !p.isLocalStock).length
+          };
+        }
+      }
+
+      if (brandFilter && brandFilter !== 'all' && !vinSearchMeta) {
         calculated = calculated.filter(p => (p.vehicleBrand || '').toLowerCase().includes(brandFilter));
       }
 
-      if (searchFilter) {
+      if (searchFilter && !vinSearchMeta) {
+        // Akıllı Garaj: Şasi No (VIN) veya Plaka eşleşmesi
+        let matchedGarageVehicle = null;
+        if (store.garageVehicles && Array.isArray(store.garageVehicles)) {
+          const cleanQ = searchFilter.replace(/\s+/g, '').toLowerCase();
+          matchedGarageVehicle = store.garageVehicles.find(v => {
+            const vVin = (v.vin || '').replace(/\s+/g, '').toLowerCase();
+            const vPlate = (v.plateNumber || '').replace(/\s+/g, '').toLowerCase();
+            return vVin === cleanQ || cleanQ.includes(vVin) || vPlate === cleanQ;
+          });
+        }
+
+        if (matchedGarageVehicle) {
+          const vBrand = (matchedGarageVehicle.vehicleBrand || '').toLowerCase();
+          const vModel = (matchedGarageVehicle.vehicleModel || '').toLowerCase();
+          const filtered = calculated.filter(p => {
+            const b = (p.vehicleBrand || '').toLowerCase();
+            const c = (p.compatibleModels || '').toLowerCase();
+            const n = (p.name || '').toLowerCase();
+            const brandMatch = vBrand && (b.includes(vBrand) || c.includes(vBrand));
+            const modelTokens = vModel.split(/\s+/).filter(t => t.length > 2);
+            const modelMatch = modelTokens.some(t => c.includes(t) || n.includes(t));
+            return brandMatch || modelMatch;
+          });
+          calculated = filtered.length > 0 ? filtered : calculated;
+        } else {
+          // Ham VIN desenleri algılama (VF1 -> Renault, WVW -> VW, ZFA -> Fiat, WF0 -> Ford)
+          let detectedBrand = '';
+          const rawVin = searchFilter.toLowerCase().replace(/\s+/g, '');
+          if (rawVin.startsWith('vf1')) detectedBrand = 'renault';
+          else if (rawVin.startsWith('wvw') || rawVin.startsWith('wau')) detectedBrand = 'volkswagen';
+          else if (rawVin.startsWith('zfa')) detectedBrand = 'fiat';
+          else if (rawVin.startsWith('wf0')) detectedBrand = 'ford';
+
+          calculated = calculated.filter(p => 
+            (p.name || '').toLowerCase().includes(searchFilter) ||
+            (p.oeNumber || '').toLowerCase().includes(searchFilter) ||
+            (p.vehicleBrand || '').toLowerCase().includes(searchFilter) ||
+            (p.compatibleModels || '').toLowerCase().includes(searchFilter) ||
+            (p.partGroup || '').toLowerCase().includes(searchFilter) ||
+            (detectedBrand && (p.vehicleBrand || '').toLowerCase().includes(detectedBrand)) ||
+            (detectedBrand && (p.compatibleModels || '').toLowerCase().includes(detectedBrand))
+          );
+
+          // prompt.md Kuralı & Video Referansı: OEM ile sorgu yapıldığında
+          // 1. Elimde stok varsa en başta gözükecek (firma adı, fiyatı, stok adedi)
+          // 2. Ardından o OEM numarasına karşılık gelen tüm çapraz referanslar (TRW, Bosch, Valeo, Brembo...)
+          //    stokta olsa da olmasa da ekrana yazılacak!
+          const sClean = (searchFilter || '').toUpperCase().trim();
+          const isRenaultSample = sClean.includes('7701209639') || sClean.includes('7711130036') || sClean.includes('GDB0036') || sClean.includes('0986424036');
+          
+          if (isRenaultSample) {
+            const sampleSchema = 'https://img.parts-catalogs.com/renault_2019_10/dessins/01040693.png';
+            const sampleName = 'Brake pad - Fren Balata Takımı';
+            const sampleBrand = 'Renault';
+            const sampleModels = 'Clio II / Thalia / Symbol / Lutecia';
+            const sampleRefs = '7711130036, 7701209639, GDB0036, 0986424036, 598036, P68036, FDB0036, 2403601';
+            const sampleSpecs = { kalinlik: '18.0 mm', genislik: '137.0 mm', yukseklik: '57.4 mm', montajKonumu: 'Ön Aks', frenSistemi: 'TRW / Lucas' };
+
+            // 1. Lokal Stok Kaydı (En başta listelenir)
+            if (calculated.length === 0) {
+              calculated.push({
+                brand: sampleBrand,
+                stockCode: '7701209639',
+                oemNumber: '7711130036',
+                oeNumber: '7711130036',
+                crossReferences: sampleRefs,
+                name: sampleName,
+                stock: 8,
+                unit: 'AD',
+                price: 1450,
+                defaultPrice: 1450,
+                customPrice: 1450,
+                discountedPrice: 1160,
+                appliedDiscountRate: 20,
+                supplierName: 'Ahmet Oto (Yetkili Bayi)',
+                companyName: 'Ahmet Oto (Yetkili Bayi)',
+                sellerName: 'Ahmet Oto (Yetkili Bayi)',
+                dealerName: 'Ahmet Oto (Yetkili Bayi)',
+                isLocalStock: true,
+                tenantProductId: 'cat-7701209639',
+                productId: 'cat-7701209639',
+                category: 'Fren Sistemi',
+                vehicleBrand: sampleBrand,
+                compatibleModels: sampleModels,
+                partGroup: 'Fren Sistemi',
+                imageUrl: sampleSchema,
+                images: [sampleSchema],
+                schemaImageUrl: sampleSchema,
+                isCatalogOnly: false,
+                stockStatus: 'IN_STOCK',
+                technicalSpecs: sampleSpecs,
+                pricing: { listPrice: 1450, discountRate: 20, savedAmount: 290, finalPrice: 1160 }
+              });
+            } else {
+              // Mevcut lokal kaydı zenginleştir
+              calculated.forEach(item => {
+                item.schemaImageUrl = sampleSchema;
+                item.imageUrl = sampleSchema;
+                item.images = [sampleSchema];
+                item.technicalSpecs = sampleSpecs;
+                item.compatibleModels = sampleModels;
+                item.supplierName = item.supplierName || 'Ahmet Oto (Yetkili Bayi)';
+                item.stockCode = item.stockCode || '7701209639';
+                item.brand = item.brand || sampleBrand;
+                item.price = item.price || item.defaultPrice || 1450;
+                item.isLocalStock = true;
+              });
+            }
+
+            // 2. Çapraz Referans Kodları (TRW, BOSCH, VALEO, BREMBO, FERODO, TEXTAR, AYD)
+            const refs = [
+              { brand: 'TRW', code: 'GDB0036' },
+              { brand: 'BOSCH', code: '0986424036' },
+              { brand: 'VALEO', code: '598036' },
+              { brand: 'BREMBO', code: 'P68036' },
+              { brand: 'FERODO', code: 'FDB0036' },
+              { brand: 'TEXTAR', code: '2403601' },
+              { brand: 'AYD', code: '11-30036AA' }
+            ];
+            refs.forEach(r => {
+              if (!calculated.some(c => (c.stockCode || c.oeNumber) === r.code)) {
+                calculated.push({
+                  brand: r.brand,
+                  stockCode: r.code,
+                  oemNumber: '7711130036',
+                  oeNumber: '7711130036',
+                  crossReferences: sampleRefs,
+                  name: `${sampleName} (${r.brand} ${r.code})`,
+                  stock: 0,
+                  unit: 'AD',
+                  price: null,
+                  supplierName: 'Katalog Muadili (Dış Tedarik)',
+                  isLocalStock: false,
+                  tenantProductId: `cat-${r.code}`,
+                  productId: `cat-${r.code}`,
+                  category: 'Fren Sistemi',
+                  vehicleBrand: sampleBrand,
+                  compatibleModels: sampleModels,
+                  partGroup: 'Fren Sistemi',
+                  imageUrl: sampleSchema,
+                  images: [sampleSchema],
+                  schemaImageUrl: sampleSchema,
+                  isCatalogOnly: true,
+                  defaultPrice: null,
+                  customPrice: null,
+                  discountedPrice: null,
+                  appliedDiscountRate: 0,
+                  stockStatus: 'OUT_OF_STOCK_CATALOG',
+                  companyName: 'Katalog Muadili (Dış Tedarik)',
+                  sellerName: 'Katalog Muadili (Dış Tedarik)',
+                  dealerName: 'Katalog Muadili (Dış Tedarik)',
+                  technicalSpecs: sampleSpecs,
+                  pricing: { listPrice: null, discountRate: 0, savedAmount: 0, finalPrice: null }
+                });
+              }
+            });
+          } else if (calculated.length === 0 && searchFilter && !isVinFormat(searchFilter)) {
+            const sampleSchema = TECHNICAL_BLUEPRINT_SVG;
+            const sampleName = `${sClean} Referans Parça`;
+            calculated = [{
+              brand: 'OEM / Katalog',
+              oemNumber: sClean,
+              oeNumber: sClean,
+              crossReferences: 'Muadil kaydı bulunamadı',
+              name: sampleName,
+              stock: 0,
+              unit: 'AD',
+              price: null,
+              supplierName: 'Sadece Dış Katalog (Bayide Yok)',
+              isLocalStock: false,
+              tenantProductId: `cat-${sClean}`,
+              productId: `cat-${sClean}`,
+              category: 'Katalog Referansı',
+              vehicleBrand: 'OEM / Katalog',
+              compatibleModels: 'Katalog Uyumlu Araçlar',
+              partGroup: 'Katalog Referansı',
+              imageUrl: sampleSchema,
+              images: [sampleSchema],
+              schemaImageUrl: sampleSchema,
+              isCatalogOnly: true,
+              defaultPrice: null,
+              customPrice: null,
+              discountedPrice: null,
+              appliedDiscountRate: 0,
+              stockStatus: 'OUT_OF_STOCK_CATALOG',
+              companyName: 'Sadece Dış Katalog (Bayide Yok)',
+              sellerName: 'Sadece Dış Katalog (Bayide Yok)',
+              dealerName: 'Sadece Dış Katalog (Bayide Yok)',
+              pricing: { listPrice: null, discountRate: 0, savedAmount: 0, finalPrice: null }
+            }];
+          }
+        }
+      }
+
+      if (categoryFilter && categoryFilter !== 'all' && categoryFilter !== 'tüm kategoriler') {
+        calculated = calculated.filter(p => {
+          const cat = (p.category || '').toLowerCase();
+          const part = (p.partGroup || '').toLowerCase();
+          const name = (p.name || '').toLowerCase();
+          if (categoryFilter.includes('fren')) {
+            return cat.includes('fren') || part.includes('fren') || name.includes('fren') || name.includes('balata') || name.includes('disk');
+          }
+          if (categoryFilter.includes('motor') || categoryFilter.includes('şanzıman') || categoryFilter.includes('sanziman')) {
+            if (name.includes('balata') || name.includes('fren') || name.includes('disk')) return false;
+            return cat.includes('motor') || part.includes('motor') || name.includes('motor');
+          }
+          return cat.includes(categoryFilter) || part.includes(categoryFilter) || name.includes(categoryFilter);
+        });
+      }
+
+      if (subCatFilter && subCatFilter !== 'all') {
         calculated = calculated.filter(p => 
-          (p.name || '').toLowerCase().includes(searchFilter) ||
-          (p.oeNumber || '').toLowerCase().includes(searchFilter) ||
-          (p.vehicleBrand || '').toLowerCase().includes(searchFilter) ||
-          (p.compatibleModels || '').toLowerCase().includes(searchFilter) ||
-          (p.partGroup || '').toLowerCase().includes(searchFilter)
+          (p.subCategory || '').toLowerCase().includes(subCatFilter) ||
+          (p.name || '').toLowerCase().includes(subCatFilter)
         );
+      }
+
+      if (mfrFilter && mfrFilter !== 'all') {
+        calculated = calculated.filter(p => 
+          (p.manufacturer || '').toLowerCase().includes(mfrFilter)
+        );
+      }
+
+      if (inStockFilter) {
+        calculated = calculated.filter(p => (p.stock || 0) > 0);
+      }
+
+      if (minPriceFilter > 0) {
+        calculated = calculated.filter(p => (p.discountedPrice || p.defaultPrice || 0) >= minPriceFilter);
+      }
+
+      if (maxPriceFilter > 0) {
+        calculated = calculated.filter(p => (p.discountedPrice || p.defaultPrice || 0) <= maxPriceFilter);
       }
 
       const currentBal = firstCust && firstCust.balance !== undefined ? firstCust.balance : 14850.00;
 
+      const firstItem = calculated[0] || null;
+      const searchMeta = searchFilter ? {
+        searchQuery: searchFilter,
+        rootOEM: firstItem ? (firstItem.oemNumber || firstItem.oeNumber || searchFilter) : searchFilter,
+        partName: firstItem ? (firstItem.partName || firstItem.name || `${searchFilter} Referans Parça`) : `${searchFilter} Referans Parça`,
+        vehicleBrand: firstItem ? (firstItem.vehicleBrand || 'OEM') : 'OEM',
+        compatibleModels: firstItem ? (firstItem.compatibleModels || 'Tüm Modeller') : 'Tüm Modeller',
+        schemaImageUrl: (firstItem && firstItem.schemaImageUrl) || (firstItem && firstItem.imageUrl) || TECHNICAL_BLUEPRINT_SVG,
+        technicalSpecs: (firstItem && firstItem.technicalSpecs) || null,
+        localStockCount: calculated.filter(p => p.isLocalStock).length,
+        crossRefCount: calculated.filter(p => !p.isLocalStock).length
+      } : null;
+
       return {
         success: true,
+        meta: vinSearchMeta || searchMeta,
         customer: {
           companyName: firstCust ? firstCust.companyName : 'Kemal Usta (Otoservis)',
           appliedDiscountRate: discountRate > 0 ? `%${discountRate}` : '%0',
@@ -1644,6 +2774,118 @@
       };
     }
 
+    
+    // =========================================================================
+    // 10d. AKILLI GARAJ (MY GARAGE) YÖNETİMİ (Prompt Modül 1 & 2)
+    // =========================================================================
+
+    // GET /garage/vehicles & GET /garage
+    if ((cleanEndpoint === '/garage/vehicles' || cleanEndpoint === '/garage') && method === 'GET') {
+      if (!store.garageVehicles || store.garageVehicles.length === 0) {
+        store.garageVehicles = [
+          {
+            id: 'grg-1',
+            plateNumber: '34 KL 4821',
+            customerName: 'Ahmet Usta (Demir Nakliyat)',
+            vin: 'VF15R040H52814321',
+            vehicleModel: 'Renault Megane IV 1.5 dCi (2020)',
+            vehicleBrand: 'Renault',
+            createdAt: '2026-10-15T09:30:00.000Z'
+          },
+          {
+            id: 'grg-2',
+            plateNumber: '06 BT 992',
+            customerName: 'Ali Yılmaz (Öz Ticaret)',
+            vin: 'WVWZZZAUZHP129841',
+            vehicleModel: 'Volkswagen Golf 7 1.6 TDI (2019)',
+            vehicleBrand: 'Volkswagen',
+            createdAt: '2026-10-22T14:15:00.000Z'
+          },
+          {
+            id: 'grg-3',
+            plateNumber: '35 FZ 104',
+            customerName: 'Hasan Kaya (Kaya Lojistik)',
+            vin: 'ZFA35600006781290',
+            vehicleModel: 'Fiat Egea 1.3 Multijet (2021)',
+            vehicleBrand: 'Fiat',
+            createdAt: '2026-10-28T11:00:00.000Z'
+          },
+          {
+            id: 'grg-4',
+            plateNumber: '16 BUR 77',
+            customerName: 'Murat Usta (Bursa Oto Servis)',
+            vin: 'WF0DXXGAKDJP18231',
+            vehicleModel: 'Ford Focus 1.5 TDCi (2018)',
+            vehicleBrand: 'Ford',
+            createdAt: '2026-10-29T16:00:00.000Z'
+          }
+        ];
+        saveMockStore(store);
+      }
+      return {
+        success: true,
+        count: store.garageVehicles.length,
+        data: store.garageVehicles
+      };
+    }
+
+    // POST /garage/vehicles & POST /garage
+    if ((cleanEndpoint === '/garage/vehicles' || cleanEndpoint === '/garage') && method === 'POST') {
+      const customerName = String(body.customerName || body.name || '').trim();
+      const plateNumber = String(body.plateNumber || body.plate || '').trim().toUpperCase();
+      const vin = String(body.vin || body.vinNumber || '').trim().toUpperCase();
+      const vehicleModel = String(body.vehicleModel || body.model || body.vehicleInfo || 'Binek Araç').trim();
+      const vehicleBrand = String(body.vehicleBrand || body.brand || 'Renault').trim();
+
+      if (!customerName || !plateNumber) {
+        return {
+          success: false,
+          status: 400,
+          message: 'Garaja kayıt için "Müşteri Adı" ve "Plaka" alanlarının doldurulması zorunludur.'
+        };
+      }
+
+      if (!store.garageVehicles) store.garageVehicles = [];
+
+      const newVehicle = {
+        id: `grg-${Date.now().toString(36)}`,
+        customerName,
+        plateNumber,
+        vin: vin || 'VF15R040H52814321',
+        vehicleModel,
+        vehicleBrand,
+        createdAt: new Date().toISOString()
+      };
+
+      const existingIdx = store.garageVehicles.findIndex(v => v.plateNumber === plateNumber);
+      if (existingIdx >= 0) {
+        store.garageVehicles[existingIdx] = { ...store.garageVehicles[existingIdx], ...newVehicle, id: store.garageVehicles[existingIdx].id };
+      } else {
+        store.garageVehicles.unshift(newVehicle);
+      }
+      saveMockStore(store);
+
+      return {
+        success: true,
+        message: `"${plateNumber}" plakalı araç (${customerName}) Akıllı Garajınıza başarıyla kaydedildi.`,
+        data: newVehicle
+      };
+    }
+
+    // DELETE /garage/vehicles/:id & DELETE /garage/:id
+    if ((cleanEndpoint.startsWith('/garage/vehicles/') || cleanEndpoint.startsWith('/garage/')) && method === 'DELETE') {
+      const parts = cleanEndpoint.split('/');
+      const targetId = parts[parts.length - 1];
+      if (store.garageVehicles) {
+        store.garageVehicles = store.garageVehicles.filter(v => v.id !== targetId && v.plateNumber !== targetId);
+        saveMockStore(store);
+      }
+      return {
+        success: true,
+        message: 'Araç garajınızdan silindi.'
+      };
+    }
+
     // 11. Varsayılan Başarılı Yanıt
     return {
       success: true,
@@ -1659,13 +2901,14 @@
    * modundaysa kullanıcıyı engellemeden kusursuz bir deneyim sunar.
    */
   async function apiFetch(endpoint, options = {}) {
-    // 1. URL Yapılandırması
+    // 1. URL Yapılandırması (Kendi Netlify domainine istek atmasını kesin olarak engelle)
     let url = endpoint;
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      if (!url.startsWith('/api')) {
-        url = `${API_BASE}${url.startsWith('/') ? url : '/' + url}`;
-      } else if (!isDirectExpress) {
-        url = `https://saas-g-ncel-10-10-2026simdi-main.onrender.com${url}`;
+      const cleanEndpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+      if (cleanEndpoint.startsWith('/api')) {
+        url = `https://saas-g-ncel-10-10-2026simdi-main.onrender.com${cleanEndpoint}`;
+      } else {
+        url = `${API_BASE}${cleanEndpoint}`;
       }
     }
 
@@ -1677,39 +2920,43 @@
       headers.set('Content-Type', 'application/json');
     }
 
-    const token = localStorage.getItem('token');
+    const token = (typeof localStorage !== 'undefined' && localStorage.getItem('token')) || 
+                  (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('token'));
     if (token && !headers.has('Authorization')) {
       headers.set('Authorization', `Bearer ${token}`);
     }
 
-    // 5. ADIM: Tenant Algılama (Subdomain/Slug Resolution)
-    // URL parametresinden (?tenant=slug veya ?subdomain=slug) veya hostname subdomain'inden tenant slug algıla
-    if (!headers.has('X-Tenant-Slug')) {
-      let slug = null;
-      if (typeof window !== 'undefined' && window.location) {
+    // 5. ADIM: Pazaryeri (Sahibinden) Modeli - Çoklu Bayi Desteği
+    // Kullanıcı veya URL özellikle tek bir bayiyi talep etmişse (subdomain/tenant) o bayiyi enjekte et.
+    // Aksi takdirde tüm aktif bayilerin (Mehmet Oto, Ahmet Oto, Firuze Oto vb.) ürünleri ortak vitrinde listelenir.
+    let activeTenantSlug = window.targetTenantSlug || null;
+    if (!activeTenantSlug && typeof window !== 'undefined' && window.location && window.location.search) {
+      try {
         const urlParams = new URLSearchParams(window.location.search);
-        slug = urlParams.get('tenant') || urlParams.get('subdomain');
-        if (!slug && window.location.hostname) {
-          const parts = window.location.hostname.split('.');
-          if (parts.length > 2 && parts[0] !== 'www' && parts[0] !== 'localhost') {
-            slug = parts[0];
-          }
-        }
-        if (!slug) {
-          slug = localStorage.getItem('tenantSlug') || 'ahmetoto';
-        }
-      }
-      if (slug) {
-        headers.set('X-Tenant-Slug', slug);
+        activeTenantSlug = urlParams.get('tenant') || urlParams.get('subdomain');
+      } catch (e) {}
+    }
+
+    if (activeTenantSlug && SAFE_SLUG_REGEX.test(activeTenantSlug)) {
+      headers.set('x-tenant-slug', activeTenantSlug);
+      headers.set('X-Tenant-Slug', activeTenantSlug);
+
+      if ((url.includes('/store/') || url.includes('/products') || url.includes('/catalog/')) && !url.includes('tenant=')) {
+        const separator = url.includes('?') ? '&' : '?';
+        url = `${url}${separator}tenant=${encodeURIComponent(activeTenantSlug)}&subdomain=${encodeURIComponent(activeTenantSlug)}`;
       }
     }
+
+    // prompt.md ADIM 1: URL normalizasyonu (Gereksiz çift slash ve sonundaki '/' işaretini temizle)
+    url = url.replace(/([^:]\/)\/+/g, '$1');
+    url = url.replace(/\/+(\?|$)/, '$1');
 
     let body = options.body;
     if (body && typeof body === 'object' && !(body instanceof FormData) && !(body instanceof URLSearchParams)) {
       body = JSON.stringify(body);
     }
 
-    // 3. Canlı Sunucuya Bağlantı Denemesi (Yerel localhost Express API'sine doğrudan bağlan)
+    // 3. Canlı Sunucuya Bağlantı Denemesi (Render Canlı Express API'sine doğrudan bağlan)
     try {
       const controller = new AbortController();
       const timeoutMs = (options.body instanceof FormData) ? 60000 : 15000;
@@ -1738,59 +2985,40 @@
       }
 
       const isLoginEndpoint = url.includes('/auth/login') || url.includes('/auth/tenant-login') || url.includes('/auth/customer-login');
-
-      // Canlı Render sunucusunda ahmet@ahmetoto.com şifresi henüz eski tohum şifresindeyse ('123456' ile girişi sorunsuz tamamla)
-      if (isLoginEndpoint && response.status === 401 && options.body) {
-        try {
-          const parsedBody = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;
-          const loginEmail = (parsedBody && parsedBody.email ? String(parsedBody.email).toLowerCase().trim() : '');
-          const loginPass = (parsedBody && parsedBody.password ? String(parsedBody.password).trim() : '');
-          if (loginEmail === 'ahmet@ahmetoto.com' && loginPass === '123456') {
-            const legacyPasswords = ['Denemehesabı..12', 'SaaS_Super_Admin_2026!#Secure', 'Kim_!Lik9304.'];
-            for (const legacyPass of legacyPasswords) {
-              const retryRes = await fetch(url, {
-                ...options,
-                headers,
-                body: JSON.stringify({ ...parsedBody, password: legacyPass })
-              });
-              if (retryRes.ok) {
-                const retryData = await retryRes.json();
-                retryData._status = retryRes.status;
-                retryData._ok = true;
-                return retryData;
-              }
-            }
-          }
-        } catch (retryErr) {}
-      }
       const isStoreContext = (typeof window !== 'undefined' && window.location && (
         window.location.pathname.endsWith('store.html') ||
+        window.location.pathname.endsWith('index.html') ||
         window.location.pathname === '/' ||
-        window.location.pathname.endsWith('/store')
-      )) || url.includes('/store/products') || url.includes('/store/bank-info') || url.includes('/store/tenant-info');
+        window.location.pathname.endsWith('/store') ||
+        !window.location.pathname.includes('admin')
+      )) || url.includes('/store/');
 
       if ((response.status === 401 || response.status === 403) && !isLoginEndpoint) {
-        // 1. ADIM & 2. ADIM: Müşteri vitrininde (store.html) asla genel SaaS login.html sayfasına yönlendirme!
+        // Müşteri vitrininde (storefront-ui / index.html) asla genel SaaS login.html sayfasına yönlendirme!
         if (isStoreContext) {
           console.warn(`[API] Vitrinde yetkisiz/oturumsuz istek (${response.status}). Ziyaretçi modunda kalınacak.`);
           if (response.status === 401) {
+            sessionStorage.removeItem('token');
+            sessionStorage.removeItem('user');
             localStorage.removeItem('token');
             localStorage.removeItem('user');
           }
           if (data && typeof data === 'object') {
             data._status = response.status;
             data._ok = response.ok;
-            if (!data.error) {
-              data.error = "Oturum süreniz dolmuş, lütfen tekrar giriş yapın.";
-            }
           }
-          return data || { success: false, status: response.status, error: "Oturum süreniz dolmuş, lütfen tekrar giriş yapın.", message: 'Oturum gerekli' };
+          return data || { success: false, status: response.status, message: 'Oturum gerekli' };
         }
 
         console.warn(`[API] Yetkisiz erişim (${response.status}). Giriş sayfasına yönlendiriliyor...`);
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        window.location.href = 'login.html';
+        const fallbackLogin = (typeof window !== 'undefined' && window.location && !window.location.pathname.includes('admin'))
+          ? (window.location.pathname.endsWith('index.html') ? 'index.html' : '/')
+          : 'login.html';
+        window.location.href = fallbackLogin;
         return null;
       }
 
@@ -1801,12 +3029,14 @@
 
       return data;
 
-    } catch (networkError) {
-      console.info('[API] Canlı backend sunucusuna bağlanılamadı. Dayanıklı çevrimdışı motor devreye giriyor...');
+    } catch (error) {
+      console.warn(`[API] Canlı API bağlantısı sağlanamadı (${error.message}). Bağımsız yerel motor (handleOfflineMock) devreye alınıyor.`);
+      if (typeof handleOfflineMock === 'function') {
+        const cleanEp = (endpoint || '').startsWith('/api') ? endpoint.slice(4) : endpoint;
+        return handleOfflineMock(cleanEp, options);
+      }
+      throw error;
     }
-
-    // 4. Çevrimdışı / Bağımsız Dayanıklı Yanıt Motoru (Fallback)
-    return handleOfflineMock(endpoint, options);
   }
 
   /**
@@ -1816,19 +3046,23 @@
   function requireAuth(allowedRoles = []) {
     const isStorePage = typeof window !== 'undefined' && window.location && (
       window.location.pathname.endsWith('store.html') ||
+      window.location.pathname.endsWith('index.html') ||
       window.location.pathname === '/' ||
-      window.location.pathname.endsWith('/store')
+      window.location.pathname.endsWith('/store') ||
+      !window.location.pathname.includes('admin')
     );
 
-    const token = localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
+    const token = sessionStorage.getItem('token');
+    const userStr = sessionStorage.getItem('user');
 
     if (!token || !userStr) {
       if (isStorePage) {
         return null;
       }
       console.warn('[AUTH_GUARD] Token veya kullanıcı bilgisi bulunamadı. Giriş sayfasına yönlendiriliyor.');
-      window.location.href = 'login.html';
+      window.location.href = (typeof window !== 'undefined' && window.location && !window.location.pathname.includes('admin'))
+        ? (window.location.pathname.endsWith('index.html') ? 'index.html' : '/')
+        : 'login.html';
       return null;
     }
 
@@ -1836,39 +3070,33 @@
     try {
       user = JSON.parse(userStr);
     } catch (e) {
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       if (isStorePage) {
         return null;
       }
-      window.location.href = 'login.html';
+      window.location.href = (typeof window !== 'undefined' && window.location && !window.location.pathname.includes('admin'))
+        ? (window.location.pathname.endsWith('index.html') ? 'index.html' : '/')
+        : 'login.html';
       return null;
     }
 
     if (allowedRoles && allowedRoles.length > 0) {
-      const userRole = String(user.role || '').toUpperCase();
-      const matchesRole = allowedRoles.some(r => {
-        const expected = String(r || '').toUpperCase();
-        if (expected === userRole) return true;
-        if ((expected === 'BAYI' || expected === 'TENANT_ADMIN') && (userRole === 'BAYI' || userRole === 'TENANT_ADMIN')) return true;
-        if ((expected === 'SUPER_ADMIN' || expected === 'ADMIN') && (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN')) return true;
-        if ((expected === 'MUSTERI' || expected === 'CUSTOMER') && (userRole === 'MUSTERI' || userRole === 'CUSTOMER')) return true;
-        return false;
-      });
-
-      if (!matchesRole) {
+      if (!allowedRoles.includes(user.role)) {
         alert(`Bu alana erişim yetkiniz bulunmamaktadır. (Gereken Rol: ${allowedRoles.join(', ')})`);
-        if (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN') {
-          window.location.href = '/admin.html';
-        } else if (userRole === 'TENANT_ADMIN' || userRole === 'BAYI') {
-          window.location.href = '/bayi.html';
-        } else if (userRole === 'CUSTOMER' || userRole === 'MUSTERI') {
+        if (user.role === 'SUPER_ADMIN') {
+          window.location.href = 'admin.html';
+        } else if (user.role === 'TENANT_ADMIN') {
+          window.location.href = 'bayi.html';
+        } else if (user.role === 'CUSTOMER') {
           const storeUrl = (typeof window !== 'undefined' && window.location && window.location.pathname.includes('/saas-panel-ui'))
-            ? '../storefront-ui/store.html'
-            : '/store.html';
+            ? '../storefront-ui/index.html'
+            : (window.location.pathname.endsWith('index.html') ? 'index.html' : '/');
           window.location.href = storeUrl;
         } else {
-          window.location.href = '/login.html';
+          window.location.href = (window.location.pathname.endsWith('index.html') ? 'index.html' : '/');
         }
         return null;
       }
@@ -1879,34 +3107,162 @@
 
   /**
    * logout:
-   * 1. ADIM: Çıkış (Logout) Yönlendirmesinin Ayrıştırılması
-   * store.html (Müşteri Vitrini) içerisindeyken kullanıcı çıkış yaptığında token'ı sil,
-   * ancak onu genel SaaS login.html sayfasına YÖNLENDİRME.
-   * Bunun yerine vitrin ana sayfasına (store.html) ziyaretçi statüsünde yönlendir.
+   * Güvenli Çıkış (Safe Session Invalidation):
+   * 1. Token, kullanıcı ve yetki verilerini LocalStorage ve SessionStorage üzerinden tamamen siler.
+   * 2. Açık Yönlendirme (Open Redirect) zafiyetlerine karşı dış linkleri kesinlikle engeller.
+   * 3. Netlify'da 404 veren olmayan sayfalara (store.html, login.html vb.) yönlendirmeyi önler;
+   *    doğrudan ana vitrin sayfasına (/ veya index.html) yönlendirir.
    */
   function logout(redirectTarget = null) {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    try {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('jwt');
+      localStorage.removeItem('customerProfile');
+      sessionStorage.clear();
+    } catch (e) {
+      console.warn('[LOGOUT_STORAGE_CLEAR_WARN]:', e);
+    }
 
-    const isStorePage = typeof window !== 'undefined' && window.location && (
-      window.location.pathname.endsWith('store.html') ||
-      window.location.pathname === '/' ||
-      window.location.pathname.endsWith('/store')
-    );
+    // Açık Yönlendirme (Open Redirect) güvenlik kontrolü:
+    // Dış alan adlarına (http, https, //) ve tehlikeli şemalara (javascript:) izin verilmez.
+    let safeRedirect = null;
+    if (redirectTarget && typeof redirectTarget === 'string') {
+      const trimmed = redirectTarget.trim();
+      const isUnsafe = (
+        trimmed.startsWith('//') ||
+        trimmed.startsWith('http://') ||
+        trimmed.startsWith('https://') ||
+        trimmed.startsWith('javascript:') ||
+        trimmed.includes('login.html') ||
+        trimmed.includes('store.html')
+      );
+      if (!isUnsafe && (trimmed === '/' || trimmed === 'index.html' || trimmed.endsWith('index.html'))) {
+        safeRedirect = trimmed;
+      }
+    }
 
-    if (redirectTarget) {
-      window.location.href = redirectTarget;
-    } else if (isStorePage) {
-      const search = window.location.search || '';
-      window.location.href = 'store.html' + search;
-    } else {
-      window.location.href = 'login.html';
+    if (safeRedirect) {
+      window.location.href = safeRedirect;
+      return;
+    }
+
+    const isFileProtocol = typeof window !== 'undefined' && window.location && window.location.protocol === 'file:';
+    const targetPage = isFileProtocol ? 'index.html' : (window.location.pathname.endsWith('index.html') ? 'index.html' : '/');
+    window.location.href = targetPage;
+  }
+
+  // ==========================================================================
+  // GLOBAL İNAKTİVİTE VE OTOMATİK ZAMAN AŞIMI SİSTEMİ (30 DAKİKA)
+  // ==========================================================================
+  const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000; // 30 Dakika (1.800.000 ms)
+  const INACTIVITY_STORAGE_KEY = 'session_last_activity';
+  let lastActivityThrottled = 0;
+  let isSessionTimeoutTriggered = false;
+
+  function recordUserActivity() {
+    const now = Date.now();
+    if (now - lastActivityThrottled < 5000) return;
+    lastActivityThrottled = now;
+
+    const token = sessionStorage.getItem('token');
+    if (token) {
+      try {
+        sessionStorage.setItem(INACTIVITY_STORAGE_KEY, String(now));
+      } catch (e) {}
     }
   }
 
-  // Sistemdeki tüm panellerdeki (admin.html, bayi.html vb.) 'Çıkış Yap' butonlarına otomatik bağlanma
+  function checkInactivityTimeout() {
+    const token = sessionStorage.getItem('token');
+    if (!token) return;
+
+    const lastActiveStr = sessionStorage.getItem(INACTIVITY_STORAGE_KEY);
+    const lastActive = parseInt(lastActiveStr, 10);
+    const now = Date.now();
+
+    if (!lastActive || isNaN(lastActive)) {
+      try { sessionStorage.setItem(INACTIVITY_STORAGE_KEY, String(now)); } catch (e) {}
+      return;
+    }
+
+    if (now - lastActive >= INACTIVITY_TIMEOUT_MS) {
+      triggerInactivityLogout();
+    }
+  }
+
+  function triggerInactivityLogout() {
+    if (isSessionTimeoutTriggered) return;
+    isSessionTimeoutTriggered = true;
+
+    try {
+      sessionStorage.clear();
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('jwt');
+      localStorage.removeItem('customerProfile');
+    } catch (e) {}
+
+    const msg = 'Güvenlik nedeniyle oturumunuz zaman aşımına uğradı';
+    if (typeof window !== 'undefined' && window.Swal) {
+      window.Swal.fire({
+        icon: 'warning',
+        title: 'Oturum Zaman Aşımı',
+        text: msg,
+        confirmButtonText: 'Tamam',
+        confirmButtonColor: 'var(--tenant-color, #f97316)'
+      }).then(() => {
+        logout();
+      });
+    } else {
+      alert(msg);
+      logout();
+    }
+  }
+
+  function initInactivityWatcher() {
+    if (typeof window === 'undefined') return;
+
+    // Güvenlik Standardı: Kalıcı localStorage token sızıntılarını imha et
+    try {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('jwt');
+      localStorage.removeItem('customerProfile');
+    } catch (e) {}
+
+    const token = sessionStorage.getItem('token');
+    if (token) {
+      const lastActive = parseInt(sessionStorage.getItem(INACTIVITY_STORAGE_KEY), 10);
+      if (lastActive && (Date.now() - lastActive >= INACTIVITY_TIMEOUT_MS)) {
+        triggerInactivityLogout();
+        return;
+      }
+      recordUserActivity();
+    }
+
+    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+    activityEvents.forEach(evt => {
+      window.addEventListener(evt, recordUserActivity, { passive: true });
+    });
+
+    setInterval(checkInactivityTimeout, 10000);
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          checkInactivityTimeout();
+        }
+      });
+    }
+  }
+
+  // Sistemdeki tüm panellerdeki (admin.html, bayi.html vb.) 'Çıkış Yap' butonlarına otomatik bağlanma ve sayaç başlatma
   if (typeof document !== 'undefined') {
     document.addEventListener('DOMContentLoaded', function () {
+      initInactivityWatcher();
       const logoutElements = document.querySelectorAll('.logout-btn, .btn-logout, #logout-button, [data-action="logout"]');
       logoutElements.forEach(el => {
         el.addEventListener('click', function (e) {
@@ -1980,7 +3336,17 @@
     return null;
   }
 
+  /**
+   * getResolvedTenantSlug:
+   * Headless mimaride otomatik host/subdomain algılama iptal edilmiştir.
+   * Sabit ve güvenli olarak TENANT_SLUG ('ahmetoto') döndürür.
+   */
+  function getResolvedTenantSlug() {
+    return TENANT_SLUG;
+  }
+
   // Global window nesnesine ata
+  window.TENANT_SLUG = TENANT_SLUG;
   window.API_BASE = API_BASE;
   window.apiFetch = apiFetch;
   window.requireAuth = requireAuth;
@@ -1989,5 +3355,9 @@
   window.parseJwtPayload = parseJwtPayload;
   window.jwtDecode = window.jwtDecode || parseJwtPayload;
   window.getResolvedTenantSlug = getResolvedTenantSlug;
+  window.getRecommendedTogetherAndLabor = getRecommendedTogetherAndLabor;
+  window.initInactivityWatcher = initInactivityWatcher;
+  window.decodeVinInfo = decodeVinInfo;
+  window.isVinFormat = isVinFormat;
 
 })(window);

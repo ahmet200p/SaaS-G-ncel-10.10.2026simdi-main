@@ -62,3 +62,4 @@ console.log('✅ store.html içinde dinamik satıcı/bayi eşlemesi doğrulandı
 console.log('\n================================================================');
 console.log('🎉 TÜM MULTI-TENANT PAZARYERİ VE MEHMET OTO TESTLERİ BAŞARIYLA GEÇTİ!');
 console.log('================================================================');
+

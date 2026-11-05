@@ -346,7 +346,6 @@ async function executeHybridStoreSearch({
         ]
       },
       include: {
-        bayi: true,
         tenantProducts: {
           include: {
             tenant: true
@@ -413,7 +412,14 @@ async function executeHybridStoreSearch({
     }
     const crossRefString = crossRefList.join(', ') || 'Muadil kodları mevcut';
 
-    const supplier = (tp.tenant && tp.tenant.name) || (prod.bayi && prod.bayi.name) || (targetTenant && targetTenant.name) || 'Yetkili Bayi';
+    const rawSupplier = (tp.tenant && tp.tenant.name) || (targetTenant && targetTenant.name) || 'Yetkili Bayi';
+    let supplier = rawSupplier;
+    if (typeof rawSupplier === 'string') {
+      const lower = rawSupplier.toLowerCase().replace(/[\s_-]+/g, '');
+      if (lower === 'mehmetoto') supplier = 'Mehmet Oto';
+      else if (lower === 'ahmetoto') supplier = 'Ahmet Oto';
+      else if (lower === 'firuzeoto') supplier = 'Firuze Oto';
+    }
     const itemStock = (tp.stock !== null && tp.stock !== undefined) ? tp.stock : (prod.stock !== undefined ? prod.stock : 14);
     const itemPrice = (tp.customPrice !== null && tp.customPrice !== undefined)
       ? parseFloat(tp.customPrice)
@@ -1025,11 +1031,7 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
     let tenantProducts = await prisma.tenantProduct.findMany({
       where: whereCondition,
       include: {
-        product: {
-          include: {
-            bayi: true
-          }
-        },
+        product: true,
         tenant: true
       },
       skip: skip,
@@ -1041,7 +1043,6 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
     if ((!tenantProducts || tenantProducts.length === 0) && andConditions.length === 0) {
       const directProducts = await prisma.product.findMany({
         include: {
-          bayi: true,
           tenantProducts: {
             include: {
               tenant: true
@@ -1055,10 +1056,10 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
       if (directProducts && directProducts.length > 0) {
         totalCount = directProducts.length;
         tenantProducts = directProducts.map(p => {
-          const directBayi = p.bayi || (p.tenantProducts && p.tenantProducts[0] && p.tenantProducts[0].tenant) || targetTenant || null;
+          const directBayi = (p.tenantProducts && p.tenantProducts[0] && p.tenantProducts[0].tenant) || targetTenant || null;
           return {
             id: p.id,
-            tenantId: p.bayiId || (directBayi ? directBayi.id : 'tenant-ahmet-oto'),
+            tenantId: directBayi ? directBayi.id : 'tenant-ahmet-oto',
             productId: p.id,
             stock: (p.tenantProducts && p.tenantProducts[0] && p.tenantProducts[0].stock !== undefined) ? p.tenantProducts[0].stock : 15,
             customPrice: (p.tenantProducts && p.tenantProducts[0] && p.tenantProducts[0].customPrice !== undefined) ? p.tenantProducts[0].customPrice : p.defaultPrice,
@@ -1073,24 +1074,32 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
     // 5. REST Standardı: Saf JSON Dönüşümü (Ziyaretçi vs Müşteri İskonto Hesaplaması)
     const calculatedProducts = tenantProducts.map(item => {
       // Sahibinden Tarzı Pazaryeri: Her ürünün kendi bayisinin adı dinamik olarak çözülür
-      const dealerName = (item.tenant && item.tenant.name) || (item.product && item.product.bayi && item.product.bayi.name) || (targetTenant && targetTenant.name) || 'Onaylı Bayi';
-      const tenantSubdomain = (item.tenant && item.tenant.subdomain) || (item.product && item.product.bayi && item.product.bayi.subdomain) || (targetTenant && targetTenant.subdomain) || 'bayi';
+      const rawTenantName = (item.tenant && item.tenant.name) || (item.tenantProducts && item.tenantProducts[0] && item.tenantProducts[0].tenant && item.tenantProducts[0].tenant.name) || (targetTenant && targetTenant.name) || 'Onaylı Bayi';
+      let dealerName = rawTenantName;
+      if (typeof rawTenantName === 'string') {
+        const lower = rawTenantName.toLowerCase().replace(/[\s_-]+/g, '');
+        if (lower === 'mehmetoto') dealerName = 'Mehmet Oto';
+        else if (lower === 'ahmetoto') dealerName = 'Ahmet Oto';
+        else if (lower === 'firuzeoto') dealerName = 'Firuze Oto';
+      }
+
+      const tenantSubdomain = (item.tenant && item.tenant.subdomain) || (item.tenantProducts && item.tenantProducts[0] && item.tenantProducts[0].tenant && item.tenantProducts[0].tenant.subdomain) || (targetTenant && targetTenant.subdomain) || 'bayi';
 
       const tenantObj = item.tenant ? {
         id: item.tenant.id,
-        name: item.tenant.name,
+        name: dealerName,
         subdomain: item.tenant.subdomain,
         themeColor: item.tenant.themeColor,
-        logoUrl: item.tenant.logoUrl
-      } : (item.product && item.product.bayi ? {
-        id: item.product.bayi.id,
-        name: item.product.bayi.name,
-        subdomain: item.product.bayi.subdomain
+        logoUrl: item.tenant.logoUrl,
+        status: item.tenant.status,
+        isActive: item.tenant.isActive
       } : {
         id: item.tenantId,
         name: dealerName,
-        subdomain: tenantSubdomain
-      });
+        subdomain: tenantSubdomain,
+        status: 'APPROVED',
+        isActive: true
+      };
 
       // Ziyaretçi Modu (Guest Mode - SEO botları ve üye olmayanlar):
       if (isGuest) {
