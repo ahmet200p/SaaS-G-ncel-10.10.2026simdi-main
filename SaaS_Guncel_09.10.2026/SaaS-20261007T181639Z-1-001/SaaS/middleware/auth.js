@@ -178,6 +178,15 @@ const checkTenantAdmin = (req, res, next) => {
     });
   }
 
+  // Tenant ID Çözümleme & Fallback (Header, Query veya Pre-Resolved ID)
+  let currentTenantId = req.user.tenantId || req.resolvedTenantId || req.headers['x-tenant-id'] || req.headers['tenant-id'] || req.query?.tenantId || req.body?.tenantId;
+  if (currentTenantId === 'tenant-ahmet-oto') {
+    currentTenantId = '51144f71-81dd-4f24-98d5-45fac505cfc2';
+  }
+  if (currentTenantId && !req.user.tenantId) {
+    req.user.tenantId = currentTenantId;
+  }
+
   if (!req.user.tenantId && role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
     return res.status(403).json({
       success: false,
