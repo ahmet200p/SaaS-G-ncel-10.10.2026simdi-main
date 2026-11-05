@@ -263,7 +263,8 @@ router.post('/login', loginLimiter, async (req, res) => {
     const payload = {
       id: user.id,
       email: user.email,
-      role: standardRole, // Zorunlu standart: ADMIN | BAYI | MUSTERI
+      role: standardRole === 'ADMIN' ? 'SUPER_ADMIN' : standardRole, // SUPER_ADMIN / ADMIN tam uyumluluk
+      standardRole: standardRole,
       legacyRole: user.role,
       status: user.status || 'APPROVED',
       tenantId: user.tenantId || effectiveTenantId

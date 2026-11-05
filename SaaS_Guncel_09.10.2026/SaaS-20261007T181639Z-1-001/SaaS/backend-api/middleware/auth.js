@@ -70,10 +70,23 @@ const verifyToken = (req, res, next) => {
     const decoded = jwt.verify(token, secret);
 
     // Kullanıcı rolü ve verileri SADECE doğrulanmış (verified) payload üzerinden okunur.
+    const rawRole = String(decoded.role || '').toUpperCase();
+    const rawLegacy = String(decoded.legacyRole || '').toUpperCase();
+    let resolvedRole = decoded.role;
+    if (rawRole === 'SUPER_ADMIN' || rawRole === 'ADMIN' || rawLegacy === 'SUPER_ADMIN' || rawLegacy === 'ADMIN') {
+      resolvedRole = 'SUPER_ADMIN';
+    } else if (rawRole === 'BAYI' || rawRole === 'TENANT_ADMIN' || rawLegacy === 'BAYI' || rawLegacy === 'TENANT_ADMIN') {
+      resolvedRole = 'TENANT_ADMIN';
+    } else if (rawRole === 'MUSTERI' || rawRole === 'CUSTOMER' || rawLegacy === 'MUSTERI' || rawLegacy === 'CUSTOMER') {
+      resolvedRole = 'CUSTOMER';
+    }
+
     req.user = {
       id: decoded.id,
       email: decoded.email,
-      role: decoded.role,         // SUPER_ADMIN | TENANT_ADMIN | CUSTOMER
+      role: resolvedRole,         // SUPER_ADMIN | TENANT_ADMIN | CUSTOMER
+      rawRole: decoded.role,
+      legacyRole: decoded.legacyRole,
       tenantId: decoded.tenantId  // Super Admin için null, bayiler ve müşteriler için string UUID
     };
 
@@ -134,7 +147,8 @@ const checkSuperAdmin = (req, res, next) => {
     });
   }
 
-  if (!req.user || req.user.role !== 'SUPER_ADMIN') {
+  const role = String(req.user?.role || req.user?.legacyRole || req.user?.rawRole || '').toUpperCase();
+  if (!req.user || (role !== 'SUPER_ADMIN' && role !== 'ADMIN')) {
     return res.status(403).json({
       success: false,
       message: 'Erişim reddedildi: Bu işlem yalnızca Süper Admin yetkisine sahip kullanıcılar tarafından gerçekleştirilebilir.'
