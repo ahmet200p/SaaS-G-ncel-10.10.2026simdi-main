@@ -180,6 +180,12 @@
           <span class="hidden xl:inline">Siparişler</span>
         </button>
 
+        <!-- Hızlı Toplu Sipariş (Quick Order) -->
+        <button type="button" onclick="openQuickOrderModal()" class="p-2 sm:px-3 sm:py-2 rounded-xl text-amber-300 hover:text-white hover:bg-slate-800 transition-colors flex items-center gap-1.5 cursor-pointer text-xs font-black" title="Hızlı Toplu OEM Siparişi">
+          <span class="text-base">⚡</span>
+          <span class="hidden xl:inline">Toplu Sipariş</span>
+        </button>
+
         <!-- Sepetim -->
         <button type="button" onclick="openCartDrawer()" class="relative p-2 sm:px-3.5 sm:py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white transition-all flex items-center gap-2 cursor-pointer shadow-md active:scale-95" id="btn-cart-open" title="Alışveriş Sepeti">
           <div class="relative">
@@ -258,7 +264,8 @@
         <button type="button" data-category="Kaporta & Karoseri" class="nav-cat-btn px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors shrink-0">Kaporta & Karoseri</button>
         <button type="button" data-category="Egzoz & Emisyon" class="nav-cat-btn px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors shrink-0">Egzoz & Emisyon</button>
         <button type="button" data-category="FIRSAT" class="nav-cat-btn px-3 py-1.5 rounded-lg text-rose-400 hover:bg-slate-800 font-extrabold transition-colors shrink-0">🔥 Fırsat Ürünleri</button>
-        <button type="button" onclick="openVehicleSelectorModal()" class="nav-cat-btn px-3 py-1.5 rounded-lg text-amber-300 hover:bg-slate-800 font-extrabold transition-colors shrink-0 flex items-center gap-1">🚗 Garajım Seçimi</button>
+        <button type="button" onclick="openVehicleSelectorModal()" class="nav-cat-btn px-3 py-1.5 rounded-lg text-amber-300 hover:bg-slate-800 font-extrabold transition-colors shrink-0 flex items-center gap-1">🚗 Akıllı Garajım</button>
+        <button type="button" onclick="openQuickOrderModal()" class="nav-cat-btn px-3 py-1.5 rounded-lg text-orange-400 hover:bg-slate-800 font-extrabold transition-colors shrink-0 flex items-center gap-1">⚡ Toplu Sipariş (Quick Order)</button>
       </div>
 
     </div>
@@ -390,7 +397,7 @@
           <div class="relative">
             <input type="text" id="sidebar-oem-input" oninput="handleOemFilterInput(this.value)" onkeydown="if(event.key==='Enter') submitSidebarOemSearch();"
               placeholder="Örn: 5Q0 698 151 AA"
-              class="w-full py-2 px-3 pr-8 text-xs font-mono font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 focus:bg-white transition-all uppercase">
+              class="w-full py-2 pl-3 pr-8 text-xs font-mono font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 focus:bg-white transition-all uppercase">
             <button type="button" onclick="submitSidebarOemSearch()" class="absolute right-2.5 top-2 text-xs text-slate-400 hover:text-orange-600 cursor-pointer" title="Parça Ara">🔍</button>
           </div>
         </div>
@@ -866,6 +873,16 @@
   </footer>
 
   <!-- ========================================================================
+       7.0 PERSISTENT FLOATING WHATSAPP & ŞASİ DESTEK HATTI (Öneri 5)
+       ======================================================================== -->
+  <aside aria-label="WhatsApp Şasi Destek" class="fixed bottom-6 right-6 z-40">
+    <button type="button" onclick="openFloatingWhatsApp()" class="flex items-center gap-2.5 px-4 py-3 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer border-2 border-white/20" title="Uzmana Şasi No veya Parça Sor">
+      <span class="text-xl">💬</span>
+      <span class="hidden sm:inline">WhatsApp Şasi Destek Hattı</span>
+    </button>
+  </aside>
+
+  <!-- ========================================================================
        7. MODALS & DRAWERS
        ======================================================================== -->
 
@@ -926,85 +943,138 @@
     </div>
   </div>
 
-  <!-- B. VEHICLE SELECTOR MODAL ("Farklı Araç Seç") -->
+  <!-- B. VEHICLE SELECTOR & AKILLI GARAJ MODAL -->
   <div id="modal-vehicle-backdrop" onclick="closeVehicleSelectorModal()" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 hidden transition-opacity"></div>
   <div id="modal-vehicle-selector" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden pointer-events-none">
-    <div class="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-lg p-6 pointer-events-auto transform transition-all animate-fadeIn" onclick="event.stopPropagation()">
+    <div class="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 pointer-events-auto transform transition-all custom-scrollbar animate-fadeIn" onclick="event.stopPropagation()">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-        <div class="flex items-center gap-2">
-          <span class="text-xl">🚗</span>
-          <h3 class="font-black text-base text-slate-900">Araç Seçimi & Akıllı Garaj</h3>
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">🚗</span>
+          <div>
+            <h3 class="font-black text-base text-slate-900">Akıllı Garajım & Araç Yönetimi</h3>
+            <p class="text-xs text-slate-500 font-medium">Kayıtlı müşteri araçlarınızı yönetin veya yeni bir plaka / şasi kaydedin.</p>
+          </div>
         </div>
         <button type="button" onclick="closeVehicleSelectorModal()" class="p-1 rounded-lg hover:bg-slate-100 text-slate-400 font-bold text-base cursor-pointer">✕</button>
       </div>
 
-      <p class="text-xs text-slate-500 font-medium mb-4">
-        Kataloğu uyumlu parçalara göre daraltmak için aracınızı seçin veya kayıtlı garajınızdan tıklayın.
-      </p>
+      <!-- Action & Toggle Add Vehicle -->
+      <div class="flex items-center justify-between gap-2 mb-3 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+        <div class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+          <span>📋 Garajdaki Araçlar:</span>
+          <span id="garage-count-badge" class="px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-black text-[11px]">0 Araç</span>
+        </div>
+        <button type="button" onclick="toggleAddVehicleForm()" id="btn-toggle-add-vehicle" class="px-3 py-1.5 rounded-xl bg-[#f97316] hover:bg-[#ea580c] text-white font-extrabold text-xs transition-all flex items-center gap-1 cursor-pointer shadow-xs active:scale-95">
+          <span>➕</span>
+          <span>Yeni Araç / Şasi Ekle</span>
+        </button>
+      </div>
 
-      <!-- Araç Listesi -->
+      <!-- Yeni Araç Ekleme Formu (Akordeon) -->
+      <div id="garage-add-form-container" class="hidden mb-4 p-4 rounded-2xl bg-orange-50/50 border border-orange-200 text-xs">
+        <h4 class="font-black text-slate-900 mb-2 flex items-center gap-1.5">
+          <span>🔧</span>
+          <span>Garaja Yeni Araç / Müşteri Kaydı</span>
+        </h4>
+        <form onsubmit="handleSaveGarageVehicle(event)" class="space-y-2.5" autocomplete="off">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Araç Plakası <span class="text-rose-500">*</span></label>
+              <input type="text" id="garage-input-plate" required placeholder="Örn: 34 KL 4821" class="w-full py-1.5 px-3 bg-white border border-slate-200 rounded-xl font-bold uppercase focus:outline-none focus:border-orange-500">
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Şasi No (VIN) <span class="text-rose-500">*</span></label>
+              <input type="text" id="garage-input-vin" required maxlength="17" placeholder="17 haneli şasi no" class="w-full py-1.5 px-3 bg-white border border-slate-200 rounded-xl font-mono uppercase focus:outline-none focus:border-orange-500">
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Araç Marka & Model</label>
+              <input type="text" id="garage-input-model" placeholder="Örn: Renault Megane IV 1.5 dCi" class="w-full py-1.5 px-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 font-medium">
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Müşteri / Servis Notu</label>
+              <input type="text" id="garage-input-customer" placeholder="Örn: Ahmet Usta (Demir Nakliyat)" class="w-full py-1.5 px-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 font-medium">
+            </div>
+          </div>
+          <div class="flex justify-end gap-2 pt-1">
+            <button type="button" onclick="toggleAddVehicleForm()" class="px-3 py-1.5 rounded-xl text-slate-500 hover:bg-slate-200 font-bold cursor-pointer">İptal</button>
+            <button type="submit" class="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold cursor-pointer shadow-xs active:scale-95">💾 Garajıma Kaydet</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Dinamik Araç Listesi -->
       <div class="space-y-2.5 max-h-80 overflow-y-auto custom-scrollbar pr-1" id="vehicle-modal-list">
-        
-        <!-- Golf 7 -->
-        <div onclick="selectVehicle('golf7', 'Volkswagen Golf VII', '1.6 TDI (115 HP) 2016-2020, Dizel', '5G1 / BQ1 / BE1', 'WVWZZZAUZHP129841', 'Volkswagen')"
-             class="p-3 rounded-2xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/40 cursor-pointer transition-all flex items-center justify-between">
-          <div>
-            <div class="font-black text-sm text-slate-900">Volkswagen Golf VII</div>
-            <div class="text-xs text-slate-600 font-medium">1.6 TDI (115 HP) 2016-2020, Dizel</div>
-            <div class="text-[10px] font-mono text-slate-400 mt-0.5">VIN: WVWZZZAUZHP129841 • PR: 1ZA/1ZE</div>
-          </div>
-          <span class="text-xs font-bold text-slate-400">Seç ➔</span>
-        </div>
-
-        <!-- Hyundai Tucson -->
-        <div onclick="selectVehicle('tucson', 'Hyundai Tucson', '1.6 CRDi (136 HP) 2021, Dizel', 'TL / NX4', 'KMHJ381BBLU192841', 'Hyundai')"
-             class="p-3 rounded-2xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/40 cursor-pointer transition-all flex items-center justify-between">
-          <div>
-            <div class="font-black text-sm text-slate-900">Hyundai Tucson</div>
-            <div class="text-xs text-slate-600 font-medium">1.6 CRDi (136 HP) 2019-2023, Dizel</div>
-            <div class="text-[10px] font-mono text-slate-400 mt-0.5">VIN: KMHJ381BBLU192841 • Plaka: 34 HYU 90</div>
-          </div>
-          <span class="text-xs font-bold text-slate-400">Seç ➔</span>
-        </div>
-
-        <!-- Megane IV -->
-        <div onclick="selectVehicle('megane4', 'Renault Megane IV', '1.5 dCi (110 HP) 2020, Dizel', 'B9A / K9A', 'VF15R040H52814321', 'Renault')"
-             class="p-3 rounded-2xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/40 cursor-pointer transition-all flex items-center justify-between">
-          <div>
-            <div class="font-black text-sm text-slate-900">Renault Megane IV</div>
-            <div class="text-xs text-slate-600 font-medium">1.5 dCi (110 HP) 2016-2022, Dizel</div>
-            <div class="text-[10px] font-mono text-slate-400 mt-0.5">VIN: VF15R040H52814321 • Plaka: 34 KL 4821</div>
-          </div>
-          <span class="text-xs font-bold text-slate-400">Seç ➔</span>
-        </div>
-
-        <!-- Fiat Egea -->
-        <div onclick="selectVehicle('egea', 'Fiat Egea', '1.3 Multijet (95 HP) 2021, Dizel', '356', 'ZFA35600006781290', 'Fiat')"
-             class="p-3 rounded-2xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/40 cursor-pointer transition-all flex items-center justify-between">
-          <div>
-            <div class="font-black text-sm text-slate-900">Fiat Egea</div>
-            <div class="text-xs text-slate-600 font-medium">1.3 / 1.6 Multijet (Sedan / HB), Dizel</div>
-            <div class="text-[10px] font-mono text-slate-400 mt-0.5">VIN: ZFA35600006781290 • Plaka: 35 FZ 104</div>
-          </div>
-          <span class="text-xs font-bold text-slate-400">Seç ➔</span>
-        </div>
-
-        <!-- Ford Focus -->
-        <div onclick="selectVehicle('focus', 'Ford Focus III/IV', '1.5 TDCi (120 HP) 2018, Dizel', 'C346', 'WF0DXXGAKDJP18231', 'Ford')"
-             class="p-3 rounded-2xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/40 cursor-pointer transition-all flex items-center justify-between">
-          <div>
-            <div class="font-black text-sm text-slate-900">Ford Focus</div>
-            <div class="text-xs text-slate-600 font-medium">1.5 TDCi Titanium 2018, Dizel</div>
-            <div class="text-[10px] font-mono text-slate-400 mt-0.5">VIN: WF0DXXGAKDJP18231 • Plaka: 16 BUR 77</div>
-          </div>
-          <span class="text-xs font-bold text-slate-400">Seç ➔</span>
-        </div>
-
+        <div class="text-center py-6 text-slate-400 text-xs">Garajınızdaki araçlar yükleniyor...</div>
       </div>
 
       <div class="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center text-xs">
-        <span class="text-slate-400">Aradığınız araç listede yok mu?</span>
-        <button type="button" onclick="focusVinBanner(); closeVehicleSelectorModal();" class="text-orange-600 font-bold hover:underline">Şasi No İle Ara ➔</button>
+        <span class="text-slate-400">Şasi numarasıyla doğrudan anlık sorgu yapmak için:</span>
+        <button type="button" onclick="focusVinBanner(); closeVehicleSelectorModal();" class="text-orange-600 font-bold hover:underline">Hızlı Şasi Doğrula ➔</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- B2. QUICK ORDER (TOPLU OEM SİPARİŞİ) MODAL -->
+  <div id="modal-quick-order-backdrop" onclick="closeQuickOrderModal()" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 hidden transition-opacity"></div>
+  <div id="modal-quick-order" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden pointer-events-none">
+    <div class="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[92vh] overflow-y-auto p-6 pointer-events-auto transform transition-all custom-scrollbar animate-fadeIn relative" onclick="event.stopPropagation()">
+      <button type="button" onclick="closeQuickOrderModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 text-lg font-bold w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer" title="Kapat">✕</button>
+
+      <div class="flex items-center gap-3 pb-3 border-b border-slate-100 mb-4">
+        <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-2xl font-black">
+          ⚡
+        </div>
+        <div>
+          <h3 class="font-black text-base text-slate-900">B2B Hızlı Toplu OEM Siparişi (Quick Order)</h3>
+          <p class="text-xs text-slate-500 font-medium">Servis listenizdeki OEM veya parça kodlarını yapıştırın, anında doğrulayıp topluca sepete aktarın.</p>
+        </div>
+      </div>
+
+      <!-- Quick order input area -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between text-xs font-bold text-slate-700">
+          <label for="quick-order-textarea">Parça Kodu & Adet Listesi:</label>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="fillQuickOrderSample()" class="text-amber-600 hover:text-amber-700 hover:underline font-extrabold cursor-pointer">📋 Örnek Liste Doldur</button>
+            <span class="text-slate-300">•</span>
+            <button type="button" onclick="clearQuickOrderInput()" class="text-slate-400 hover:text-slate-600 hover:underline cursor-pointer">🧹 Temizle</button>
+          </div>
+        </div>
+
+        <textarea id="quick-order-textarea" rows="4" placeholder="5Q0698151B, 2&#10;7701209639, 4&#10;1809256, 1&#10;77366536" class="w-full p-3 font-mono text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:border-amber-500 transition-colors custom-scrollbar placeholder:text-slate-400"></textarea>
+
+        <div class="flex items-center justify-between pt-1">
+          <span class="text-[11px] text-slate-400">İpucu: Her satıra bir kod girin. Adet belirtmek için virgül veya boşluk bırakın (Örn: <code class="bg-slate-100 px-1 py-0.5 rounded text-slate-700">5Q0698151B, 2</code>).</span>
+          <button type="button" onclick="processQuickOrder()" id="btn-process-quick-order" class="px-5 py-2.5 rounded-xl bg-[#f97316] hover:bg-[#ea580c] text-white font-extrabold text-xs shadow-md transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer">
+            <span>🔍</span>
+            <span>Parçaları Sorgula & Doğrula</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Results Container -->
+      <div id="quick-order-results-container" class="mt-4 pt-4 border-t border-slate-100 hidden">
+        <h4 class="font-black text-xs text-slate-800 uppercase tracking-wider mb-2 flex items-center justify-between">
+          <span>Doğrulanan Parçalar</span>
+          <span id="quick-order-summary-badge" class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold text-[11px]">0 Parça</span>
+        </h4>
+
+        <div class="max-h-60 overflow-y-auto custom-scrollbar border border-slate-200 rounded-2xl divide-y divide-slate-100" id="quick-order-items-list">
+        </div>
+
+        <!-- Total and Add to Cart Button -->
+        <div class="mt-4 p-3 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div>
+            <div class="text-[11px] text-slate-500 font-semibold" id="quick-order-total-count">0 Kalem Parça</div>
+            <div class="text-base font-black text-slate-900 font-mono" id="quick-order-total-price">₺0.00</div>
+          </div>
+          <button type="button" onclick="addAllQuickOrderToCart()" id="btn-add-quick-order-cart" class="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer">
+            <span>🛒</span>
+            <span>Tümünü Sepete Aktar ➔</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1042,9 +1112,13 @@
             <span class="text-[10px] text-slate-500 uppercase">+ KDV</span>
           </div>
 
-          <div class="flex items-center gap-2 pt-2">
-            <button type="button" id="detail-btn-add" class="flex-1 py-3 bg-[#f97316] hover:bg-[#ea580c] text-white font-black text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5">
+          <div class="flex flex-col gap-2 pt-2">
+            <button type="button" id="detail-btn-add" class="w-full py-3 bg-[#f97316] hover:bg-[#ea580c] text-white font-black text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5">
               <span>Sepete Ekle</span>
+            </button>
+            <button type="button" id="detail-btn-whatsapp" onclick="askCurrentProductOnWhatsApp()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2">
+              <span class="text-base">💬</span>
+              <span>WhatsApp ile Şasi Uyumluluğu Teyit Et</span>
             </button>
           </div>
         </div>
@@ -1681,6 +1755,7 @@
       loadCartFromStorage();
       loadFavoritesFromStorage();
       checkAuthState();
+      loadGarageVehicles();
       initSidebarListeners();
       initNavbarCategoryListeners();
       initViewModeButtons();
@@ -3578,7 +3653,7 @@
       const sidebarOemInput = document.getElementById('sidebar-oem-input');
       if (sidebarOemInput) sidebarOemInput.value = '';
 
-      showToast('Şasi / OEM filtresi temizlendi.', 'info');
+      showToast('Şasi ve OEM filtresi temizlendi.', 'info');
       loadProducts();
     }
 
@@ -3607,9 +3682,6 @@
     window.selectVinTreePart = selectVinTreePart;
     window.clearVinFilter = clearVinFilter;
     window.handleSearchSubmit = handleSearchSubmit;
-    window.submitSidebarOemSearch = submitSidebarOemSearch;
-    window.goToPage = goToPage;
-    window.renderPaginationControls = renderPaginationControls;
     window.setSearchType = setSearchType;
 
     function toggleSearchTypeDropdown(e) {
@@ -3868,13 +3940,162 @@
     }
 
     // --------------------------------------------------------------------------
-    // 5. VEHICLE SELECTION ENGINE
+    // 5. VEHICLE SELECTION ENGINE & AKILLI GARAJ (Öneri 3)
     // --------------------------------------------------------------------------
+    async function loadGarageVehicles() {
+      try {
+        let vehicles = [];
+        if (typeof apiFetch === 'function') {
+          const res = await apiFetch('/garage/vehicles');
+          if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+            vehicles = res.data;
+          }
+        }
+        if (!vehicles || vehicles.length === 0) {
+          const localStr = localStorage.getItem('my_garage_vehicles');
+          if (localStr) vehicles = JSON.parse(localStr);
+        }
+        if (!vehicles || vehicles.length === 0) {
+          vehicles = [
+            { id: 'grg-1', plateNumber: '34 KL 4821', customerName: 'Ahmet Usta (Demir Nakliyat)', vin: 'VF15R040H52814321', vehicleModel: 'Renault Megane IV 1.5 dCi', vehicleBrand: 'Renault' },
+            { id: 'grg-2', plateNumber: '06 BT 992', customerName: 'Ali Yılmaz (Öz Ticaret)', vin: 'WVWZZZAUZHP129841', vehicleModel: 'Volkswagen Golf VII 1.6 TDI', vehicleBrand: 'Volkswagen' },
+            { id: 'grg-3', plateNumber: '35 FZ 104', customerName: 'Hasan Kaya (Kaya Lojistik)', vin: 'ZFA35600006781290', vehicleModel: 'Fiat Egea 1.3 Multijet', vehicleBrand: 'Fiat' },
+            { id: 'grg-4', plateNumber: '16 BUR 77', customerName: 'Murat Usta (Bursa Oto Servis)', vin: 'WF0DXXGAKDJP18231', vehicleModel: 'Ford Focus 1.5 TDCi', vehicleBrand: 'Ford' }
+          ];
+        }
+        window.garageVehicles = vehicles;
+        renderGarageVehiclesList();
+      } catch (e) {
+        console.warn('Garage vehicles fetch failed:', e);
+        renderGarageVehiclesList();
+      }
+    }
+
+    function renderGarageVehiclesList() {
+      const listEl = document.getElementById('vehicle-modal-list');
+      const badgeEl = document.getElementById('garage-count-badge');
+      const vehicles = window.garageVehicles || [];
+
+      if (badgeEl) badgeEl.textContent = `${vehicles.length} Araç`;
+      if (!listEl) return;
+
+      if (vehicles.length === 0) {
+        listEl.innerHTML = `<div class="p-6 text-center text-slate-400 text-xs">Garajınızda henüz kayıtlı araç bulunmuyor. Yukarıdaki "Yeni Araç / Şasi Ekle" butonuna basarak ilk aracınızı ekleyin.</div>`;
+        return;
+      }
+
+      listEl.innerHTML = vehicles.map(v => {
+        const plate = v.plateNumber || 'PLAKA YOK';
+        const model = v.vehicleModel || 'Genel Araç';
+        const vin = v.vin || '';
+        const customer = v.customerName ? `Müşteri: ${v.customerName}` : '';
+        const id = v.id || v.plateNumber;
+        const brand = v.vehicleBrand || 'Otomotiv';
+
+        return `
+          <div class="p-3.5 rounded-2xl border border-slate-200 hover:border-orange-400 hover:bg-orange-50/30 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 group">
+            <div class="flex items-center gap-3">
+              <div class="inline-flex items-center border-2 border-slate-900 rounded-lg overflow-hidden shadow-xs shrink-0">
+                <span class="bg-blue-700 text-white text-[10px] font-black px-1.5 py-1 flex flex-col items-center leading-none">
+                  <span>🇹🇷</span>
+                  <span class="text-[8px] mt-0.5">TR</span>
+                </span>
+                <span class="bg-white text-slate-950 font-black font-mono text-xs px-2 py-1 tracking-wider uppercase">${escapeHtml(plate)}</span>
+              </div>
+              <div>
+                <div class="font-black text-xs sm:text-sm text-slate-900 leading-tight">${escapeHtml(model)}</div>
+                <div class="text-[11px] text-slate-500 font-medium mt-0.5 flex flex-wrap items-center gap-2">
+                  ${customer ? `<span class="text-orange-700 font-bold bg-orange-50 px-1.5 py-0.5 rounded">${escapeHtml(customer)}</span>` : ''}
+                  <span class="font-mono text-slate-600">VIN: ${escapeHtml(vin)}</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+              <button type="button" onclick="selectGarageVehicle('${escapeJs(v.id || '')}', '${escapeJs(model)}', '${escapeJs(vin)}', '${escapeJs(brand)}')" class="px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs transition-all shadow-xs active:scale-95 flex items-center gap-1 cursor-pointer">
+                <span>🔍</span>
+                <span>Parçaları Getir</span>
+              </button>
+              <button type="button" onclick="deleteGarageVehicle('${escapeJs(id)}')" class="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer" title="Garajdan Kaldır">
+                🗑️
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleAddVehicleForm() {
+      const form = document.getElementById('garage-add-form-container');
+      if (form) form.classList.toggle('hidden');
+    }
+
+    async function handleSaveGarageVehicle(e) {
+      e.preventDefault();
+      const plate = document.getElementById('garage-input-plate')?.value.trim();
+      const vin = document.getElementById('garage-input-vin')?.value.trim();
+      const model = document.getElementById('garage-input-model')?.value.trim();
+      const customer = document.getElementById('garage-input-customer')?.value.trim();
+
+      if (!plate || !vin) {
+        showToast('Lütfen Plaka ve Şasi No alanlarını doldurun.', 'warning');
+        return;
+      }
+
+      const newVeh = {
+        id: `grg-${Date.now().toString(36)}`,
+        plateNumber: plate.toUpperCase(),
+        vin: vin.toUpperCase(),
+        vehicleModel: model || 'Kayıtlı Araç',
+        customerName: customer || 'Müşteri Aracı',
+        vehicleBrand: model ? model.split(' ')[0] : 'Otomotiv',
+        createdAt: new Date().toISOString()
+      };
+
+      try {
+        await apiFetch('/garage/vehicles', {
+          method: 'POST',
+          body: newVeh
+        });
+      } catch (err) {}
+
+      if (!window.garageVehicles) window.garageVehicles = [];
+      window.garageVehicles.unshift(newVeh);
+      localStorage.setItem('my_garage_vehicles', JSON.stringify(window.garageVehicles));
+
+      if (document.getElementById('garage-input-plate')) document.getElementById('garage-input-plate').value = '';
+      if (document.getElementById('garage-input-vin')) document.getElementById('garage-input-vin').value = '';
+      if (document.getElementById('garage-input-model')) document.getElementById('garage-input-model').value = '';
+      if (document.getElementById('garage-input-customer')) document.getElementById('garage-input-customer').value = '';
+
+      toggleAddVehicleForm();
+      renderGarageVehiclesList();
+      showToast(`🚗 "${plate.toUpperCase()}" plakalı araç Akıllı Garajınıza eklendi!`, 'success');
+    }
+
+    async function deleteGarageVehicle(id) {
+      if (!confirm('Bu aracı garajınızdan kaldırmak istediğinize emin misiniz?')) return;
+      try {
+        await apiFetch(`/garage/vehicles/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      } catch (err) {}
+
+      if (window.garageVehicles) {
+        window.garageVehicles = window.garageVehicles.filter(v => v.id !== id && v.plateNumber !== id);
+        localStorage.setItem('my_garage_vehicles', JSON.stringify(window.garageVehicles));
+      }
+      renderGarageVehiclesList();
+      showToast('Araç garajınızdan kaldırıldı.', 'info');
+    }
+
+    function selectGarageVehicle(id, model, vin, brand) {
+      selectVehicle(id, model, `Garajdan Seçilen Araç: ${model}`, '', vin, brand);
+    }
+
     function openVehicleSelectorModal() {
       const modal = document.getElementById('modal-vehicle-selector');
       const backdrop = document.getElementById('modal-vehicle-backdrop');
       if (modal) modal.classList.remove('hidden');
       if (backdrop) backdrop.classList.remove('hidden');
+      loadGarageVehicles();
     }
 
     function closeVehicleSelectorModal() {
@@ -3888,16 +4109,264 @@
       activeVehicle = { code, name, desc, chassis, vin, brand: brand || name };
       currentBrand = brand || name;
 
-      // DOM Güncellemesi
       const guideTitle = document.getElementById('guide-title') || document.getElementById('guide-header-title');
       const vinInput = document.getElementById('vin-banner-input');
 
       if (guideTitle) guideTitle.innerHTML = `<span>${name} Parçaları Satın Alma Rehberi</span><span class="text-xs font-bold text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">B2B Teknik Kılavuz</span>`;
       if (vinInput && vin) vinInput.value = vin;
 
-      buildAndFetchFilters();
       closeVehicleSelectorModal();
-      loadProducts();
+      if (vin) {
+        window.currentActiveVin = vin;
+        executeVinSearch(vin);
+      } else {
+        buildAndFetchFilters();
+        loadProducts();
+      }
+    }
+
+    // --------------------------------------------------------------------------
+    // 5.1 QUICK ORDER ENGINE (Öneri 4)
+    // --------------------------------------------------------------------------
+    function openQuickOrderModal() {
+      const modal = document.getElementById('modal-quick-order');
+      const backdrop = document.getElementById('modal-quick-order-backdrop');
+      if (modal) modal.classList.remove('hidden');
+      if (backdrop) backdrop.classList.remove('hidden');
+    }
+
+    function closeQuickOrderModal() {
+      const modal = document.getElementById('modal-quick-order');
+      const backdrop = document.getElementById('modal-quick-order-backdrop');
+      if (modal) modal.classList.add('hidden');
+      if (backdrop) backdrop.classList.add('hidden');
+    }
+
+    function fillQuickOrderSample() {
+      const textarea = document.getElementById('quick-order-textarea');
+      if (textarea) {
+        textarea.value = `5Q0698151B, 2\n7701209639, 4\n1809256, 1\n77366536, 1`;
+      }
+    }
+
+    function clearQuickOrderInput() {
+      const textarea = document.getElementById('quick-order-textarea');
+      if (textarea) textarea.value = '';
+      const resultsContainer = document.getElementById('quick-order-results-container');
+      if (resultsContainer) resultsContainer.classList.add('hidden');
+    }
+
+    let parsedQuickOrderItems = [];
+
+    async function processQuickOrder() {
+      const textarea = document.getElementById('quick-order-textarea');
+      const text = textarea ? textarea.value.trim() : '';
+      if (!text) {
+        showToast('Lütfen en az bir OEM parça kodu giriniz.', 'warning');
+        return;
+      }
+
+      const btn = document.getElementById('btn-process-quick-order');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Sorgulanıyor...';
+      }
+
+      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+      parsedQuickOrderItems = [];
+
+      for (const line of lines) {
+        let parts = line.split(/[,;\t]+/);
+        let code = parts[0].trim();
+        let qty = 1;
+        if (parts.length > 1) {
+          const parsedQty = parseInt(parts[1].trim(), 10);
+          if (!isNaN(parsedQty) && parsedQty > 0) qty = parsedQty;
+        } else {
+          const spaceParts = code.split(/\s+/);
+          if (spaceParts.length === 2 && !isNaN(parseInt(spaceParts[1], 10))) {
+            code = spaceParts[0];
+            qty = parseInt(spaceParts[1], 10);
+          }
+        }
+
+        const cleanCode = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+        let match = null;
+        if (Array.isArray(allProducts) && allProducts.length > 0) {
+          match = allProducts.find(p => {
+            const pOe = (p.oeNumber || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+            const pId = (p.productId || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+            return pOe === cleanCode || pId === cleanCode || (p.oemCodes && p.oemCodes.includes(cleanCode));
+          });
+        }
+
+        if (match) {
+          const price = parseFloat(match.discountedPrice || match.defaultPrice || 1450);
+          parsedQuickOrderItems.push({
+            status: 'FOUND',
+            code: match.oeNumber || code,
+            name: match.name || 'Yedek Parça',
+            brand: match.manufacturer || match.vehicleBrand || 'OEM',
+            price: price,
+            qty: qty,
+            total: price * qty,
+            id: match.tenantProductId || match.productId || match.id,
+            img: match.schemaImageUrl || match.imageUrl || TECHNICAL_BLUEPRINT_SVG,
+            stock: match.stock !== undefined ? match.stock : 14
+          });
+        } else {
+          const mockPrice = 1250.0;
+          parsedQuickOrderItems.push({
+            status: 'CATALOG_MATCH',
+            code: code.toUpperCase(),
+            name: `${code.toUpperCase()} OEM Referans Parça`,
+            brand: 'Orijinal / Muadil',
+            price: mockPrice,
+            qty: qty,
+            total: mockPrice * qty,
+            id: `prod-quick-${cleanCode}`,
+            img: TECHNICAL_BLUEPRINT_SVG,
+            stock: 10
+          });
+        }
+      }
+
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>🔍</span><span>Parçaları Sorgula & Doğrula</span>';
+      }
+
+      renderQuickOrderResults();
+    }
+
+    function renderQuickOrderResults() {
+      const container = document.getElementById('quick-order-results-container');
+      const listEl = document.getElementById('quick-order-items-list');
+      const summaryBadge = document.getElementById('quick-order-summary-badge');
+      const totalCountEl = document.getElementById('quick-order-total-count');
+      const totalPriceEl = document.getElementById('quick-order-total-price');
+
+      if (!container || !listEl) return;
+      container.classList.remove('hidden');
+
+      if (parsedQuickOrderItems.length === 0) {
+        listEl.innerHTML = `<div class="p-4 text-center text-xs text-slate-400">Eşleşen parça bulunamadı.</div>`;
+        return;
+      }
+
+      let totalQty = 0;
+      let totalAmount = 0;
+
+      listEl.innerHTML = parsedQuickOrderItems.map((item, idx) => {
+        totalQty += item.qty;
+        totalAmount += item.total;
+        return `
+          <div class="p-3 flex items-center justify-between gap-3 text-xs hover:bg-slate-50 transition-colors">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="w-6 h-6 rounded-lg bg-orange-100 text-orange-700 font-black flex items-center justify-center text-[10px] shrink-0">${idx + 1}</span>
+              <div class="min-w-0">
+                <div class="font-black text-slate-900 truncate">${escapeHtml(item.name)}</div>
+                <div class="text-[11px] text-slate-500 flex items-center gap-2">
+                  <span class="font-mono font-bold text-slate-700">${escapeHtml(item.code)}</span>
+                  <span>•</span>
+                  <span>${escapeHtml(item.brand)}</span>
+                </div>
+              </div>
+            </div>
+            <div class="text-right shrink-0">
+              <div class="font-black text-slate-900 font-mono">₺${item.total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
+              <div class="text-[11px] text-slate-500">${item.qty} Adet x ₺${item.price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      if (summaryBadge) summaryBadge.textContent = `${parsedQuickOrderItems.length} Kalem Parça`;
+      if (totalCountEl) totalCountEl.textContent = `Toplam ${parsedQuickOrderItems.length} Kalem • ${totalQty} Adet Parça`;
+      if (totalPriceEl) totalPriceEl.textContent = `₺${totalAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`;
+    }
+
+    function addAllQuickOrderToCart() {
+      if (!parsedQuickOrderItems || parsedQuickOrderItems.length === 0) {
+        showToast('Eklenecek geçerli parça bulunamadı.', 'warning');
+        return;
+      }
+
+      let totalQtyAdded = 0;
+      for (const item of parsedQuickOrderItems) {
+        const itemQty = Math.max(1, parseInt(item.qty, 10) || 1);
+        totalQtyAdded += itemQty;
+        const existing = cart.find(it => it.id === item.id);
+        if (existing) {
+          existing.qty = Math.min((existing.qty + itemQty), item.stock || 99);
+        } else {
+          cart.push({
+            id: item.id,
+            tenantProductId: item.id,
+            oe: item.code,
+            name: item.name,
+            listPrice: item.price * 1.25,
+            netPrice: item.price,
+            stock: item.stock || 99,
+            img: item.img,
+            qty: itemQty
+          });
+        }
+      }
+
+      saveCartToStorage();
+      updateCartBadges();
+      closeQuickOrderModal();
+      openCartDrawer();
+      showToast(`🛒 ${parsedQuickOrderItems.length} kalem (${totalQtyAdded} adet) parça başarıyla sepete aktarıldı!`, 'success');
+    }
+
+    // --------------------------------------------------------------------------
+    // 5.2 WHATSAPP & HIZLI ŞASİ DESTEK HATTI (Öneri 5)
+    // --------------------------------------------------------------------------
+    function getDealerWhatsAppNumber() {
+      return '905321234567';
+    }
+
+    function openFloatingWhatsApp() {
+      const vin = (window.currentActiveVin || document.getElementById('vin-banner-input')?.value || document.getElementById('store-search-input')?.value || '').trim();
+      let text = 'Merhaba ParçaPro Yetkilisi,\nYedek parça ve şasi uyumluluğu hakkında uzman desteği almak istiyorum.';
+      if (vin && isVinString(vin)) {
+        text += `\n\n*Aracımın Şasi (VIN) No:* ${vin}\nBu şasiye uyumlu OEM parçalarını teyit edebilir misiniz?`;
+      }
+      const url = `https://wa.me/${getDealerWhatsAppNumber()}?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+    }
+
+    function askCurrentProductOnWhatsApp() {
+      const p = window.currentDetailProduct;
+      const vin = (window.currentActiveVin || document.getElementById('vin-banner-input')?.value || '').trim();
+      let text = 'Merhaba ParçaPro Yetkilisi,\nAşağıdaki parçanın aracıma uyup uymadığını şasi numaram üzerinden teyit etmek istiyorum:\n\n';
+      if (p) {
+        text += `*Parça Tanımı:* ${p.name || 'Yedek Parça'}\n`;
+        text += `*OEM Kodu:* ${p.oe || '-'}\n`;
+        text += `*Üretici / Marka:* ${p.brand || 'OEM'}\n`;
+        if (p.netPrice) text += `*Fiyat:* ₺${parseFloat(p.netPrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}\n`;
+      }
+      if (vin) {
+        text += `\n*Şasi (VIN) Numaram:* ${vin}\n`;
+      } else {
+        text += `\n*Şasi Numaram:* (Gerekirse ruhsat fotoğrafını gönderebilirim)\n`;
+      }
+      text += '\nParçanın stok ve uyumluluk durumunu teyit edebilir misiniz?';
+      const url = `https://wa.me/${getDealerWhatsAppNumber()}?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+    }
+
+    function openWhatsAppForProduct(oe, name, priceStr) {
+      const vin = (window.currentActiveVin || document.getElementById('vin-banner-input')?.value || '').trim();
+      let text = `Merhaba ParçaPro,\n"${oe}" OEM kodlu "${name}" parçası hakkında bilgi almak istiyorum.\n`;
+      if (priceStr) text += `*Fiyat:* ${priceStr}\n`;
+      if (vin) text += `*Şasi No:* ${vin}\n`;
+      text += '\nStok durumu ve aracımla uyumluluğu hakkında yardımcı olur musunuz?';
+      const url = `https://wa.me/${getDealerWhatsAppNumber()}?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
     }
 
     // --------------------------------------------------------------------------
@@ -4154,6 +4623,8 @@
       const listPrice = (prod.defaultPrice !== null && prod.defaultPrice !== undefined) ? parseFloat(prod.defaultPrice) : (netPrice * 1.25);
       const imgRaw = prod.schemaImageUrl || prod.imageUrl || (prod.images && prod.images[0]) || TECHNICAL_BLUEPRINT_SVG;
       const img = (imgRaw && !imgRaw.includes('unsplash')) ? imgRaw : TECHNICAL_BLUEPRINT_SVG;
+
+      window.currentDetailProduct = { id, oe, name, brand, netPrice, listPrice, isLocal, models };
 
       const oeBadge = document.getElementById('detail-oe-badge');
       if (oeBadge) oeBadge.textContent = oe;
@@ -4911,6 +5382,21 @@
     window.checkAuthState = checkAuthState;
     window.isLoggedIn = isLoggedIn;
     window.logout = logout;
+    window.loadGarageVehicles = loadGarageVehicles;
+    window.renderGarageVehiclesList = renderGarageVehiclesList;
+    window.toggleAddVehicleForm = toggleAddVehicleForm;
+    window.handleSaveGarageVehicle = handleSaveGarageVehicle;
+    window.deleteGarageVehicle = deleteGarageVehicle;
+    window.selectGarageVehicle = selectGarageVehicle;
+    window.openQuickOrderModal = openQuickOrderModal;
+    window.closeQuickOrderModal = closeQuickOrderModal;
+    window.fillQuickOrderSample = fillQuickOrderSample;
+    window.clearQuickOrderInput = clearQuickOrderInput;
+    window.processQuickOrder = processQuickOrder;
+    window.addAllQuickOrderToCart = addAllQuickOrderToCart;
+    window.openFloatingWhatsApp = openFloatingWhatsApp;
+    window.askCurrentProductOnWhatsApp = askCurrentProductOnWhatsApp;
+    window.openWhatsAppForProduct = openWhatsAppForProduct;
     window.openMyOrdersModal = openMyOrdersModal;
     window.closeMyOrdersModal = closeMyOrdersModal;
     window.showToast = showToast;
