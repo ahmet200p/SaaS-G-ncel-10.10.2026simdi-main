@@ -1099,20 +1099,20 @@
       </form>
 
       <!-- 2. KAYIT OL / BAYİ BAŞVURUSU FORMU -->
-      <form id="auth-form-register" onsubmit="handleRegisterSubmit(event)" class="space-y-3 pt-2 text-xs hidden">
-        <!-- Hesap Türü Seçimi -->
+      <form id="auth-form-register" onsubmit="handleRegisterSubmit(event)" class="space-y-3 pt-2 text-xs hidden" autocomplete="off">
+        <!-- Hesap Türü Seçimi (B2B Servis / Bayi vs Bireysel Müşteri) -->
         <div>
           <label class="block font-bold text-slate-700 mb-1.5">Hesap Türü</label>
           <div class="grid grid-cols-2 gap-2">
-            <label class="flex items-center gap-2 p-2 rounded-xl border border-orange-200 bg-orange-50/60 cursor-pointer hover:bg-orange-50 transition-colors">
-              <input type="radio" name="reg-customer-type" value="MECHANIC" checked class="text-orange-500 focus:ring-orange-400">
+            <label class="flex items-center gap-2 p-2 rounded-xl border border-orange-200 bg-orange-50/60 cursor-pointer hover:bg-orange-50 transition-colors" id="label-customer-mechanic">
+              <input type="radio" name="reg-customer-type" value="MECHANIC" checked onchange="toggleCustomerTypeFields('MECHANIC')" class="text-orange-500 focus:ring-orange-400">
               <div class="leading-tight">
                 <span class="block font-bold text-slate-800 text-[11px]">🛠️ B2B Bayi / Servis</span>
                 <span class="block text-[10px] text-slate-500">Toptan İskontolu Alışveriş</span>
               </div>
             </label>
-            <label class="flex items-center gap-2 p-2 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors">
-              <input type="radio" name="reg-customer-type" value="RETAIL" class="text-orange-500 focus:ring-orange-400">
+            <label class="flex items-center gap-2 p-2 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors" id="label-customer-retail">
+              <input type="radio" name="reg-customer-type" value="RETAIL" onchange="toggleCustomerTypeFields('RETAIL')" class="text-orange-500 focus:ring-orange-400">
               <div class="leading-tight">
                 <span class="block font-bold text-slate-800 text-[11px]">👤 Bireysel Müşteri</span>
                 <span class="block text-[10px] text-slate-500">Standart Perakende</span>
@@ -1124,37 +1124,56 @@
         <!-- Ad Soyad & Telefon (Yan yana) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div>
-            <label class="block font-bold text-slate-700 mb-1">Yetkili Adı Soyadı <span class="text-rose-500">*</span></label>
-            <input type="text" id="reg-name" required placeholder="Örn: Ahmet Yılmaz" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 font-medium">
+            <label class="block font-bold text-slate-700 mb-1" id="label-reg-name">Yetkili Adı Soyadı <span class="text-rose-500">*</span></label>
+            <input type="text" id="reg-name" required placeholder="Örn: Ahmet Yılmaz" autocomplete="name" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 font-medium">
           </div>
           <div>
             <label class="block font-bold text-slate-700 mb-1">Telefon Numarası <span class="text-rose-500">*</span></label>
-            <input type="tel" id="reg-phone" required placeholder="0532 123 45 67" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 font-medium">
+            <input type="tel" id="reg-phone" required placeholder="0532 123 45 67" autocomplete="tel" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 font-medium">
           </div>
         </div>
 
-        <!-- Firma / Servis Adı -->
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Firma / Servis Adı</label>
-          <input type="text" id="reg-company" placeholder="Örn: Yılmaz Otomotiv San. Tic." class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 font-medium">
+        <!-- B2B ÖZEL ALANLARI: Firma Adı & Vergi Kimlik No (Sadece B2B Bayi / Servis seçiliyken aktif) -->
+        <div id="reg-b2b-fields" class="space-y-2">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Firma / Servis Adı <span class="text-rose-500">*</span></label>
+              <input type="text" id="reg-company" placeholder="Örn: Yılmaz Otomotiv San. Tic." autocomplete="organization" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 font-medium">
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">
+                Vergi / T.C. Kimlik No
+                <span class="text-[10px] text-orange-600 font-semibold ml-1">(B2B İstemcisi)</span>
+              </label>
+              <input type="text" id="reg-tax-number" maxlength="11" placeholder="10 Haneli Vergi No veya T.C." autocomplete="off" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 font-medium font-mono text-xs">
+            </div>
+          </div>
+        </div>
+
+        <!-- PERAKENDE ÖZEL ALANLARI: Kullanıcı Adı (Sadece Bireysel Müşteri seçiliyken aktif) -->
+        <div id="reg-retail-fields" class="hidden">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Kullanıcı Adı <span class="text-slate-400 font-normal text-[11px]">(Sistemde görünecek takma adınız)</span></label>
+            <input type="text" id="reg-username" placeholder="Örn: ahmet_oto2026" autocomplete="username" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 font-medium">
+          </div>
         </div>
 
         <!-- E-Posta & Şehir -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div>
             <label class="block font-bold text-slate-700 mb-1">E-Posta Adresi <span class="text-rose-500">*</span></label>
-            <input type="email" id="reg-email" required placeholder="ornek@firma.com" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 font-medium">
+            <input type="email" id="reg-email" required placeholder="ornek@firma.com" autocomplete="email" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 font-medium">
           </div>
           <div>
             <label class="block font-bold text-slate-700 mb-1">Şehir</label>
-            <input type="text" id="reg-city" placeholder="İstanbul" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 font-medium">
+            <input type="text" id="reg-city" placeholder="İstanbul" autocomplete="address-level2" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 font-medium">
           </div>
         </div>
 
         <!-- Şifre -->
         <div>
           <label class="block font-bold text-slate-700 mb-1">Giriş Şifresi <span class="text-rose-500">*</span></label>
-          <input type="password" id="reg-password" required minlength="6" placeholder="En az 6 karakter" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 font-medium">
+          <input type="password" id="reg-password" required minlength="6" placeholder="En az 6 karakter" autocomplete="new-password" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 font-medium">
         </div>
 
         <button type="submit" id="reg-submit-btn" class="w-full py-2.5 bg-[#f97316] hover:bg-[#ea580c] text-white font-black text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer mt-2 flex items-center justify-center gap-1.5">
@@ -4502,6 +4521,42 @@
       if (menu) menu.classList.add('hidden');
     }
 
+    function toggleCustomerTypeFields(type) {
+      const b2bFields = document.getElementById('reg-b2b-fields');
+      const retailFields = document.getElementById('reg-retail-fields');
+      const nameLabel = document.getElementById('label-reg-name');
+      const mechanicLabel = document.getElementById('label-customer-mechanic');
+      const retailLabel = document.getElementById('label-customer-retail');
+
+      if (type === 'RETAIL') {
+        if (b2bFields) b2bFields.classList.add('hidden');
+        if (retailFields) retailFields.classList.remove('hidden');
+        if (nameLabel) nameLabel.innerHTML = 'Ad Soyad <span class="text-rose-500">*</span>';
+
+        if (mechanicLabel) {
+          mechanicLabel.classList.remove('border-orange-200', 'bg-orange-50/60');
+          mechanicLabel.classList.add('border-slate-200', 'bg-slate-50');
+        }
+        if (retailLabel) {
+          retailLabel.classList.remove('border-slate-200', 'bg-slate-50');
+          retailLabel.classList.add('border-orange-200', 'bg-orange-50/60');
+        }
+      } else {
+        if (b2bFields) b2bFields.classList.remove('hidden');
+        if (retailFields) retailFields.classList.add('hidden');
+        if (nameLabel) nameLabel.innerHTML = 'Yetkili Adı Soyadı <span class="text-rose-500">*</span>';
+
+        if (mechanicLabel) {
+          mechanicLabel.classList.remove('border-slate-200', 'bg-slate-50');
+          mechanicLabel.classList.add('border-orange-200', 'bg-orange-50/60');
+        }
+        if (retailLabel) {
+          retailLabel.classList.remove('border-orange-200', 'bg-orange-50/60');
+          retailLabel.classList.add('border-slate-200', 'bg-slate-50');
+        }
+      }
+    }
+
     function switchAuthTab(tab) {
       const loginTabBtn = document.getElementById('tab-btn-login');
       const registerTabBtn = document.getElementById('tab-btn-register');
@@ -4514,6 +4569,9 @@
       if (tab === 'register') {
         if (loginForm) loginForm.classList.add('hidden');
         if (registerForm) registerForm.classList.remove('hidden');
+
+        const currentType = document.querySelector('input[name="reg-customer-type"]:checked')?.value || 'MECHANIC';
+        toggleCustomerTypeFields(currentType);
 
         if (loginTabBtn) {
           loginTabBtn.classList.remove('border-orange-500', 'text-orange-600', 'font-black');
@@ -4563,13 +4621,15 @@
 
     async function handleRegisterSubmit(e) {
       e.preventDefault();
+      const customerType = document.querySelector('input[name="reg-customer-type"]:checked')?.value || 'MECHANIC';
       const name = document.getElementById('reg-name')?.value.trim();
       const email = document.getElementById('reg-email')?.value.trim();
       const phone = document.getElementById('reg-phone')?.value.trim();
       const password = document.getElementById('reg-password')?.value;
       const companyName = document.getElementById('reg-company')?.value.trim();
+      const taxNumber = document.getElementById('reg-tax-number')?.value.trim();
+      const username = document.getElementById('reg-username')?.value.trim();
       const city = document.getElementById('reg-city')?.value.trim();
-      const customerType = document.querySelector('input[name="reg-customer-type"]:checked')?.value || 'MECHANIC';
 
       if (!name || !email || !password) {
         showToast('Lütfen Ad Soyad, E-posta ve Şifre alanlarını doldurunuz.', 'warning');
@@ -4593,8 +4653,10 @@
           email: email,
           phone: phone,
           password: password,
-          companyName: companyName || (customerType === 'MECHANIC' ? `${name} Oto Servis` : name),
           customerType: customerType,
+          companyName: customerType === 'MECHANIC' ? (companyName || `${name} Oto Servis`) : null,
+          taxNumber: customerType === 'MECHANIC' ? (taxNumber || null) : null,
+          username: customerType === 'RETAIL' ? (username || email.split('@')[0]) : null,
           city: city,
           tenantSlug: 'ahmetoto'
         };
@@ -4609,7 +4671,7 @@
           const userObj = res.user || res.data?.user || {
             name: name,
             email: email,
-            company: payload.companyName,
+            company: payload.companyName || (username ? `@${username}` : name),
             customerType: customerType
           };
 
@@ -4629,7 +4691,7 @@
         const mockUser = {
           name: name,
           email: email,
-          company: companyName || `${name} Oto Servis`,
+          company: customerType === 'MECHANIC' ? (companyName || `${name} Oto Servis`) : (username ? `@${username}` : name),
           customerType: customerType
         };
         localStorage.setItem('token', token);
@@ -4839,6 +4901,7 @@
     window.closeMegaMenu = closeMegaMenu;
     window.handleLoginSubmit = handleLoginSubmit;
     window.handleRegisterSubmit = handleRegisterSubmit;
+    window.toggleCustomerTypeFields = toggleCustomerTypeFields;
     window.switchAuthTab = switchAuthTab;
     window.openAuthModal = openAuthModal;
     window.closeAuthModal = closeAuthModal;
