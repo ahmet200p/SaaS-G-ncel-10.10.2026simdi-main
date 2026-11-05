@@ -1006,6 +1006,7 @@ router.post('/admins', async (req, res) => {
           email: cleanEmail,
           password: hashedPassword,
           role: targetRole,
+          status: 'APPROVED',
           tenantId: targetRole === 'TENANT_ADMIN' ? tenantId : null
         },
         select: {

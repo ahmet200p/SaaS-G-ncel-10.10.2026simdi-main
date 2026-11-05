@@ -367,10 +367,27 @@ const requireApprovedDealer = async (req, res, next) => {
       });
     }
 
-    const userStatus = user.status || 'PENDING';
+    let userStatus = user.status || 'PENDING';
     const tenantStatus = user.tenant?.status || 'PENDING';
+    const tenantIsActive = user.tenant?.isActive === true || user.tenant?.is_active === true;
 
-    if (userStatus !== 'APPROVED' || (user.tenant && tenantStatus !== 'APPROVED')) {
+    // KURAL: Eğer bağlı bulunulan bayi firması (Tenant) Admin tarafından onaylanmışsa (status === 'APPROVED' veya isActive: true),
+    // Bayi kullanıcısı da onaylı kabul edilir ve veritabanında otomatik 'APPROVED' olarak senkronize edilir.
+    if ((tenantStatus === 'APPROVED' || tenantIsActive) && userStatus !== 'APPROVED') {
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { status: 'APPROVED' }
+        });
+        userStatus = 'APPROVED';
+      } catch (e) {
+        userStatus = 'APPROVED';
+      }
+    }
+
+    const isDealerApproved = (userStatus === 'APPROVED') && (tenantStatus === 'APPROVED' || tenantIsActive);
+
+    if (!isDealerApproved) {
       console.warn(`[SECURITY_BLOCKED] Onaysız bayi (${user.email}, Durum: ${userStatus}/${tenantStatus}) ürün ekleme/düzenleme denemesi 403 ile engellendi.`);
       return res.status(403).json({
         success: false,
