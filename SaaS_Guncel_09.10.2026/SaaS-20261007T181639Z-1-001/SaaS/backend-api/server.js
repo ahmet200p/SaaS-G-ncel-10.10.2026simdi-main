@@ -325,6 +325,10 @@ const ensureNeonTables = async () => {
       `CREATE INDEX IF NOT EXISTS "ReturnRequest_status_idx" ON "ReturnRequest"("status");`,
       `ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "vin" TEXT;`,
       `CREATE INDEX IF NOT EXISTS "Order_vin_idx" ON "Order"("vin");`,
+      `ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "bayiId" TEXT;`,
+      `CREATE INDEX IF NOT EXISTS "Product_bayiId_idx" ON "Product"("bayiId");`,
+      `ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "musteriId" TEXT;`,
+      `CREATE INDEX IF NOT EXISTS "Order_musteriId_idx" ON "Order"("musteriId");`,
       `CREATE TABLE IF NOT EXISTS "GarageVehicle" (
         "id" TEXT NOT NULL,
         "userId" TEXT NOT NULL,

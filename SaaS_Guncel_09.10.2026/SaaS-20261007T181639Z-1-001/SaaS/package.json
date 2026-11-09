@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "build": "prisma generate",
+    "postinstall": "node -e \"const fs=require('fs'),cp=require('child_process');if(fs.existsSync('node_modules/prisma')){try{cp.execSync('npx --no-install prisma generate',{stdio:'inherit'})}catch(e){console.warn('postinstall prisma generate warning:',e.message)}}\"",
     "dev": "nodemon server.js",
     "clean:arda": "node clean_test_orders.js",
     "clean:test-orders": "node clean_test_orders.js",

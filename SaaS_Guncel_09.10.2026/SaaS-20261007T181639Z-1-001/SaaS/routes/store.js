@@ -82,6 +82,22 @@ const formatDealerName = (rawName) => {
   return clean;
 };
 
+// Helper: Çalışma zamanı Prisma Client şemasında alanın tanımlı olup olmadığını güvenli kontrol eder
+const getPrismaModelFieldSet = (modelName) => {
+  try {
+    const fields = prisma?._runtimeDataModel?.models?.[modelName]?.fields;
+    if (Array.isArray(fields) && fields.length > 0) {
+      return new Set(fields.map(f => f.name));
+    }
+  } catch (_) {}
+  return null;
+};
+
+const hasPrismaField = (modelName, fieldName) => {
+  const fieldSet = getPrismaModelFieldSet(modelName);
+  return fieldSet ? fieldSet.has(fieldName) : false;
+};
+
 // ============================================================================
 // 0. GET /api/store/bank-info - Havale / EFT için Bayi Banka ve IBAN Bilgileri
 // (Genel Vitrin ve Ödeme Modalı Erişimi - Public / SEO Uyumlu)
@@ -1284,6 +1300,8 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
         return {
           tenantProductId: item.id,
           productId: item.productId,
+          tenantId: tenantObj.id,
+          tenantSubdomain: tenantObj.subdomain,
           dealerName: dealerName,
           tenantName: dealerName,
           companyName: dealerName,
@@ -1334,6 +1352,8 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
       return {
         tenantProductId: item.id,
         productId: item.productId,
+        tenantId: tenantObj.id,
+        tenantSubdomain: tenantObj.subdomain,
         dealerName: dealerName,
         tenantName: dealerName,
         companyName: dealerName,
@@ -2097,6 +2117,11 @@ router.post('/orders', orderLimiter, async (req, res) => {
     // 5. Prisma Transaction: Her bayi grubu için atomik Order, StockMovement ve CustomerLedger oluştur
     const baseTimestampCode = Date.now().toString(36).toUpperCase();
     const isSplitOrder = dealerGroups.length > 1;
+    const orderFields = getPrismaModelFieldSet('Order');
+    const canUseMusteriId = orderFields ? orderFields.has('musteriId') : false;
+    const canUseShippingAddr = orderFields ? orderFields.has('shippingAddress') : true;
+    const canUseVin = orderFields ? orderFields.has('vin') : true;
+    const resolvedMusteriId = (req.user && req.user.id) ? req.user.id : (customerProfile.userId || null);
 
     const createdOrders = await prisma.$transaction(async (tx) => {
       const ordersOut = [];
@@ -2109,24 +2134,32 @@ router.post('/orders', orderLimiter, async (req, res) => {
           ? `SP-${baseTimestampCode}-${gIdx + 1}-${randSuffix}`
           : `SP-${baseTimestampCode}-${randSuffix}`;
 
+        const orderData = {
+          orderNumber: orderNumber,
+          tenantId: grp.tenantId,
+          customerId: customerProfile.id,
+          subtotal: grp.subtotal,
+          vatRate: vatRate,
+          vatAmount: grp.vatAmount,
+          totalAmount: grp.totalAmount,
+          status: orderStatus,
+          paymentMethod: paymentMethod || null,
+          items: {
+            create: grp.orderItemsToCreate
+          }
+        };
+        if (canUseMusteriId && resolvedMusteriId) {
+          orderData.musteriId = resolvedMusteriId;
+        }
+        if (canUseShippingAddr) {
+          orderData.shippingAddress = snapshotShippingAddress;
+        }
+        if (canUseVin) {
+          orderData.vin = orderVin;
+        }
+
         const order = await tx.order.create({
-          data: {
-            orderNumber: orderNumber,
-            tenantId: grp.tenantId,
-            customerId: customerProfile.id,
-            musteriId: (req.user && req.user.id) ? req.user.id : (customerProfile.userId || null),
-            subtotal: grp.subtotal,
-            vatRate: vatRate,
-            vatAmount: grp.vatAmount,
-            totalAmount: grp.totalAmount,
-            status: orderStatus,
-            paymentMethod: paymentMethod || null,
-            shippingAddress: snapshotShippingAddress,
-            vin: orderVin,
-            items: {
-              create: grp.orderItemsToCreate
-            }
-          },
+          data: orderData,
           include: {
             tenant: {
               select: { id: true, name: true, subdomain: true, themeColor: true }
@@ -2213,6 +2246,18 @@ router.post('/orders', orderLimiter, async (req, res) => {
 
       return ordersOut;
     });
+
+    if (!canUseMusteriId && resolvedMusteriId && createdOrders.length > 0) {
+      for (const ord of createdOrders) {
+        try {
+          await prisma.$executeRawUnsafe(
+            'UPDATE "Order" SET "musteriId" = $1 WHERE id = $2',
+            resolvedMusteriId,
+            ord.id
+          );
+        } catch (_) {}
+      }
+    }
 
     const primaryOrder = createdOrders[0];
     const orderSummaryMessage = isSplitOrder
@@ -2302,13 +2347,18 @@ router.get(['/orders', '/my-orders'], async (req, res) => {
       });
     }
 
+    const useMusteriFilter = hasPrismaField('Order', 'musteriId') && Boolean(userId);
     const orders = await prisma.order.findMany({
-      where: {
-        OR: [
-          { customerId: customerProfile.id },
-          ...(userId ? [{ musteriId: userId }] : [])
-        ]
-      },
+      where: useMusteriFilter
+        ? {
+            OR: [
+              { customerId: customerProfile.id },
+              { musteriId: userId }
+            ]
+          }
+        : {
+            customerId: customerProfile.id
+          },
       include: {
         tenant: {
           select: { id: true, name: true, subdomain: true, themeColor: true }
@@ -2704,13 +2754,22 @@ const handleCreateReturnRequest = async (req, res) => {
     }
 
     // 2. Siparişi bul ve müşteri yetkisi doğrula (Çoklu bayi pazaryeri: müşteri kendi tüm siparişlerine iade açabilir)
+    const useMusteriFilter = hasPrismaField('Order', 'musteriId') && Boolean(userId);
+    const ownerFilter = useMusteriFilter
+      ? {
+          OR: [
+            { customerId: customerProfile.id },
+            { musteriId: userId }
+          ]
+        }
+      : {
+          customerId: customerProfile.id
+        };
+
     let order = await prisma.order.findFirst({
       where: {
         id: orderId,
-        OR: [
-          { customerId: customerProfile.id },
-          ...(userId ? [{ musteriId: userId }] : [])
-        ]
+        ...ownerFilter
       },
       include: {
         items: true,
@@ -2723,10 +2782,7 @@ const handleCreateReturnRequest = async (req, res) => {
       order = await prisma.order.findFirst({
         where: {
           orderNumber: orderId,
-          OR: [
-            { customerId: customerProfile.id },
-            ...(userId ? [{ musteriId: userId }] : [])
-          ]
+          ...ownerFilter
         },
         include: {
           items: true,
