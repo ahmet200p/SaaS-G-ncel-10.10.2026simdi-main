@@ -402,6 +402,20 @@
           </div>
         </div>
 
+        <!-- Card 2: Satıcı / Yetkili Bayi (Çoklu Bayi Pazaryeri Filtresi) -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100 mb-2.5">
+            <h4 class="font-black text-xs text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+              <span>🏪</span>
+              <span>Satıcı / Yetkili Bayi</span>
+            </h4>
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-50 text-orange-600" id="dealer-filter-badge">Pazaryeri</span>
+          </div>
+          <div class="space-y-2 text-xs font-medium text-slate-700 max-h-52 overflow-y-auto custom-scrollbar pr-1" id="filter-dealers-list">
+            <div class="text-[11px] text-slate-400 py-1">Aktif bayiler yükleniyor...</div>
+          </div>
+        </div>
+
         <!-- Card 3: Alt Kategori -->
         <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
           <div class="flex items-center justify-between pb-2 border-b border-slate-100 mb-2.5">
@@ -1084,9 +1098,10 @@
   <div id="modal-product-detail" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden pointer-events-none">
     <div class="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 pointer-events-auto transform transition-all custom-scrollbar animate-fadeIn" onclick="event.stopPropagation()">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <span class="font-mono text-xs font-black px-2 py-0.5 bg-slate-100 text-slate-800 rounded-md" id="detail-oe-badge">5Q0 698 151 B</span>
           <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full" id="detail-brand-badge">Bosch (OEM)</span>
+          <span class="text-xs font-bold text-orange-700 bg-orange-50 border border-orange-200 px-2.5 py-0.5 rounded-full" id="detail-dealer-badge">🏪 Yetkili Bayi</span>
         </div>
         <button type="button" onclick="closeProductDetailModal()" class="p-1 rounded-lg hover:bg-slate-100 text-slate-400 font-bold text-base cursor-pointer">✕</button>
       </div>
@@ -1326,6 +1341,8 @@
     let currentCategory = '';
     let currentSubCategories = [];
     let currentManufacturers = [];
+    let currentDealers = [];
+    let storeDealers = [];
     let currentSearchQuery = '';
     let currentSearchType = 'all';
     let currentOemFilter = '';
@@ -1752,10 +1769,19 @@
       const storeSearchInput = document.getElementById('store-search-input');
       if (storeSearchInput && !currentSearchQuery) storeSearchInput.value = '';
 
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const initialDealer = urlParams.get('dealer') || urlParams.get('seller');
+        if (initialDealer && initialDealer.toLowerCase() !== 'all') {
+          currentDealers = initialDealer.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+        }
+      } catch (e) {}
+
       loadCartFromStorage();
       loadFavoritesFromStorage();
       checkAuthState();
       loadGarageVehicles();
+      loadStoreDealers();
       initSidebarListeners();
       initNavbarCategoryListeners();
       initViewModeButtons();
@@ -1794,6 +1820,10 @@
           if (currentCategory && currentCategory !== 'all' && currentCategory !== 'Tüm Kategoriler') {
             queryParams.set('category', currentCategory);
           }
+        }
+        window._lastFetchHadDealerFilter = currentDealers.length > 0;
+        if (currentDealers.length > 0) {
+          queryParams.set('dealer', currentDealers.join(','));
         }
         if (currentInStockOnly) {
           queryParams.set('inStock', 'true');
@@ -2136,12 +2166,18 @@
           const imageUrl = (rawImg && typeof rawImg === 'string' && !rawImg.includes('unsplash')) ? rawImg : TECHNICAL_BLUEPRINT_SVG;
           
           const sellerName = resolveDealerDisplayName(p);
+          const tenantIdVal = p.tenantId || (p.tenant && p.tenant.id) || null;
+          const tenantSubVal = String(p.tenantSubdomain || (p.tenant && p.tenant.subdomain) || '').trim().toLowerCase();
+          const tenantObj = p.tenant ? { ...p.tenant, name: sellerName } : (tenantIdVal || tenantSubVal ? { id: tenantIdVal, name: sellerName, subdomain: tenantSubVal } : null);
           const technicalSpecs = p.technicalSpecs || prod.technicalSpecs || null;
 
           return {
             id,
             tenantProductId: id,
             productId: p.productId || prod.id || id,
+            tenantId: tenantIdVal,
+            tenantSubdomain: tenantSubVal,
+            tenant: tenantObj,
             name,
             stockCode,
             price,
@@ -2196,6 +2232,10 @@
               imageUrl,
               schemaImageUrl: imageUrl,
               companyName: sellerName,
+              dealerName: sellerName,
+              tenantId: tenantIdVal,
+              tenantSubdomain: tenantSubVal,
+              tenant: tenantObj,
               user: p.user || { companyName: sellerName, name: sellerName }
             }
           };
@@ -2225,7 +2265,8 @@
           allProducts = sortExactMatchFirst(allProducts, currentSearchQuery);
         }
 
-        // prompt.md ADIM 2: Sol menü filtre sayılarını (facet counts) gelen veriye göre hesapla ve güncelle
+        // prompt.md ADIM 2: Sol menü satıcı listesini ve filtre sayılarını (facet counts) gelen veriye göre güncelle
+        renderDealerFilterOptions(allProducts);
         updateFilterFacetCounts(allProducts);
 
         applyClientFilters();
@@ -2233,6 +2274,7 @@
         // prompt.md ADIM 1: Gerçek API hatasını konsola yazdır
         console.error("Gerçek API Hatası:", error);
         allProducts = [];
+        renderDealerFilterOptions([]);
         updateFilterFacetCounts([]);
         applyClientFilters();
       }
@@ -2376,6 +2418,145 @@
     }
     window.selectBrand = selectBrand;
 
+    function normalizeDealerKey(val) {
+      if (!val) return '';
+      return String(val)
+        .replace(/\(\s*Yetkili Bayi\s*\)/gi, '')
+        .trim()
+        .toLocaleLowerCase('tr-TR')
+        .replace(/ı/g, 'i')
+        .replace(/ğ/g, 'g')
+        .replace(/ü/g, 'u')
+        .replace(/ş/g, 's')
+        .replace(/ö/g, 'o')
+        .replace(/ç/g, 'c')
+        .replace(/[^a-z0-9]/g, '');
+    }
+
+    function cleanDealerLabel(raw) {
+      if (!raw || typeof raw !== 'string') return 'Yetkili Bayi';
+      let clean = raw.replace(/\(\s*Yetkili Bayi\s*\)/gi, '').trim();
+      if (!clean) return 'Yetkili Bayi';
+      const hasSpace = /\s/.test(clean);
+      const isAllLower = clean === clean.toLocaleLowerCase('tr-TR');
+      const isAllUpper = clean === clean.toLocaleUpperCase('tr-TR');
+      if (!hasSpace || isAllLower || isAllUpper) {
+        clean = clean.replace(/[-_]+/g, ' ');
+        if (!/\s/.test(clean) && clean.length > 3 && clean.toLowerCase().endsWith('oto')) {
+          clean = clean.slice(0, -3) + ' Oto';
+        }
+        clean = clean.split(/\s+/).filter(Boolean).map(w => w.charAt(0).toLocaleUpperCase('tr-TR') + w.slice(1).toLocaleLowerCase('tr-TR')).join(' ');
+      }
+      return clean;
+    }
+
+    function getDealerKeyFromProduct(product) {
+      if (!product) return '';
+      const hasTenant = Boolean(product.tenantId || product.tenantSubdomain || (product.tenant && (product.tenant.id || product.tenant.subdomain)));
+      if (product.isCatalogOnly && !product.isLocalStock && !hasTenant) return '';
+      const sub = String(product.tenantSubdomain || (product.tenant && product.tenant.subdomain) || '').trim().toLowerCase();
+      if (sub && sub !== 'bayi') return sub;
+      const rawName = product.dealerName || (product.tenant && product.tenant.name) || product.companyName || product.sellerName || product.supplierName || '';
+      if (!rawName || /dış tedarik|katalog muadili|dış katalog/i.test(rawName)) return '';
+      return normalizeDealerKey(rawName);
+    }
+
+    async function loadStoreDealers() {
+      try {
+        let res = null;
+        if (typeof apiFetch === 'function') {
+          res = await apiFetch('/store/dealers');
+        } else {
+          const raw = await fetch('https://saas-g-ncel-10-10-2026simdi-main.onrender.com/api/store/dealers');
+          if (raw.ok) res = await raw.json();
+        }
+        const rawList = (res && Array.isArray(res.data)) ? res.data : (Array.isArray(res) ? res : []);
+        if (rawList.length > 0) {
+          storeDealers = rawList.filter(d => d && d.isActive !== false && String(d.status || '').toUpperCase() !== 'REJECTED');
+        }
+      } catch (e) {
+        console.warn('[STORE_DEALERS_LOAD_WARN]:', e.message);
+      }
+      renderDealerFilterOptions(allProducts);
+      updateFilterFacetCounts(allProducts);
+    }
+
+    function renderDealerFilterOptions(products) {
+      const container = document.getElementById('filter-dealers-list');
+      if (!container) return;
+
+      const dealerMap = new Map();
+
+      (storeDealers || []).forEach(d => {
+        const sub = String(d.subdomain || '').trim().toLowerCase();
+        const label = cleanDealerLabel(d.name || d.rawName || sub);
+        const key = sub || normalizeDealerKey(label);
+        if (!key) return;
+        if (!dealerMap.has(key)) {
+          dealerMap.set(key, { key, label, id: d.id || null });
+        }
+      });
+
+      const list = Array.isArray(products) ? products : [];
+      list.forEach(p => {
+        const key = getDealerKeyFromProduct(p);
+        if (!key) return;
+        const label = cleanDealerLabel(p.dealerName || (p.tenant && p.tenant.name) || p.sellerName || p.companyName || key);
+        if (!dealerMap.has(key)) {
+          dealerMap.set(key, { key, label, id: p.tenantId || (p.tenant && p.tenant.id) || null });
+        }
+      });
+
+      const entries = Array.from(dealerMap.values()).sort((a, b) => a.label.localeCompare(b.label, 'tr'));
+      const badgeEl = document.getElementById('dealer-filter-badge');
+      if (badgeEl) {
+        badgeEl.textContent = entries.length > 0 ? `${entries.length} Bayi` : 'Pazaryeri';
+      }
+
+      if (entries.length === 0) {
+        container.innerHTML = '<div class="text-[11px] text-slate-400 py-1">Henüz aktif bayi bulunamadı.</div>';
+        return;
+      }
+
+      container.innerHTML = entries.map(d => {
+        const keyLower = d.key.toLowerCase();
+        const isChecked = currentDealers.some(sel => {
+          const selLower = String(sel).trim().toLowerCase();
+          return selLower === keyLower || normalizeDealerKey(selLower) === normalizeDealerKey(keyLower);
+        });
+        return `
+          <label class="flex items-center justify-between cursor-pointer hover:text-orange-600 select-none">
+            <span class="flex items-center gap-2 min-w-0 pr-2">
+              <input type="checkbox" value="${escapeHtml(keyLower)}" onchange="handleDealerToggle(this)" ${isChecked ? 'checked' : ''} class="w-3.5 h-3.5 rounded text-orange-600 focus:ring-0 shrink-0">
+              <span class="truncate" title="${escapeHtml(d.label)}">${escapeHtml(d.label)}</span>
+            </span>
+            <span data-filter-count="dealer-${escapeHtml(keyLower)}" class="text-[11px] text-slate-400 font-mono shrink-0">(0)</span>
+          </label>
+        `;
+      }).join('');
+    }
+
+    async function handleDealerToggle(checkbox) {
+      const selectedKey = String(checkbox.value || '').trim().toLowerCase();
+      if (!selectedKey) return;
+
+      if (checkbox.checked) {
+        if (!currentDealers.includes(selectedKey)) {
+          currentDealers.push(selectedKey);
+        }
+      } else {
+        currentDealers = currentDealers.filter(d => d !== selectedKey && normalizeDealerKey(d) !== normalizeDealerKey(selectedKey));
+      }
+
+      currentPage = 1;
+      if (window._lastFetchHadDealerFilter) {
+        window._lastFetchHadDealerFilter = false;
+        await fetchProducts();
+      } else {
+        applyClientFilters();
+      }
+    }
+
     // --------------------------------------------------------------------------
     // DYNAMIC FILTER FACET COUNTS (prompt.md ADIM 2: Kesin/Strict Sayım Algoritması)
     // --------------------------------------------------------------------------
@@ -2383,12 +2564,14 @@
       const list = Array.isArray(products) ? products : (allProducts || []);
       const brandCounts = {};
       const categoryCounts = {};
+      const dealerCounts = {};
 
       // ADIM 2: Veritabanından gelen tam string değerine göre say
       list.forEach(product => {
         const prod = product.product || {};
         const b = (product.brand || prod.brand || product.manufacturer || prod.manufacturer || product.vehicleBrand || prod.vehicleBrand || '').trim();
         const c = (product.category || prod.category || product.subCategory || prod.subCategory || '').trim();
+        const dKey = getDealerKeyFromProduct(product);
 
         if (b) {
           brandCounts[b] = (brandCounts[b] || 0) + 1;
@@ -2396,14 +2579,18 @@
         if (c) {
           categoryCounts[c] = (categoryCounts[c] || 0) + 1;
         }
+        if (dKey) {
+          dealerCounts[dKey] = (dealerCounts[dKey] || 0) + 1;
+        }
       });
 
       console.log("[FACET_COUNTS] Marka Sayımları:", brandCounts);
       console.log("[FACET_COUNTS] Kategori Sayımları:", categoryCounts);
+      console.log("[FACET_COUNTS] Bayi Sayımları:", dealerCounts);
 
       // ADIM 2 & 3: Sadece ilgili data-filter etiketlerine bu sayıları bas, olmayanlara (0) bas
       const countSpans = document.querySelectorAll('[data-filter-count]');
-      if (!countSpans || countSpans.length === 0) return { brandCounts, categoryCounts };
+      if (!countSpans || countSpans.length === 0) return { brandCounts, categoryCounts, dealerCounts };
 
       countSpans.forEach(span => {
         const key = span.getAttribute('data-filter-count');
@@ -2437,6 +2624,14 @@
               count += categoryCounts[cKey];
             }
           });
+        } else if (key.startsWith('dealer-')) {
+          const targetDealer = key.replace('dealer-', '').trim().toLowerCase();
+          const targetNorm = normalizeDealerKey(targetDealer);
+          Object.keys(dealerCounts).forEach(dKey => {
+            if (dKey === targetDealer || normalizeDealerKey(dKey) === targetNorm) {
+              count += dealerCounts[dKey];
+            }
+          });
         }
 
         span.textContent = '(' + count + ')';
@@ -2461,8 +2656,8 @@
         }
       });
 
-      window.facetCounts = { brandCounts, categoryCounts };
-      return { brandCounts, categoryCounts };
+      window.facetCounts = { brandCounts, categoryCounts, dealerCounts };
+      return { brandCounts, categoryCounts, dealerCounts };
     }
     window.updateFilterFacetCounts = updateFilterFacetCounts;
     window.calculateFilterFacetCounts = updateFilterFacetCounts;
@@ -2507,6 +2702,19 @@
           const pn = (p.name || '').toLowerCase();
           const mfr = (p.manufacturer || '').toLowerCase();
           return pb.includes(b) || pm.includes(b) || pn.includes(b) || mfr.includes(b);
+        });
+      }
+
+      // Satıcı / Yetkili Bayi Filtresi (Çoklu Bayi Pazaryeri - Arama sırasında da aktif)
+      if (currentDealers.length > 0) {
+        filtered = filtered.filter(p => {
+          const pKey = getDealerKeyFromProduct(p);
+          const pTenantId = String(p.tenantId || (p.tenant && p.tenant.id) || '').trim().toLowerCase();
+          return currentDealers.some(d => {
+            const dLower = String(d).trim().toLowerCase();
+            const dNorm = normalizeDealerKey(dLower);
+            return (pKey && (pKey === dLower || normalizeDealerKey(pKey) === dNorm)) || (pTenantId && pTenantId === dLower);
+          });
         });
       }
 
@@ -3837,6 +4045,8 @@
       currentOemFilter = '';
       currentSubCategories = [];
       currentManufacturers = [];
+      currentDealers = [];
+      window._lastFetchHadDealerFilter = false;
       currentMinPrice = 0;
       currentMaxPrice = 0;
       currentInStockOnly = false;
@@ -3862,6 +4072,7 @@
 
       document.querySelectorAll('#filter-subcategories-list input').forEach(cb => cb.checked = false);
       document.querySelectorAll('#filter-manufacturers-list input').forEach(cb => cb.checked = false);
+      document.querySelectorAll('#filter-dealers-list input').forEach(cb => cb.checked = false);
       document.querySelectorAll('#store-sidebar input[type="checkbox"]').forEach(cb => cb.checked = false);
 
       buildAndFetchFilters();
@@ -4208,6 +4419,9 @@
             code: match.oeNumber || code,
             name: match.name || 'Yedek Parça',
             brand: match.manufacturer || match.vehicleBrand || 'OEM',
+            dealerName: resolveDealerDisplayName(match),
+            tenantId: match.tenantId || (match.tenant && match.tenant.id) || null,
+            tenantSubdomain: match.tenantSubdomain || (match.tenant && match.tenant.subdomain) || '',
             price: price,
             qty: qty,
             total: price * qty,
@@ -4300,12 +4514,16 @@
         const existing = cart.find(it => it.id === item.id);
         if (existing) {
           existing.qty = Math.min((existing.qty + itemQty), item.stock || 99);
+          if (!existing.dealerName && item.dealerName) existing.dealerName = item.dealerName;
         } else {
           cart.push({
             id: item.id,
             tenantProductId: item.id,
             oe: item.code,
             name: item.name,
+            dealerName: item.dealerName || 'Yetkili Bayi',
+            tenantId: item.tenantId || null,
+            tenantSubdomain: item.tenantSubdomain || '',
             listPrice: item.price * 1.25,
             netPrice: item.price,
             stock: item.stock || 99,
@@ -4392,18 +4610,31 @@
         requestCatalogQuote(id, oe, name);
         return;
       }
+      const matchedProd =
+        (Array.isArray(displayedProducts) && displayedProducts.find(p => (p.tenantProductId === id || p.productId === id || p.id === id))) ||
+        (Array.isArray(allProducts) && allProducts.find(p => (p.tenantProductId === id || p.productId === id || p.id === id)));
+      const dealerName = matchedProd ? resolveDealerDisplayName(matchedProd) : 'Yetkili Bayi';
+      const tenantId = (matchedProd && (matchedProd.tenantId || (matchedProd.tenant && matchedProd.tenant.id))) || null;
+      const tenantSubdomain = (matchedProd && (matchedProd.tenantSubdomain || (matchedProd.tenant && matchedProd.tenant.subdomain))) || '';
+
       const existing = cart.find(it => it.id === id);
       const qtyInput = document.getElementById(`qty-${id}`);
       const addQty = qtyInput ? (parseInt(qtyInput.value, 10) || 1) : 1;
 
       if (existing) {
         existing.qty = Math.min((existing.qty + addQty), stock);
+        if (!existing.dealerName && dealerName) existing.dealerName = dealerName;
+        if (!existing.tenantId && tenantId) existing.tenantId = tenantId;
+        if (!existing.tenantSubdomain && tenantSubdomain) existing.tenantSubdomain = tenantSubdomain;
       } else {
         cart.push({
           id,
           tenantProductId: id,
           oe,
           name,
+          dealerName,
+          tenantId,
+          tenantSubdomain,
           listPrice,
           netPrice,
           stock,
@@ -4464,29 +4695,51 @@
         return;
       }
 
+      const distinctDealers = Array.from(new Set(
+        cart.map(it => String(it.dealerName || '').replace(/\(\s*Yetkili Bayi\s*\)/gi, '').trim()).filter(Boolean)
+      ));
+      const splitNoticeHtml = distinctDealers.length > 1
+        ? `
+          <div class="p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-[11px] text-indigo-800 space-y-1">
+            <div class="font-black flex items-center gap-1.5">
+              <span>🏪</span>
+              <span>Çoklu Bayi Sepeti (${distinctDealers.length} Ayrı Satıcı)</span>
+            </div>
+            <p class="text-indigo-700 leading-snug">
+              Sepetinizdeki ürünler <strong>${distinctDealers.length} farklı bayiye</strong> (${distinctDealers.map(d => escapeHtml(d)).join(', ')}) otomatik olarak ayrı siparişler halinde iletilecektir.
+            </p>
+          </div>
+        `
+        : '';
+
       let subtotal = 0;
-      container.innerHTML = cart.map(it => {
+      const itemsHtml = cart.map(it => {
         const lineTotal = it.netPrice * it.qty;
         subtotal += lineTotal;
+        const shortDealer = String(it.dealerName || '').replace(/\(\s*Yetkili Bayi\s*\)/gi, '').trim();
         return `
           <div class="flex items-center gap-3 p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
             <img src="${escapeHtml(it.img)}" alt="${escapeHtml(it.name)}" class="w-12 h-12 object-contain bg-white rounded-lg p-1 border border-slate-200 shrink-0">
             <div class="flex-1 min-w-0">
-              <div class="font-mono text-[10px] text-slate-500 font-bold">${escapeHtml(it.oe)}</div>
+              <div class="font-mono text-[10px] text-slate-500 font-bold flex items-center justify-between gap-2">
+                <span>${escapeHtml(it.oe)}</span>
+                ${shortDealer ? `<span class="font-sans text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 rounded truncate max-w-[145px]">🏪 ${escapeHtml(shortDealer)}</span>` : ''}
+              </div>
               <h4 class="text-xs font-bold text-slate-900 truncate">${escapeHtml(it.name)}</h4>
               <div class="text-xs font-mono font-black text-orange-600 mt-0.5">₺${it.netPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
               <div class="flex items-center border border-slate-200 rounded-lg bg-white px-1">
-                <button type="button" onclick="updateCartItemQty('${it.id}', -1)" class="w-5 text-slate-600 font-bold hover:text-black">-</button>
+                <button type="button" onclick="updateCartItemQty('${escapeJs(it.id)}', -1)" class="w-5 text-slate-600 font-bold hover:text-black">-</button>
                 <span class="w-5 text-center text-xs font-bold font-mono">${it.qty}</span>
-                <button type="button" onclick="updateCartItemQty('${it.id}', 1)" class="w-5 text-slate-600 font-bold hover:text-black">+</button>
+                <button type="button" onclick="updateCartItemQty('${escapeJs(it.id)}', 1)" class="w-5 text-slate-600 font-bold hover:text-black">+</button>
               </div>
-              <button type="button" onclick="removeCartItem('${it.id}')" class="text-slate-400 hover:text-rose-600 p-1 text-sm">🗑️</button>
+              <button type="button" onclick="removeCartItem('${escapeJs(it.id)}')" class="text-slate-400 hover:text-rose-600 p-1 text-sm">🗑️</button>
             </div>
           </div>
         `;
       }).join('');
+      container.innerHTML = splitNoticeHtml + itemsHtml;
 
       const vat = subtotal * 0.20;
       const total = subtotal + vat;
@@ -4577,15 +4830,33 @@
           closeCartDrawer();
 
           if (window.Swal) {
+            const splitOrders = Array.isArray(res.orders) && res.orders.length > 0 ? res.orders : (res.data ? [res.data] : []);
+            const isSplit = splitOrders.length > 1;
+            const orderSummaryHtml = isSplit
+              ? `
+                <div class="text-xs text-slate-600 mt-2 space-y-2 text-left">
+                  <p class="font-semibold text-slate-700 text-center">Sepetinizdeki ürünler <strong>${splitOrders.length} ayrı bayiye</strong> otomatik bölünerek iletildi:</p>
+                  <div class="space-y-1.5 bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                    ${splitOrders.map(o => `
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="font-bold text-slate-800">🏪 ${escapeHtml(o.dealerName || (o.tenant && o.tenant.name) || 'Yetkili Bayi')}</span>
+                        <span class="font-mono font-black text-orange-600">#${escapeHtml(o.orderNumber || 'SP-ONAY')}</span>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              `
+              : `
+                <div class="text-xs text-slate-600 mt-2">
+                  Sipariş Numaranız: <strong class="font-mono text-slate-900">${escapeHtml(res.data?.orderNumber || 'SP-ONAY')}</strong><br>
+                  ${res.data?.dealerName ? `Satıcı Bayi: <strong class="text-slate-800">${escapeHtml(res.data.dealerName)}</strong><br>` : ''}
+                  Siparişiniz yetkili toptancı bayiye iletildi ve hazırlık aşamasına alındı.
+                </div>
+              `;
             window.Swal.fire({
               icon: 'success',
-              title: 'Siparişiniz Başarıyla Alındı!',
-              html: `
-                <div class="text-xs text-slate-600 mt-2">
-                  Sipariş Numaranız: <strong class="font-mono text-slate-900">${res.data?.orderNumber || 'SP-ONAY'}</strong><br>
-                  Siparişiniz toptancı bayiye iletildi ve hazırlık aşamasına alındı.
-                </div>
-              `,
+              title: isSplit ? `${splitOrders.length} Bayiye Siparişiniz Alındı!` : 'Siparişiniz Başarıyla Alındı!',
+              html: orderSummaryHtml,
               confirmButtonText: 'Siparişlerime Git',
               confirmButtonColor: '#f97316'
             }).then(() => {
@@ -4609,12 +4880,15 @@
     // 7. PRODUCT DETAIL MODAL
     // --------------------------------------------------------------------------
     function openProductDetailModal(id) {
-      const prod = displayedProducts.find(p => (p.tenantProductId === id || p.productId === id || p.id === id));
+      const prod =
+        displayedProducts.find(p => (p.tenantProductId === id || p.productId === id || p.id === id)) ||
+        allProducts.find(p => (p.tenantProductId === id || p.productId === id || p.id === id));
       if (!prod) return;
 
       const oe = prod.oeNumber || '5Q0 698 151';
       const name = prod.name || 'Yedek Parça';
       const brand = prod.manufacturer || prod.vehicleBrand || 'OEM';
+      const sellerName = resolveDealerDisplayName(prod);
       const models = prod.compatibleModels || (activeVehicle ? activeVehicle.name : 'Tüm Modeller');
       const labor = prod.estimatedLaborTime || '45 Dk';
       const stock = parseInt(prod.stock !== undefined ? prod.stock : 14, 10);
@@ -4624,12 +4898,14 @@
       const imgRaw = prod.schemaImageUrl || prod.imageUrl || (prod.images && prod.images[0]) || TECHNICAL_BLUEPRINT_SVG;
       const img = (imgRaw && !imgRaw.includes('unsplash')) ? imgRaw : TECHNICAL_BLUEPRINT_SVG;
 
-      window.currentDetailProduct = { id, oe, name, brand, netPrice, listPrice, isLocal, models };
+      window.currentDetailProduct = { id, oe, name, brand, sellerName, netPrice, listPrice, isLocal, models };
 
       const oeBadge = document.getElementById('detail-oe-badge');
       if (oeBadge) oeBadge.textContent = oe;
       const brandBadge = document.getElementById('detail-brand-badge');
       if (brandBadge) brandBadge.textContent = brand;
+      const dealerBadge = document.getElementById('detail-dealer-badge');
+      if (dealerBadge) dealerBadge.textContent = `🏪 Satıcı: ${sellerName}`;
       const titleEl = document.getElementById('detail-title');
       if (titleEl) titleEl.textContent = name;
       const modelsEl = document.getElementById('detail-models');
@@ -4894,34 +5170,39 @@
         try {
           const res = await apiFetch('/store/my-orders');
           if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-            container.innerHTML = res.data.map(ord => `
-              <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                <div class="flex items-center justify-between text-xs pb-2 border-b border-slate-200">
-                  <div>
-                    <span class="font-bold text-slate-900">Sipariş: ${ord.orderNumber}</span>
-                    <span class="text-slate-400 ml-2">${new Date(ord.createdAt).toLocaleDateString('tr-TR')}</span>
+            container.innerHTML = res.data.map(ord => {
+              const dealerLabel = cleanDealerLabel(ord.dealerName || (ord.tenant && ord.tenant.name) || 'Yetkili Bayi');
+              const itemsList = Array.isArray(ord.items) ? ord.items : [];
+              const itemsHtml = itemsList.map(it => {
+                const prod = (it.tenantProduct && it.tenantProduct.product) || it.product || {};
+                const pName = prod.name || it.name || 'Yedek Parça';
+                const pOe = prod.oeNumber || it.oeNumber || '';
+                const qty = it.quantity || 1;
+                return `<div class="flex items-center justify-between gap-2 text-[11px] text-slate-600">
+                  <span class="truncate">${pOe ? `<span class="font-mono font-bold text-slate-700">${escapeHtml(pOe)}</span> - ` : ''}${escapeHtml(pName)}</span>
+                  <span class="font-bold text-slate-800 shrink-0">x${qty}</span>
+                </div>`;
+              }).join('');
+              return `
+                <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                  <div class="flex flex-wrap items-center justify-between gap-2 text-xs pb-2 border-b border-slate-200">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="font-bold text-slate-900">Sipariş: <span class="font-mono">${escapeHtml(ord.orderNumber || '-')}</span></span>
+                      <span class="px-2 py-0.5 rounded-md bg-orange-50 text-orange-700 border border-orange-200 font-bold text-[11px]">🏪 ${escapeHtml(dealerLabel)}</span>
+                      <span class="text-slate-400">${ord.createdAt ? new Date(ord.createdAt).toLocaleDateString('tr-TR') : ''}</span>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">${escapeHtml(ord.status || 'ONAY BEKLİYOR')}</span>
                   </div>
-                  <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">${ord.status}</span>
+                  ${itemsHtml ? `<div class="space-y-1 py-1">${itemsHtml}</div>` : ''}
+                  <div class="text-xs text-slate-600 pt-1 border-t border-slate-200/70 flex items-center justify-between">
+                    <span>Toplam Tutar:</span>
+                    <strong class="font-mono text-slate-900 font-black text-sm">₺${parseFloat(ord.totalAmount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</strong>
+                  </div>
                 </div>
-                <div class="text-xs text-slate-600">
-                  Toplam Tutar: <strong class="font-mono text-slate-900 font-bold">₺${parseFloat(ord.totalAmount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</strong>
-                </div>
-              </div>
-            `).join('');
+              `;
+            }).join('');
           } else {
-            container.innerHTML = `
-              <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-2">
-                <div class="flex items-center justify-between pb-2 border-b border-slate-200">
-                  <span class="font-bold text-slate-900">Sipariş: SP-2026-8491</span>
-                  <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">Kargoya Verildi</span>
-                </div>
-                <div class="text-slate-600">Ön Fren Balata Takımı x 2 Adet</div>
-                <div class="flex justify-between items-center pt-1 text-slate-500 font-mono">
-                  <span>Takip: Yurtiçi Kargo - 81924018</span>
-                  <strong class="text-slate-900 text-sm">₺2,900.00</strong>
-                </div>
-              </div>
-            `;
+            container.innerHTML = '<div class="text-center py-8 text-slate-400">Henüz verilmiş bir siparişiniz bulunmuyor.</div>';
           }
         } catch (e) {
           container.innerHTML = '<div class="text-center py-6 text-slate-400">Siparişler listelenemedi.</div>';
@@ -5121,6 +5402,12 @@
       }
 
       try {
+        let regTenantSlug = 'ahmetoto';
+        try {
+          const urlParams = new URLSearchParams(window.location.search);
+          const slugParam = urlParams.get('tenant') || urlParams.get('subdomain');
+          if (slugParam && slugParam.trim()) regTenantSlug = slugParam.trim().toLowerCase();
+        } catch (errSlug) {}
         const payload = {
           fullName: name,
           name: name,
@@ -5132,7 +5419,7 @@
           taxNumber: customerType === 'MECHANIC' ? (taxNumber || null) : null,
           username: customerType === 'RETAIL' ? (username || email.split('@')[0]) : null,
           city: city,
-          tenantSlug: 'ahmetoto'
+          tenantSlug: regTenantSlug
         };
 
         const res = await apiFetch('/store/auth/register', {
@@ -5306,15 +5593,17 @@
 
     function resolveDealerDisplayName(p) {
       if (!p) return 'Yetkili Bayi';
-      let raw = p.dealerName || p.tenantName || (p.tenant && p.tenant.name) || p.companyName || p.sellerName || p.supplierName || (p.user && (p.user.companyName || p.user.name));
+      const raw = p.dealerName || p.tenantName || (p.tenant && p.tenant.name) || p.companyName || p.sellerName || p.supplierName || (p.user && (p.user.companyName || p.user.name));
       if (raw && typeof raw === 'string') {
-        const clean = raw.trim();
-        const lower = clean.toLowerCase().replace(/[\s_-]+/g, '');
-        if (lower === 'mehmetoto') return 'Mehmet Oto (Yetkili Bayi)';
-        if (lower === 'ahmetoto') return 'Ahmet Oto (Yetkili Bayi)';
-        if (lower === 'firuzeoto') return 'Firuze Oto (Yetkili Bayi)';
-        if (clean.toLowerCase().includes('yetkili')) return clean;
-        return `${clean} (Yetkili Bayi)`;
+        const trimmed = raw.trim();
+        if (!trimmed) return 'Yetkili Bayi';
+        const isExternalCatalog = !p.isLocalStock && (p.isCatalogOnly || (!p.tenantId && !p.tenant && !p.dealerName)) && /katalog|muadil|dış tedarik/i.test(trimmed);
+        if (isExternalCatalog) {
+          return trimmed;
+        }
+        const formatted = cleanDealerLabel(trimmed);
+        if (formatted.toLowerCase().includes('yetkili')) return formatted;
+        return `${formatted} (Yetkili Bayi)`;
       }
       return 'Yetkili Bayi';
     }
@@ -5379,6 +5668,12 @@
     window.handleOemFilterInput = handleOemFilterInput;
     window.handleSubCategoryToggle = handleSubCategoryToggle;
     window.handleManufacturerToggle = handleManufacturerToggle;
+    window.handleDealerToggle = handleDealerToggle;
+    window.loadStoreDealers = loadStoreDealers;
+    window.renderDealerFilterOptions = renderDealerFilterOptions;
+    window.resolveDealerDisplayName = resolveDealerDisplayName;
+    window.cleanDealerLabel = cleanDealerLabel;
+    window.normalizeDealerKey = normalizeDealerKey;
     window.applyPriceFilter = applyPriceFilter;
     window.toggleInStockOnly = toggleInStockOnly;
     window.resetAllFilters = resetAllFilters;

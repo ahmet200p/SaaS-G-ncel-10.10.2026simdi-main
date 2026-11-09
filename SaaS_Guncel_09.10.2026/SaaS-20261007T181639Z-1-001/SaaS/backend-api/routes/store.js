@@ -8,7 +8,7 @@ const router = express.Router();
 const prisma = require('../lib/prisma');
 const config = require('../config');
 const { verifyToken, checkCustomer } = require('../middleware/auth');
-const { resolveTenant } = require('../middleware/resolveTenant');
+const { resolveTenant, getTargetSlugFromRequest } = require('../middleware/resolveTenant');
 const { orderLimiter } = require('../middleware/rateLimiter');
 
 const jwt = require('jsonwebtoken');
@@ -54,6 +54,32 @@ const resolveTargetTenant = async (req, fallbackTenantId = null) => {
     }
   }
   return null;
+};
+
+// Helper: Bayi / firma adını vitrin ve pazaryeri gösterimi için tutarlı başlık formatına çevirir
+// Örn: "mehmetoto" -> "Mehmet Oto", "firuzeoto" -> "Firuze Oto", "yildiz-oto" -> "Yildiz Oto", "Ahmet Oto Yedek Parça" -> korunur
+const formatDealerName = (rawName) => {
+  if (!rawName || typeof rawName !== 'string') return 'Yetkili Bayi';
+  let clean = rawName.trim();
+  if (!clean) return 'Yetkili Bayi';
+
+  const hasSpace = /\s/.test(clean);
+  const isAllLower = clean === clean.toLocaleLowerCase('tr-TR');
+  const isAllUpper = clean === clean.toLocaleUpperCase('tr-TR');
+
+  if (!hasSpace || isAllLower || isAllUpper) {
+    clean = clean.replace(/[-_]+/g, ' ');
+    if (!/\s/.test(clean) && clean.length > 3 && clean.toLowerCase().endsWith('oto')) {
+      clean = clean.slice(0, -3) + ' Oto';
+    }
+    clean = clean
+      .split(/\s+/)
+      .filter(Boolean)
+      .map(w => w.charAt(0).toLocaleUpperCase('tr-TR') + w.slice(1).toLocaleLowerCase('tr-TR'))
+      .join(' ');
+  }
+
+  return clean;
 };
 
 // ============================================================================
@@ -135,6 +161,63 @@ router.get('/tenant-info', handleGetTenantInfo);
 router.get('/info', handleGetTenantInfo);
 
 // ============================================================================
+// 0.2 GET /api/store/dealers - Tüm Aktif / Onaylı Bayilerin Pazaryeri Dizin Listesi
+// ============================================================================
+router.get(['/dealers', '/sellers'], async (req, res) => {
+  try {
+    const tenants = await prisma.tenant.findMany({
+      include: {
+        users: {
+          select: {
+            role: true,
+            status: true
+          }
+        },
+        _count: {
+          select: {
+            tenantProducts: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    const eligibleTenants = (tenants || []).filter(t => {
+      if (t.isActive === false) return false;
+      const statusUpper = String(t.status || '').toUpperCase();
+      if (statusUpper === 'REJECTED') return false;
+      const productCount = t._count?.tenantProducts || 0;
+      const hasTenantAdmin = Array.isArray(t.users) && t.users.some(u => u.role === 'TENANT_ADMIN');
+      return statusUpper === 'APPROVED' || productCount > 0 || hasTenantAdmin;
+    });
+
+    const formatted = eligibleTenants.map(t => ({
+      id: t.id,
+      name: formatDealerName(t.name),
+      rawName: t.name,
+      subdomain: t.subdomain,
+      themeColor: t.themeColor || '#f97316',
+      logoUrl: t.logoUrl || null,
+      status: t.status || 'APPROVED',
+      isActive: t.isActive !== false,
+      productCount: t._count?.tenantProducts || 0
+    }));
+
+    return res.status(200).json({
+      success: true,
+      count: formatted.length,
+      data: formatted
+    });
+  } catch (error) {
+    console.error('[STORE_GET_DEALERS_ERROR]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Bayi listesi alınırken hata oluştu.'
+    });
+  }
+});
+
+// ============================================================================
 // Multi-Tenant B2B SaaS - B2B Çapraz OEM (Cross-Reference) ve Bayi Stok Tarama Motoru
 // prompt.md KESİN GÖREV:
 // AŞAMA 1: HARİCİ API'DEN ÇAPRAZ OEM (MUADİL) HAVUZU OLUŞTURMA (axios + PARTS_CATALOG_API_KEY)
@@ -145,6 +228,8 @@ router.get('/info', handleGetTenantInfo);
 async function executeHybridStoreSearch({
   searchKeyword,
   targetTenant,
+  dealerFilter = [],
+  strictTenantId = null,
   vehicleBrand,
   category,
   partGroup,
@@ -334,6 +419,33 @@ async function executeHybridStoreSearch({
   // --------------------------------------------------------------------------
   // AŞAMA 2: PRISMA İLE YEREL BAYİ/STOK TARAMASI (IN SORGUSU) (prompt.md AŞAMA 2)
   // --------------------------------------------------------------------------
+  const dealerScopeConditions = [];
+  if (strictTenantId) {
+    dealerScopeConditions.push({ tenantId: strictTenantId });
+  }
+  if (Array.isArray(dealerFilter) && dealerFilter.length > 0) {
+    dealerScopeConditions.push({
+      tenant: {
+        OR: [
+          { subdomain: { in: dealerFilter } },
+          { id: { in: dealerFilter } },
+          ...dealerFilter.map(d => ({ name: { contains: d, mode: 'insensitive' } }))
+        ]
+      }
+    });
+  }
+  const tpWhere = {
+    ...(dealerScopeConditions.length > 0 ? { AND: dealerScopeConditions } : {}),
+    product: {
+      OR: [
+        { oeNumber: { in: oemPool } },
+        { rootOEM: { in: oemPool } },
+        { oeNumber: { contains: searchQuery, mode: 'insensitive' } },
+        { name: { contains: searchQuery, mode: 'insensitive' } }
+      ]
+    }
+  };
+
   let localProducts = [];
   try {
     localProducts = await prisma.product.findMany({
@@ -347,6 +459,7 @@ async function executeHybridStoreSearch({
       },
       include: {
         tenantProducts: {
+          ...(dealerScopeConditions.length > 0 ? { where: { AND: dealerScopeConditions } } : {}),
           include: {
             tenant: true
           }
@@ -360,16 +473,7 @@ async function executeHybridStoreSearch({
   let localTenantProducts = [];
   try {
     localTenantProducts = await prisma.tenantProduct.findMany({
-      where: {
-        product: {
-          OR: [
-            { oeNumber: { in: oemPool } },
-            { rootOEM: { in: oemPool } },
-            { oeNumber: { contains: searchQuery, mode: 'insensitive' } },
-            { name: { contains: searchQuery, mode: 'insensitive' } }
-          ]
-        }
-      },
+      where: tpWhere,
       include: {
         product: true,
         tenant: true
@@ -388,6 +492,7 @@ async function executeHybridStoreSearch({
 
   // 1. Yerel bayilerimizde/stoklarımızda olan ürünler (isLocalStock: true) - EN ÜSTTE
   localTenantProducts.forEach(tp => {
+    if (tp.tenant && String(tp.tenant.status || '').toUpperCase() === 'REJECTED') return;
     const prod = tp.product || {};
     const oem = String(prod.oeNumber || rootOEM || searchQuery).trim();
     const oemNorm = oem.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
@@ -413,13 +518,23 @@ async function executeHybridStoreSearch({
     const crossRefString = crossRefList.join(', ') || 'Muadil kodları mevcut';
 
     const rawSupplier = (tp.tenant && tp.tenant.name) || (targetTenant && targetTenant.name) || 'Yetkili Bayi';
-    let supplier = rawSupplier;
-    if (typeof rawSupplier === 'string') {
-      const lower = rawSupplier.toLowerCase().replace(/[\s_-]+/g, '');
-      if (lower === 'mehmetoto') supplier = 'Mehmet Oto';
-      else if (lower === 'ahmetoto') supplier = 'Ahmet Oto';
-      else if (lower === 'firuzeoto') supplier = 'Firuze Oto';
-    }
+    const supplier = formatDealerName(rawSupplier);
+    const tenantSubdomain = (tp.tenant && tp.tenant.subdomain) || (targetTenant && targetTenant.subdomain) || 'bayi';
+    const tenantObj = tp.tenant ? {
+      id: tp.tenant.id,
+      name: supplier,
+      subdomain: tp.tenant.subdomain,
+      themeColor: tp.tenant.themeColor,
+      logoUrl: tp.tenant.logoUrl,
+      status: tp.tenant.status,
+      isActive: tp.tenant.isActive
+    } : {
+      id: tp.tenantId || (targetTenant && targetTenant.id) || null,
+      name: supplier,
+      subdomain: tenantSubdomain,
+      status: 'APPROVED',
+      isActive: true
+    };
     const itemStock = (tp.stock !== null && tp.stock !== undefined) ? tp.stock : (prod.stock !== undefined ? prod.stock : 14);
     const itemPrice = (tp.customPrice !== null && tp.customPrice !== undefined)
       ? parseFloat(tp.customPrice)
@@ -444,6 +559,13 @@ async function executeHybridStoreSearch({
       id: tp.id || prod.id,
       tenantProductId: tp.id,
       productId: prod.id,
+      tenantId: tenantObj.id,
+      tenantSubdomain: tenantObj.subdomain,
+      tenant: tenantObj,
+      user: {
+        companyName: supplier,
+        name: supplier
+      },
       customPrice: tp.customPrice,
       defaultPrice: prod.defaultPrice,
       imageUrl: itemImg,
@@ -452,6 +574,7 @@ async function executeHybridStoreSearch({
       companyName: supplier,
       sellerName: supplier,
       dealerName: supplier,
+      tenantName: supplier,
       stockStatus: itemStock > 0 ? 'IN_STOCK' : 'OUT_OF_STOCK',
       category: prod.category || deepResult?.categoryGroup || 'Genel',
       partGroup: prod.partGroup || deepResult?.categoryGroup || 'Genel',
@@ -467,11 +590,29 @@ async function executeHybridStoreSearch({
     const stockCodeNorm = String(stockCode).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
 
     if (matchedCodesSet.has(oemNorm) || (stockCodeNorm && matchedCodesSet.has(stockCodeNorm))) return;
+    if (dealerScopeConditions.length > 0 && (!prod.tenantProducts || prod.tenantProducts.length === 0)) return;
     matchedCodesSet.add(oemNorm);
     if (stockCodeNorm) matchedCodesSet.add(stockCodeNorm);
 
     const firstTp = prod.tenantProducts && prod.tenantProducts[0];
-    const supplier = (firstTp && firstTp.tenant && firstTp.tenant.name) || (prod.bayi && prod.bayi.name) || (prod.tenant && prod.tenant.name) || (targetTenant && targetTenant.name) || 'Yetkili Bayi';
+    if (firstTp && firstTp.tenant && String(firstTp.tenant.status || '').toUpperCase() === 'REJECTED') return;
+    const rawSupplier = (firstTp && firstTp.tenant && firstTp.tenant.name) || (prod.bayi && prod.bayi.name) || (prod.tenant && prod.tenant.name) || (targetTenant && targetTenant.name) || 'Yetkili Bayi';
+    const supplier = formatDealerName(rawSupplier);
+    const tenantObj = (firstTp && firstTp.tenant) ? {
+      id: firstTp.tenant.id,
+      name: supplier,
+      subdomain: firstTp.tenant.subdomain,
+      themeColor: firstTp.tenant.themeColor,
+      logoUrl: firstTp.tenant.logoUrl,
+      status: firstTp.tenant.status,
+      isActive: firstTp.tenant.isActive
+    } : {
+      id: (firstTp && firstTp.tenantId) || (targetTenant && targetTenant.id) || null,
+      name: supplier,
+      subdomain: (firstTp && firstTp.tenant && firstTp.tenant.subdomain) || (targetTenant && targetTenant.subdomain) || 'bayi',
+      status: 'APPROVED',
+      isActive: true
+    };
     const itemStock = (firstTp && firstTp.stock !== null && firstTp.stock !== undefined) ? firstTp.stock : (prod.stock !== undefined ? prod.stock : 14);
     const itemPrice = (firstTp && firstTp.customPrice !== null && firstTp.customPrice !== undefined)
       ? parseFloat(firstTp.customPrice)
@@ -507,9 +648,16 @@ async function executeHybridStoreSearch({
       discountedPrice,
       supplierName: supplier,
       isLocalStock: true,
-      id: prod.id,
+      id: firstTp ? firstTp.id : prod.id,
       tenantProductId: firstTp ? firstTp.id : prod.id,
       productId: prod.id,
+      tenantId: tenantObj.id,
+      tenantSubdomain: tenantObj.subdomain,
+      tenant: tenantObj,
+      user: {
+        companyName: supplier,
+        name: supplier
+      },
       customPrice: firstTp ? firstTp.customPrice : null,
       defaultPrice: prod.defaultPrice,
       imageUrl: itemImg,
@@ -518,6 +666,7 @@ async function executeHybridStoreSearch({
       companyName: supplier,
       sellerName: supplier,
       dealerName: supplier,
+      tenantName: supplier,
       stockStatus: itemStock > 0 ? 'IN_STOCK' : 'OUT_OF_STOCK',
       category: prod.category || deepResult?.categoryGroup || 'Genel',
       partGroup: prod.partGroup || deepResult?.categoryGroup || 'Genel',
@@ -728,9 +877,11 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
 
     // 2. 5. ADIM: Tenant Algılama (Subdomain/Slug Resolution)
     // prompt.md Adım 3: Belirli bir bayi alt alanı varsa o bayiyi filtrele, yoksa TÜM aktif bayilerin ürünlerini getir
+    const slugMeta = getTargetSlugFromRequest(req);
+    const hasExplicitSlug = slugMeta.source !== 'none';
     const targetTenant = await resolveTargetTenant(req, currentUser ? currentUser.tenantId : null);
 
-    if (targetTenant && !targetTenant.isActive) {
+    if (hasExplicitSlug && targetTenant && !targetTenant.isActive) {
       return res.status(403).json({
         success: false,
         message: 'Bu bayi Kurumumuz tarafından pasife alınmıştır lütfen müşteri temsilcisi ile iletişime geçiniz.'
@@ -773,7 +924,7 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
     }
 
     // 4. REST Filtreleme, Arama ve Sayfalama Parametreleri
-    const { category, categories, search, q, query, searchType, model, brand, brands, vehicleBrand, partGroup, subcategories, conditions, minPrice, maxPrice, cities, sellerTypes, shipping, inStock, sort, page = 1, limit = 50 } = req.query;
+    const { category, categories, search, q, query, searchType, model, brand, brands, vehicleBrand, partGroup, subcategories, conditions, minPrice, maxPrice, cities, sellerTypes, shipping, inStock, sort, dealer, dealers, seller, page = 1, limit = 50 } = req.query;
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
     const skip = (pageNum - 1) * limitNum;
@@ -785,8 +936,29 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
     // Belki bayi paneli ürünü eklerken varsayılan olarak isActive: false atıyordur
     // Vitrinde tüm ürünler koşulsuz listelenecek şekilde sorgu sadeleştirildi
     // prompt.md ADIM 2: Vitrinde tüm ürünler koşulsuz listelenecek şekilde findMany() sorgusu esnetildi
-    if (tenantId && req.query.strictTenant === 'true') {
+    if (tenantId && (req.query.strictTenant === 'true' || hasExplicitSlug)) {
       andConditions.push({ tenantId: tenantId });
+    }
+
+    // Pazaryeri Satıcı / Bayi Filtreleme (?dealer=mehmetoto,ahmetoto vb.)
+    const dealerFilterList = [];
+    [dealer, dealers, seller].forEach(val => {
+      if (val && String(val).toLowerCase() !== 'all') {
+        String(val).split(',').map(s => s.trim().toLowerCase()).filter(Boolean).forEach(s => {
+          if (!dealerFilterList.includes(s)) dealerFilterList.push(s);
+        });
+      }
+    });
+    if (dealerFilterList.length > 0) {
+      andConditions.push({
+        tenant: {
+          OR: [
+            { subdomain: { in: dealerFilterList } },
+            { id: { in: dealerFilterList } },
+            ...dealerFilterList.map(d => ({ name: { contains: d, mode: 'insensitive' } }))
+          ]
+        }
+      });
     }
     // andConditions.push({ tenant: { isActive: true } }); // ADIM 2: YORUMA ALINDI / ESNETİLDİ
 
@@ -965,6 +1137,8 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
       const hybridResults = await executeHybridStoreSearch({
         searchKeyword,
         targetTenant,
+        dealerFilter: dealerFilterList,
+        strictTenantId: (tenantId && (req.query.strictTenant === 'true' || hasExplicitSlug)) ? tenantId : null,
         vehicleBrand: vehicleBrand || brand,
         category,
         partGroup,
@@ -982,12 +1156,18 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
         isGuest,
         isHybrid: true,
         meta: hybridResults.searchMeta || null,
-        tenant: {
-          id: (targetTenant && targetTenant.id) || 'tenant-ahmet-oto',
-          name: (targetTenant && targetTenant.name) || 'Ahmet Oto',
-          subdomain: (targetTenant && targetTenant.subdomain) || 'ahmetoto',
-          themeColor: (targetTenant && targetTenant.themeColor) || '#f97316',
-          logoUrl: (targetTenant && targetTenant.logoUrl) || null
+        tenant: (hasExplicitSlug && targetTenant) ? {
+          id: targetTenant.id,
+          name: formatDealerName(targetTenant.name),
+          subdomain: targetTenant.subdomain,
+          themeColor: targetTenant.themeColor || '#f97316',
+          logoUrl: targetTenant.logoUrl || null
+        } : {
+          id: 'marketplace',
+          name: 'ParçaPro Çoklu Bayi Pazaryeri',
+          subdomain: 'marketplace',
+          themeColor: '#f97316',
+          logoUrl: null
         },
         customer: customerProfile ? {
           companyName: customerProfile.companyName,
@@ -1005,7 +1185,8 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
         filters: {
           search: searchKeyword,
           category: (category && category !== 'ALL') ? category : null,
-          brand: vehicleBrand || brand || null
+          brand: vehicleBrand || brand || null,
+          dealers: dealerFilterList.length > 0 ? dealerFilterList : null
         },
         data: hybridResults
       });
@@ -1056,13 +1237,14 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
       if (directProducts && directProducts.length > 0) {
         totalCount = directProducts.length;
         tenantProducts = directProducts.map(p => {
-          const directBayi = (p.tenantProducts && p.tenantProducts[0] && p.tenantProducts[0].tenant) || targetTenant || null;
+          const firstTp = p.tenantProducts && p.tenantProducts[0];
+          const directBayi = (firstTp && firstTp.tenant) || targetTenant || null;
           return {
-            id: p.id,
-            tenantId: directBayi ? directBayi.id : 'tenant-ahmet-oto',
+            id: firstTp ? firstTp.id : p.id,
+            tenantId: (firstTp && firstTp.tenantId) || (directBayi ? directBayi.id : null),
             productId: p.id,
-            stock: (p.tenantProducts && p.tenantProducts[0] && p.tenantProducts[0].stock !== undefined) ? p.tenantProducts[0].stock : 15,
-            customPrice: (p.tenantProducts && p.tenantProducts[0] && p.tenantProducts[0].customPrice !== undefined) ? p.tenantProducts[0].customPrice : p.defaultPrice,
+            stock: (firstTp && firstTp.stock !== undefined) ? firstTp.stock : 15,
+            customPrice: (firstTp && firstTp.customPrice !== undefined) ? firstTp.customPrice : p.defaultPrice,
             isDiscounted: false,
             product: p,
             tenant: directBayi
@@ -1072,16 +1254,12 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
     }
 
     // 5. REST Standardı: Saf JSON Dönüşümü (Ziyaretçi vs Müşteri İskonto Hesaplaması)
-    const calculatedProducts = tenantProducts.map(item => {
+    const calculatedProducts = tenantProducts
+      .filter(item => !(item.tenant && String(item.tenant.status || '').toUpperCase() === 'REJECTED'))
+      .map(item => {
       // Sahibinden Tarzı Pazaryeri: Her ürünün kendi bayisinin adı dinamik olarak çözülür
-      const rawTenantName = (item.tenant && item.tenant.name) || (item.tenantProducts && item.tenantProducts[0] && item.tenantProducts[0].tenant && item.tenantProducts[0].tenant.name) || (targetTenant && targetTenant.name) || 'Onaylı Bayi';
-      let dealerName = rawTenantName;
-      if (typeof rawTenantName === 'string') {
-        const lower = rawTenantName.toLowerCase().replace(/[\s_-]+/g, '');
-        if (lower === 'mehmetoto') dealerName = 'Mehmet Oto';
-        else if (lower === 'ahmetoto') dealerName = 'Ahmet Oto';
-        else if (lower === 'firuzeoto') dealerName = 'Firuze Oto';
-      }
+      const rawTenantName = (item.tenant && item.tenant.name) || (item.tenantProducts && item.tenantProducts[0] && item.tenantProducts[0].tenant && item.tenantProducts[0].tenant.name) || (targetTenant && targetTenant.name) || 'Yetkili Bayi';
+      const dealerName = formatDealerName(rawTenantName);
 
       const tenantSubdomain = (item.tenant && item.tenant.subdomain) || (item.tenantProducts && item.tenantProducts[0] && item.tenantProducts[0].tenant && item.tenantProducts[0].tenant.subdomain) || (targetTenant && targetTenant.subdomain) || 'bayi';
 
@@ -1202,12 +1380,18 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
     return res.status(200).json({
       success: true,
       isGuest: isGuest,
-      tenant: {
-        id: (targetTenant && targetTenant.id) || 'tenant-ahmet-oto',
-        name: (targetTenant && targetTenant.name) || 'Ahmet Oto',
-        subdomain: (targetTenant && targetTenant.subdomain) || 'ahmetoto',
-        themeColor: (targetTenant && targetTenant.themeColor) || '#f97316',
-        logoUrl: (targetTenant && targetTenant.logoUrl) || null
+      tenant: (hasExplicitSlug && targetTenant) ? {
+        id: targetTenant.id,
+        name: formatDealerName(targetTenant.name),
+        subdomain: targetTenant.subdomain,
+        themeColor: targetTenant.themeColor || '#f97316',
+        logoUrl: targetTenant.logoUrl || null
+      } : {
+        id: 'marketplace',
+        name: 'ParçaPro Çoklu Bayi Pazaryeri',
+        subdomain: 'marketplace',
+        themeColor: '#f97316',
+        logoUrl: null
       },
       customer: customerProfile ? {
         companyName: customerProfile.companyName,
@@ -1227,14 +1411,21 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
         category: (category && category !== 'ALL') ? category : null,
         brand: (brand && brand !== 'ALL') ? brand : (vehicleBrand || null),
         model: (model && model.trim()) ? model.trim() : null,
+        dealers: dealerFilterList.length > 0 ? dealerFilterList : null,
         inStock: inStock === 'true' || inStock === '1'
       },
       count: calculatedProducts.length,
       facets: (() => {
-        const f = { brand: {}, subcategory: {}, condition: {}, city: {}, sellerType: {}, shipping: {} };
+        const f = { brand: {}, subcategory: {}, condition: {}, city: {}, sellerType: {}, shipping: {}, dealer: {}, dealerSubdomain: {} };
         calculatedProducts.forEach(item => {
           const b = (item.brand || item.vehicleBrand || '').trim();
           if (b) f.brand[b] = (f.brand[b] || 0) + 1;
+          if (item.dealerName) {
+            f.dealer[item.dealerName] = (f.dealer[item.dealerName] || 0) + 1;
+          }
+          if (item.tenant && item.tenant.subdomain) {
+            f.dealerSubdomain[item.tenant.subdomain] = (f.dealerSubdomain[item.tenant.subdomain] || 0) + 1;
+          }
 
           const nm = (item.name || '').toLowerCase();
           if (nm.includes('ön fren diski')) f.subcategory['Ön Fren Diski'] = (f.subcategory['Ön Fren Diski'] || 0) + 1;
@@ -1280,7 +1471,7 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
 // ============================================================================
 router.get('/search', async (req, res) => {
   try {
-    const { q, query, search, type, limit = 20 } = req.query;
+    const { q, query, search, type, limit = 20, dealer, dealers, seller, strictTenant } = req.query;
     const searchKeyword = (q || query || search || '').trim();
 
     if (!searchKeyword) {
@@ -1291,21 +1482,45 @@ router.get('/search', async (req, res) => {
       });
     }
 
-    // Hedef Bayiyi Dinamik Çözümle
+    // Hedef Bayiyi Dinamik Çözümle (Explicit slug/header varsa tek bayi, yoksa tüm pazaryeri)
     let tenantIdFromToken = null;
+    let currentUser = null;
     const authHeader = req.headers['authorization'] || req.headers['Authorization'];
     if (authHeader && authHeader.startsWith('Bearer ')) {
       try {
         const token = authHeader.split(' ')[1];
         const secret = config.JWT_SECRET || process.env.JWT_SECRET;
         const decoded = jwt.verify(token, secret);
+        if (decoded && decoded.id) currentUser = decoded;
         if (decoded && decoded.tenantId) tenantIdFromToken = decoded.tenantId;
       } catch (e) {}
     }
 
+    const slugMeta = getTargetSlugFromRequest(req);
+    const hasExplicitSlug = slugMeta.source !== 'none' || strictTenant === 'true';
     const targetTenant = await resolveTargetTenant(req, tenantIdFromToken);
-    if (!targetTenant) {
+    if (hasExplicitSlug && !targetTenant) {
       return res.status(404).json({ success: false, message: 'Bayi bulunamadı.' });
+    }
+
+    const dealerFilterList = [];
+    [dealer, dealers, seller].forEach(val => {
+      if (val && String(val).toLowerCase() !== 'all') {
+        String(val).split(',').map(s => s.trim().toLowerCase()).filter(Boolean).forEach(s => {
+          if (!dealerFilterList.includes(s)) dealerFilterList.push(s);
+        });
+      }
+    });
+
+    let discountRate = 0;
+    if (currentUser) {
+      try {
+        const cp = await prisma.customerProfile.findUnique({
+          where: { userId: currentUser.id },
+          select: { discountRate: true }
+        });
+        if (cp && cp.discountRate) discountRate = Math.max(0, parseFloat(cp.discountRate) || 0);
+      } catch (e) {}
     }
 
     const searchLimit = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
@@ -1314,9 +1529,11 @@ router.get('/search', async (req, res) => {
     const hybridResults = await executeHybridStoreSearch({
       searchKeyword,
       targetTenant,
+      dealerFilter: dealerFilterList,
+      strictTenantId: (hasExplicitSlug && targetTenant) ? targetTenant.id : null,
       vehicleBrand: req.query.brand || req.query.vehicleBrand,
-      isGuest: !tenantIdFromToken,
-      discountRate: 0,
+      isGuest: !currentUser,
+      discountRate,
       pageNum: 1,
       limitNum: searchLimit
     });
@@ -1342,18 +1559,25 @@ router.get('/search', async (req, res) => {
 // ============================================================================
 router.get('/categories', async (req, res) => {
   try {
+    const slugMeta = getTargetSlugFromRequest(req);
+    const hasExplicitSlug = slugMeta.source !== 'none' || req.query.strictTenant === 'true';
     const targetTenant = await resolveTargetTenant(req);
-    if (!targetTenant) {
+    if (hasExplicitSlug && !targetTenant) {
       return res.status(404).json({ success: false, message: 'Bayi bulunamadı.' });
     }
 
+    const whereClause = (hasExplicitSlug && targetTenant) ? { tenantId: targetTenant.id } : {};
     const tenantProducts = await prisma.tenantProduct.findMany({
-      where: { tenantId: targetTenant.id },
-      select: { product: { select: { category: true } } }
+      where: whereClause,
+      select: {
+        product: { select: { category: true } },
+        tenant: { select: { status: true } }
+      }
     });
 
     const categoryMap = {};
     tenantProducts.forEach(tp => {
+      if (tp.tenant && String(tp.tenant.status || '').toUpperCase() === 'REJECTED') return;
       const cat = (tp.product && tp.product.category) ? tp.product.category.trim() : 'Genel';
       categoryMap[cat] = (categoryMap[cat] || 0) + 1;
     });
@@ -1379,18 +1603,25 @@ router.get('/categories', async (req, res) => {
 // ============================================================================
 router.get('/brands', async (req, res) => {
   try {
+    const slugMeta = getTargetSlugFromRequest(req);
+    const hasExplicitSlug = slugMeta.source !== 'none' || req.query.strictTenant === 'true';
     const targetTenant = await resolveTargetTenant(req);
-    if (!targetTenant) {
+    if (hasExplicitSlug && !targetTenant) {
       return res.status(404).json({ success: false, message: 'Bayi bulunamadı.' });
     }
 
+    const whereClause = (hasExplicitSlug && targetTenant) ? { tenantId: targetTenant.id } : {};
     const tenantProducts = await prisma.tenantProduct.findMany({
-      where: { tenantId: targetTenant.id },
-      select: { product: { select: { vehicleBrand: true } } }
+      where: whereClause,
+      select: {
+        product: { select: { vehicleBrand: true } },
+        tenant: { select: { status: true } }
+      }
     });
 
     const brandMap = {};
     tenantProducts.forEach(tp => {
+      if (tp.tenant && String(tp.tenant.status || '').toUpperCase() === 'REJECTED') return;
       const b = (tp.product && tp.product.vehicleBrand) ? tp.product.vehicleBrand.trim() : null;
       if (b) {
         brandMap[b] = (brandMap[b] || 0) + 1;
@@ -1440,8 +1671,10 @@ router.get('/products/:id', async (req, res) => {
       }
     }
 
+    const slugMeta = getTargetSlugFromRequest(req);
+    const hasExplicitSlug = slugMeta.source !== 'none' || req.query.strictTenant === 'true';
     const targetTenant = await resolveTargetTenant(req, currentUser ? currentUser.tenantId : null);
-    if (!targetTenant) {
+    if (hasExplicitSlug && !targetTenant) {
       return res.status(404).json({ success: false, message: 'Bayi bulunamadı.' });
     }
 
@@ -1459,7 +1692,7 @@ router.get('/products/:id', async (req, res) => {
     // Ürünü id, tenantProductId veya oeNumber ile ara
     const item = await prisma.tenantProduct.findFirst({
       where: {
-        tenantId: targetTenant.id,
+        ...((hasExplicitSlug && targetTenant) ? { tenantId: targetTenant.id } : {}),
         OR: [
           { id: productIdOrOe },
           { productId: productIdOrOe },
@@ -1467,16 +1700,36 @@ router.get('/products/:id', async (req, res) => {
         ]
       },
       include: {
-        product: true
+        product: true,
+        tenant: true
       }
     });
 
-    if (!item) {
+    if (!item || (item.tenant && String(item.tenant.status || '').toUpperCase() === 'REJECTED')) {
       return res.status(404).json({
         success: false,
-        message: 'Belirtilen ürün bu bayinin kataloğunda bulunamadı.'
+        message: 'Belirtilen ürün pazaryeri kataloğunda bulunamadı.'
       });
     }
+
+    const rawDealerName = (item.tenant && item.tenant.name) || (targetTenant && targetTenant.name) || 'Yetkili Bayi';
+    const dealerName = formatDealerName(rawDealerName);
+    const tenantSubdomain = (item.tenant && item.tenant.subdomain) || (targetTenant && targetTenant.subdomain) || 'bayi';
+    const tenantObj = item.tenant ? {
+      id: item.tenant.id,
+      name: dealerName,
+      subdomain: item.tenant.subdomain,
+      themeColor: item.tenant.themeColor,
+      logoUrl: item.tenant.logoUrl,
+      status: item.tenant.status,
+      isActive: item.tenant.isActive
+    } : {
+      id: item.tenantId,
+      name: dealerName,
+      subdomain: tenantSubdomain,
+      status: 'APPROVED',
+      isActive: true
+    };
 
     if (isGuest) {
       return res.status(200).json({
@@ -1484,6 +1737,18 @@ router.get('/products/:id', async (req, res) => {
         data: {
           tenantProductId: item.id,
           productId: item.productId,
+          tenantId: tenantObj.id,
+          tenantSubdomain: tenantObj.subdomain,
+          dealerName: dealerName,
+          tenantName: dealerName,
+          companyName: dealerName,
+          sellerName: dealerName,
+          supplierName: dealerName,
+          tenant: tenantObj,
+          user: {
+            companyName: dealerName,
+            name: dealerName
+          },
           oeNumber: item.product.oeNumber,
           name: item.product.name,
           category: item.product.category,
@@ -1524,6 +1789,18 @@ router.get('/products/:id', async (req, res) => {
       data: {
         tenantProductId: item.id,
         productId: item.productId,
+        tenantId: tenantObj.id,
+        tenantSubdomain: tenantObj.subdomain,
+        dealerName: dealerName,
+        tenantName: dealerName,
+        companyName: dealerName,
+        sellerName: dealerName,
+        supplierName: dealerName,
+        tenant: tenantObj,
+        user: {
+          companyName: dealerName,
+          name: dealerName
+        },
         oeNumber: item.product.oeNumber,
         name: item.product.name,
         category: item.product.category,
@@ -1590,7 +1867,7 @@ router.post('/orders', orderLimiter, async (req, res) => {
   try {
     // 1. Yetkilendirme ve Kimlik Kontrolü (Prompt Kural 2)
     const userId = req.user?.id || req.body?.userId;
-    const tenantId = req.user?.tenantId || req.tenant?.id || req.body?.tenantId;
+    const fallbackTenantId = req.user?.tenantId || req.tenant?.id || req.body?.tenantId || null;
 
     if (!req.user || !userId) {
       return res.status(401).json({
@@ -1600,16 +1877,8 @@ router.post('/orders', orderLimiter, async (req, res) => {
       });
     }
 
-    if (!tenantId) {
-      return res.status(403).json({
-        success: false,
-        error: "Geçerli bir bayi oturumu bulunamadı.",
-        message: "Geçerli bir bayi oturumu bulunamadı."
-      });
-    }
     const { items } = req.body;
 
-    // 1. Sepet Doğrulaması
     // 1. Sepet Doğrulaması ve Tekrarlı Ürünleri Birleştirme (Deduplication / Merge)
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
@@ -1645,10 +1914,13 @@ router.post('/orders', orderLimiter, async (req, res) => {
     });
 
     if (!customerProfile) {
-      if (req.user.role === 'TENANT_ADMIN' || req.user.role === 'SUPER_ADMIN') {
+      if (req.user.role === 'TENANT_ADMIN' || req.user.role === 'SUPER_ADMIN' || req.user.role === 'ADMIN' || req.user.role === 'BAYI') {
         customerProfile = await prisma.customerProfile.findFirst({
-          where: tenantId ? { tenantId: tenantId } : {}
+          where: fallbackTenantId ? { tenantId: fallbackTenantId } : {}
         });
+        if (!customerProfile) {
+          customerProfile = await prisma.customerProfile.findFirst();
+        }
       }
       if (!customerProfile) {
         return res.status(404).json({
@@ -1661,29 +1933,41 @@ router.post('/orders', orderLimiter, async (req, res) => {
     const discountRate = parseFloat(customerProfile.discountRate) || 0;
     const discountMultiplier = Math.max(0, (100 - discountRate) / 100);
 
-    // 3. Sepetteki ürünlerin bayiye ait olduğunu doğrula ve fiyatları hesapla
+    // 3. Çoklu Bayi Pazaryeri: Sepetteki tüm ürünlerin geçerliliğini doğrula ve satıcı bayilere göre grupla
     const tenantProductIds = consolidatedItems.map(i => i.tenantProductId);
     const dbProducts = await prisma.tenantProduct.findMany({
       where: {
-        id: { in: tenantProductIds },
-        tenantId: tenantId // Kesin Data Isolation
+        id: { in: tenantProductIds }
       },
       include: {
-        product: true
+        product: true,
+        tenant: true
       }
     });
 
     if (dbProducts.length !== consolidatedItems.length) {
       return res.status(400).json({
         success: false,
-        message: 'Sepetteki bazı ürünler bayinizin kataloğunda bulunamadı veya geçersiz.'
+        message: 'Sepetteki bazı ürünler pazaryeri kataloğunda bulunamadı veya geçersiz.'
       });
     }
 
-    // 4. Kalem hesaplamaları ve stok kontrolleri
-    let listPriceTotal = 0;
-    let calculatedSubtotal = 0;
-    const orderItemsToCreate = [];
+    const inactiveProd = dbProducts.find(p => p.tenant && (p.tenant.isActive === false || String(p.tenant.status || '').toUpperCase() === 'REJECTED'));
+    if (inactiveProd) {
+      return res.status(400).json({
+        success: false,
+        message: `"${inactiveProd.product?.name || inactiveProd.id}" ürününü satan bayi şu anda aktif değildir.`
+      });
+    }
+
+    // 4. Bayi bazında kalem gruplama, fiyatlandırma ve stok kontrolleri
+    const vatRate = config.DEFAULT_VAT_RATE || 20.00;
+    const dealerGroupsMap = new Map();
+
+    let grandListPriceTotal = 0;
+    let grandSubtotal = 0;
+    let grandVatAmount = 0;
+    let grandTotalWithVat = 0;
 
     for (const cartItem of consolidatedItems) {
       const dbProd = dbProducts.find(p => p.id === cartItem.tenantProductId);
@@ -1696,19 +1980,35 @@ router.post('/orders', orderLimiter, async (req, res) => {
         });
       }
 
-      // Liste fiyatı ve iskonto uygulanmış birim fiyat
+      const targetDealerId = dbProd.tenantId;
+      const targetDealerName = formatDealerName((dbProd.tenant && dbProd.tenant.name) || 'Yetkili Bayi');
+      const targetDealerSubdomain = (dbProd.tenant && dbProd.tenant.subdomain) || 'bayi';
+
       const listPrice = dbProd.customPrice !== null && dbProd.customPrice !== undefined
         ? parseFloat(dbProd.customPrice)
         : parseFloat(dbProd.product.defaultPrice);
 
-      // Formül: İndirimli Fiyat = Liste Fiyatı - (Liste Fiyatı * (Müşteri İskonto Oranı / 100))
       const unitPrice = parseFloat((listPrice * discountMultiplier).toFixed(2));
       const lineTotal = parseFloat((unitPrice * qty).toFixed(2));
 
-      listPriceTotal += listPrice * qty;
-      calculatedSubtotal += lineTotal;
+      if (!dealerGroupsMap.has(targetDealerId)) {
+        dealerGroupsMap.set(targetDealerId, {
+          tenantId: targetDealerId,
+          dealerName: targetDealerName,
+          dealerSubdomain: targetDealerSubdomain,
+          listPriceTotal: 0,
+          subtotal: 0,
+          discountAmount: 0,
+          vatAmount: 0,
+          totalAmount: 0,
+          orderItemsToCreate: []
+        });
+      }
 
-      orderItemsToCreate.push({
+      const grp = dealerGroupsMap.get(targetDealerId);
+      grp.listPriceTotal += listPrice * qty;
+      grp.subtotal += lineTotal;
+      grp.orderItemsToCreate.push({
         tenantProductId: dbProd.id,
         quantity: qty,
         unitPrice: unitPrice,
@@ -1716,20 +2016,27 @@ router.post('/orders', orderLimiter, async (req, res) => {
       });
     }
 
-    listPriceTotal = parseFloat(listPriceTotal.toFixed(2));
-    const subtotal = parseFloat(calculatedSubtotal.toFixed(2)); // Ara Toplam (KDV Hariç)
-    const discountAmountTotal = parseFloat((listPriceTotal - subtotal).toFixed(2)); // İskonto Kazancı
+    const dealerGroups = Array.from(dealerGroupsMap.values()).map(grp => {
+      grp.listPriceTotal = parseFloat(grp.listPriceTotal.toFixed(2));
+      grp.subtotal = parseFloat(grp.subtotal.toFixed(2));
+      grp.discountAmount = parseFloat((grp.listPriceTotal - grp.subtotal).toFixed(2));
+      grp.vatAmount = parseFloat((grp.subtotal * (vatRate / 100)).toFixed(2));
+      grp.totalAmount = parseFloat((grp.subtotal + grp.vatAmount).toFixed(2));
 
-    // KDV (%20) ve Genel Toplam (Ara Toplam + KDV)
-    const vatRate = config.DEFAULT_VAT_RATE || 20.00;
-    const vatAmount = parseFloat((subtotal * (vatRate / 100)).toFixed(2));
-    const finalTotalWithVat = parseFloat((subtotal + vatAmount).toFixed(2));
+      grandListPriceTotal += grp.listPriceTotal;
+      grandSubtotal += grp.subtotal;
+      grandVatAmount += grp.vatAmount;
+      grandTotalWithVat += grp.totalAmount;
+      return grp;
+    });
 
-    // Çakışmasız Benzersiz Sipariş Numarası Üret (Örn: SP-KXZ91A-4821)
-    const orderNumber = `SP-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    grandListPriceTotal = parseFloat(grandListPriceTotal.toFixed(2));
+    grandSubtotal = parseFloat(grandSubtotal.toFixed(2));
+    const grandDiscountAmount = parseFloat((grandListPriceTotal - grandSubtotal).toFixed(2));
+    grandVatAmount = parseFloat(grandVatAmount.toFixed(2));
+    grandTotalWithVat = parseFloat(grandTotalWithVat.toFixed(2));
 
     // Ödeme Yöntemi ve Başlangıç Statüsü
-    // 2. ve 4. ADIM: Rol Tabanlı ve Limit Kontrollü B2B Cari Hesap Doğrulaması
     const paymentMethod = req.body.paymentMethod || (req.body.paymentMethodSelect ? req.body.paymentMethodSelect : 'CURRENT_ACCOUNT');
     const orderStatus = 'PENDING_APPROVAL';
 
@@ -1739,7 +2046,6 @@ router.post('/orders', orderLimiter, async (req, res) => {
     const availableLimit = Math.max(0, parseFloat((creditLimit - currentDebt).toFixed(2)));
 
     if (paymentMethod === 'CURRENT_ACCOUNT' || paymentMethod === 'CARI') {
-      // 2. ADIM: Perakende (son tüketici) müşteriler için Cari Hesaba Yaz kesinlikle engellenmelidir
       if (isRetail) {
         return res.status(400).json({
           success: false,
@@ -1747,18 +2053,15 @@ router.post('/orders', orderLimiter, async (req, res) => {
         });
       }
 
-      // 4. ADIM: 'Cari Hesaba Yaz' seçeneği yalnızca limiti yeterli olan B2B tamirciler için aktif olmalıdır
-      if (finalTotalWithVat > availableLimit) {
+      if (grandTotalWithVat > availableLimit) {
         return res.status(400).json({
           success: false,
-          message: `Cari hesap limitiniz bu sipariş için yetersizdir. (Kullanılabilir Limit: ${availableLimit.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺, Sipariş Tutarı: ${finalTotalWithVat.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺). Lütfen Havale/EFT ile devam ediniz.`
+          message: `Cari hesap limitiniz bu sipariş için yetersizdir. (Kullanılabilir Limit: ${availableLimit.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺, Sipariş Tutarı: ${grandTotalWithVat.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺). Lütfen Havale/EFT ile devam ediniz.`
         });
       }
     }
 
-    // 1. ADIM (prompt.md): 'Snapshot' Mimarisi
-    // Müşterinin o anki adresi sipariş tablosuna kopyalanmalı (snapshot)
-    // ki müşteri ileride adresini değiştirirse eski siparişlerin teslimat geçmişi bozulmasın.
+    // Snapshot Shipping Address
     let snapshotShippingAddress = '';
     const bodyShipping = req.body.shippingAddress || req.body.deliveryAddress;
     const bodyCity = (req.body.city || '').trim();
@@ -1791,108 +2094,146 @@ router.post('/orders', orderLimiter, async (req, res) => {
 
     const orderVin = (req.body.vin || req.body.vinNumber || '').trim().toUpperCase() || null;
 
-    // 5. Prisma Transaction (Atomik Sipariş Oluşturma, KDV, Güvenli Stok Düşme, Stok Denetimi ve Cari Bakiye Defteri)
-    const createdOrder = await prisma.$transaction(async (tx) => {
-      // A. Sipariş ana kaydını oluştur (KDV oran ve tutarlarıyla, shippingAddress snapshot'ı ile birlikte)
-      const order = await tx.order.create({
-        data: {
-          orderNumber: orderNumber,
-          tenantId: tenantId,
-          customerId: customerProfile.id,
-          musteriId: (req.user && req.user.id) ? req.user.id : (customerProfile.userId || null),
-          subtotal: subtotal,
-          vatRate: vatRate,
-          vatAmount: vatAmount,
-          totalAmount: finalTotalWithVat,
-          status: orderStatus,
-          paymentMethod: paymentMethod || null,
-          shippingAddress: snapshotShippingAddress,
-          vin: orderVin,
-          items: {
-            create: orderItemsToCreate
-          }
-        },
-        include: {
-          items: {
-            include: {
-              tenantProduct: {
-                include: { product: true }
-              }
+    // 5. Prisma Transaction: Her bayi grubu için atomik Order, StockMovement ve CustomerLedger oluştur
+    const baseTimestampCode = Date.now().toString(36).toUpperCase();
+    const isSplitOrder = dealerGroups.length > 1;
+
+    const createdOrders = await prisma.$transaction(async (tx) => {
+      const ordersOut = [];
+      let runningBalance = parseFloat(customerProfile.balance) || 0;
+
+      for (let gIdx = 0; gIdx < dealerGroups.length; gIdx++) {
+        const grp = dealerGroups[gIdx];
+        const randSuffix = Math.floor(1000 + Math.random() * 9000);
+        const orderNumber = isSplitOrder
+          ? `SP-${baseTimestampCode}-${gIdx + 1}-${randSuffix}`
+          : `SP-${baseTimestampCode}-${randSuffix}`;
+
+        const order = await tx.order.create({
+          data: {
+            orderNumber: orderNumber,
+            tenantId: grp.tenantId,
+            customerId: customerProfile.id,
+            musteriId: (req.user && req.user.id) ? req.user.id : (customerProfile.userId || null),
+            subtotal: grp.subtotal,
+            vatRate: vatRate,
+            vatAmount: grp.vatAmount,
+            totalAmount: grp.totalAmount,
+            status: orderStatus,
+            paymentMethod: paymentMethod || null,
+            shippingAddress: snapshotShippingAddress,
+            vin: orderVin,
+            items: {
+              create: grp.orderItemsToCreate
             }
           },
-          customer: true
-        }
-      });
+          include: {
+            tenant: {
+              select: { id: true, name: true, subdomain: true, themeColor: true }
+            },
+            items: {
+              include: {
+                tenantProduct: {
+                  include: { product: true }
+                }
+              }
+            },
+            customer: true
+          }
+        });
 
-      // B. Bayinin stoklarını atomik olarak düş ve Stok Denetim Defterine (StockMovement) kaydet
-      for (const item of orderItemsToCreate) {
-        const updateResult = await tx.tenantProduct.updateMany({
-          where: {
-            id: item.tenantProductId,
-            stock: { gte: item.quantity }
+        for (const item of grp.orderItemsToCreate) {
+          const updateResult = await tx.tenantProduct.updateMany({
+            where: {
+              id: item.tenantProductId,
+              stock: { gte: item.quantity }
+            },
+            data: {
+              stock: { decrement: item.quantity }
+            }
+          });
+
+          if (updateResult.count === 0) {
+            throw new Error(`Yetersiz stok: "${item.tenantProductId}" ürünü tükendi veya eş zamanlı başka bir siparişle satıldı.`);
+          }
+
+          await tx.stockMovement.create({
+            data: {
+              tenantId: grp.tenantId,
+              tenantProductId: item.tenantProductId,
+              orderId: order.id,
+              quantityChange: -item.quantity,
+              type: 'SALE',
+              note: `Sipariş #${orderNumber} satışı`
+            }
+          });
+        }
+
+        if (paymentMethod === 'CURRENT_ACCOUNT' || paymentMethod === 'CARI') {
+          runningBalance = parseFloat((runningBalance + grp.totalAmount).toFixed(2));
+
+          await tx.customerProfile.update({
+            where: { id: customerProfile.id },
+            data: {
+              balance: runningBalance,
+              currentBalance: runningBalance
+            }
+          });
+
+          await tx.customerLedger.create({
+            data: {
+              tenantId: grp.tenantId,
+              customerId: customerProfile.id,
+              type: 'DEBIT',
+              amount: grp.totalAmount,
+              balanceAfter: runningBalance,
+              description: `Sipariş #${orderNumber} (${grp.dealerName}) açık hesap borç kaydı (KDV Dahil)`
+            }
+          });
+        }
+
+        ordersOut.push({
+          ...order,
+          dealerName: grp.dealerName,
+          tenant: order.tenant ? { ...order.tenant, name: grp.dealerName } : {
+            id: grp.tenantId,
+            name: grp.dealerName,
+            subdomain: grp.dealerSubdomain
           },
-          data: {
-            stock: { decrement: item.quantity }
-          }
-        });
-
-        if (updateResult.count === 0) {
-          throw new Error(`Yetersiz stok: "${item.tenantProductId}" ürünü tükendi veya eş zamanlı başka bir siparişle satıldı.`);
-        }
-
-        // Stok Hareket Denetim Kaydı (Audit)
-        await tx.stockMovement.create({
-          data: {
-            tenantId: tenantId,
-            tenantProductId: item.tenantProductId,
-            orderId: order.id,
-            quantityChange: -item.quantity,
-            type: 'SALE',
-            note: `Sipariş #${orderNumber} satışı`
+          breakdown: {
+            listPriceTotal: grp.listPriceTotal,
+            discountAmount: grp.discountAmount,
+            subtotal: grp.subtotal,
+            vatRate: vatRate,
+            vatAmount: grp.vatAmount,
+            totalAmount: grp.totalAmount
           }
         });
       }
 
-      // C. SADECE Cari Hesaba Yaz (Açık Hesap) seçildiyse müşterinin açık borcuna sipariş tutarını ekle ve Deftere işle
-      if (paymentMethod === 'CURRENT_ACCOUNT' || paymentMethod === 'CARI') {
-        const previousBalance = parseFloat(customerProfile.balance) || 0;
-        const newBalance = parseFloat((previousBalance + finalTotalWithVat).toFixed(2));
-
-        await tx.customerProfile.update({
-          where: { id: customerProfile.id },
-          data: {
-            balance: newBalance,
-            currentBalance: newBalance
-          }
-        });
-
-        await tx.customerLedger.create({
-          data: {
-            tenantId: tenantId,
-            customerId: customerProfile.id,
-            type: 'DEBIT',
-            amount: finalTotalWithVat,
-            balanceAfter: newBalance,
-            description: `Sipariş #${orderNumber} açık hesap borç kaydı (KDV Dahil)`
-          }
-        });
-      }
-
-      return order;
+      return ordersOut;
     });
+
+    const primaryOrder = createdOrders[0];
+    const orderSummaryMessage = isSplitOrder
+      ? `Sepetinizdeki ürünler ${createdOrders.length} farklı bayiye (${createdOrders.map(o => `${o.dealerName}: #${o.orderNumber}`).join(', ')}) ayrı ayrı başarıyla iletildi.`
+      : `Siparişiniz #${primaryOrder.orderNumber} numarasıyla başarıyla oluşturuldu ve ${primaryOrder.dealerName} bayisine iletildi.`;
 
     return res.status(201).json({
       success: true,
-      message: `Siparişiniz #${createdOrder.orderNumber} numarasıyla başarıyla oluşturuldu ve bayinize iletildi.`,
+      isSplitOrder: isSplitOrder,
+      splitOrderCount: createdOrders.length,
+      message: orderSummaryMessage,
+      orders: createdOrders,
       data: {
-        ...createdOrder,
+        ...primaryOrder,
         breakdown: {
-          listPriceTotal: listPriceTotal,
-          discountAmount: discountAmountTotal,
-          subtotal: subtotal,
+          listPriceTotal: grandListPriceTotal,
+          discountAmount: grandDiscountAmount,
+          subtotal: grandSubtotal,
           vatRate: vatRate,
-          vatAmount: vatAmount,
-          totalAmount: finalTotalWithVat
+          vatAmount: grandVatAmount,
+          totalAmount: grandTotalWithVat
         }
       }
     });
@@ -1914,7 +2255,15 @@ router.post('/orders', orderLimiter, async (req, res) => {
 router.get(['/orders', '/my-orders'], async (req, res) => {
   try {
     const userId = req.user.id;
-    const tenantId = req.user.tenantId;
+
+    const normalizeOrders = (rows) => (rows || []).map(ord => {
+      const dealerName = formatDealerName((ord.tenant && ord.tenant.name) || 'Yetkili Bayi');
+      return {
+        ...ord,
+        dealerName,
+        tenant: ord.tenant ? { ...ord.tenant, name: dealerName } : null
+      };
+    });
 
     const customerProfile = await prisma.customerProfile.findUnique({
       where: { userId: userId }
@@ -1925,6 +2274,9 @@ router.get(['/orders', '/my-orders'], async (req, res) => {
         const tenantOrders = await prisma.order.findMany({
           where: req.user.tenantId ? { tenantId: req.user.tenantId } : {},
           include: {
+            tenant: {
+              select: { id: true, name: true, subdomain: true, themeColor: true }
+            },
             items: {
               include: {
                 tenantProduct: {
@@ -1936,10 +2288,11 @@ router.get(['/orders', '/my-orders'], async (req, res) => {
           },
           orderBy: { createdAt: 'desc' }
         });
+        const normalized = normalizeOrders(tenantOrders);
         return res.status(200).json({
           success: true,
-          count: tenantOrders.length,
-          data: tenantOrders
+          count: normalized.length,
+          data: normalized
         });
       }
 
@@ -1951,10 +2304,15 @@ router.get(['/orders', '/my-orders'], async (req, res) => {
 
     const orders = await prisma.order.findMany({
       where: {
-        customerId: customerProfile.id,
-        tenantId: tenantId
+        OR: [
+          { customerId: customerProfile.id },
+          ...(userId ? [{ musteriId: userId }] : [])
+        ]
       },
       include: {
+        tenant: {
+          select: { id: true, name: true, subdomain: true, themeColor: true }
+        },
         items: {
           include: {
             tenantProduct: {
@@ -1967,10 +2325,11 @@ router.get(['/orders', '/my-orders'], async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
+    const normalizedOrders = normalizeOrders(orders);
     return res.status(200).json({
       success: true,
-      count: orders.length,
-      data: orders
+      count: normalizedOrders.length,
+      data: normalizedOrders
     });
 
   } catch (error) {
@@ -2220,7 +2579,6 @@ router.patch('/profile', handleUpdateProfile);
 router.get('/ledger', async (req, res) => {
   try {
     const userId = req.user.id;
-    const tenantId = req.user.tenantId;
 
     const customerProfile = await prisma.customerProfile.findUnique({
       where: { userId: userId }
@@ -2253,10 +2611,23 @@ router.get('/ledger', async (req, res) => {
 
     const ledgers = await prisma.customerLedger.findMany({
       where: {
-        customerId: customerProfile.id,
-        tenantId: tenantId
+        customerId: customerProfile.id
+      },
+      include: {
+        tenant: {
+          select: { id: true, name: true, subdomain: true }
+        }
       },
       orderBy: { createdAt: 'desc' }
+    });
+
+    const formattedLedgers = (ledgers || []).map(l => {
+      const dealerName = formatDealerName((l.tenant && l.tenant.name) || 'Yetkili Bayi');
+      return {
+        ...l,
+        dealerName,
+        tenant: l.tenant ? { ...l.tenant, name: dealerName } : null
+      };
     });
 
     return res.status(200).json({
@@ -2267,8 +2638,8 @@ router.get('/ledger', async (req, res) => {
       isB2B: !isRetail,
       customerType: customerProfile.customerType || 'MECHANIC',
       currentBalance: `${currentDebt.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺`,
-      count: ledgers.length,
-      data: ledgers
+      count: formattedLedgers.length,
+      data: formattedLedgers
     });
 
   } catch (error) {
@@ -2332,17 +2703,15 @@ const handleCreateReturnRequest = async (req, res) => {
       }
     }
 
-    // 2. Siparişi bul ve müşteri yetkisi doğrula
-    const orderWhere = {
-      id: orderId,
-      customerId: customerProfile.id
-    };
-    if (req.user.tenantId && req.user.role !== 'SUPER_ADMIN') {
-      orderWhere.tenantId = req.user.tenantId;
-    }
-
+    // 2. Siparişi bul ve müşteri yetkisi doğrula (Çoklu bayi pazaryeri: müşteri kendi tüm siparişlerine iade açabilir)
     let order = await prisma.order.findFirst({
-      where: orderWhere,
+      where: {
+        id: orderId,
+        OR: [
+          { customerId: customerProfile.id },
+          ...(userId ? [{ musteriId: userId }] : [])
+        ]
+      },
       include: {
         items: true,
         returnRequests: true
@@ -2354,7 +2723,10 @@ const handleCreateReturnRequest = async (req, res) => {
       order = await prisma.order.findFirst({
         where: {
           orderNumber: orderId,
-          customerId: customerProfile.id
+          OR: [
+            { customerId: customerProfile.id },
+            ...(userId ? [{ musteriId: userId }] : [])
+          ]
         },
         include: {
           items: true,
@@ -2473,6 +2845,9 @@ router.get('/returns', async (req, res) => {
       include: {
         order: {
           include: {
+            tenant: {
+              select: { id: true, name: true, subdomain: true }
+            },
             items: {
               include: {
                 tenantProduct: {
@@ -2486,10 +2861,23 @@ router.get('/returns', async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
+    const formattedReturns = (returns || []).map(r => {
+      const dealerName = formatDealerName((r.order && r.order.tenant && r.order.tenant.name) || 'Yetkili Bayi');
+      return {
+        ...r,
+        dealerName,
+        order: r.order ? {
+          ...r.order,
+          dealerName,
+          tenant: r.order.tenant ? { ...r.order.tenant, name: dealerName } : null
+        } : null
+      };
+    });
+
     return res.status(200).json({
       success: true,
-      count: returns.length,
-      data: returns
+      count: formattedReturns.length,
+      data: formattedReturns
     });
 
   } catch (error) {

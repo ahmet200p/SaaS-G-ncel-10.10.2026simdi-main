@@ -2605,6 +2605,28 @@
       };
     }
 
+    // 9.2b GET /store/dealers & GET /store/sellers
+    if ((cleanEndpoint === '/store/dealers' || cleanEndpoint === '/store/sellers') && method === 'GET') {
+      const dealers = (store.tenants || [])
+        .filter(t => t && t.isActive !== false && String(t.status || '').toUpperCase() !== 'REJECTED')
+        .map(t => ({
+          id: t.id,
+          name: t.name,
+          rawName: t.name,
+          subdomain: t.subdomain,
+          themeColor: t.themeColor || '#f97316',
+          logoUrl: t.logoUrl || null,
+          status: t.status || 'APPROVED',
+          isActive: t.isActive !== false,
+          productCount: (store.tenantCatalog || []).filter(tc => tc.tenantId === t.id).length
+        }));
+      return {
+        success: true,
+        count: dealers.length,
+        data: dealers
+      };
+    }
+
     // 9.3. GET /store/bank-info
     if (cleanEndpoint === '/store/bank-info' && method === 'GET') {
       const bankData = (store.tenant && store.tenant.bankInfo) || {
