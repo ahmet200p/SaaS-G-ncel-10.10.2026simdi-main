@@ -440,15 +440,29 @@ async function executeHybridStoreSearch({
     dealerScopeConditions.push({ tenantId: strictTenantId });
   }
   if (Array.isArray(dealerFilter) && dealerFilter.length > 0) {
-    dealerScopeConditions.push({
-      tenant: {
-        OR: [
-          { subdomain: { in: dealerFilter } },
-          { id: { in: dealerFilter } },
-          ...dealerFilter.map(d => ({ name: { contains: d, mode: 'insensitive' } }))
-        ]
+    const cleanTerms = [];
+    const nameTerms = [];
+    dealerFilter.forEach(raw => {
+      const cleaned = String(raw || '').replace(/\(\s*yetkili bayi\s*\)/gi, '').trim().toLowerCase();
+      if (!cleaned) return;
+      if (!cleanTerms.includes(cleaned)) cleanTerms.push(cleaned);
+      if (!nameTerms.includes(cleaned)) nameTerms.push(cleaned);
+      const spaced = cleaned.replace(/[-_]+/g, ' ').replace(/([a-zığüşöç])oto$/i, '$1 oto').trim();
+      if (spaced && spaced !== cleaned && !nameTerms.includes(spaced)) {
+        nameTerms.push(spaced);
       }
     });
+    if (cleanTerms.length > 0) {
+      dealerScopeConditions.push({
+        tenant: {
+          OR: [
+            { subdomain: { in: cleanTerms } },
+            { id: { in: cleanTerms } },
+            ...nameTerms.map(d => ({ name: { contains: d, mode: 'insensitive' } }))
+          ]
+        }
+      });
+    }
   }
   const tpWhere = {
     ...(dealerScopeConditions.length > 0 ? { AND: dealerScopeConditions } : {}),
@@ -960,18 +974,30 @@ router.get(['/products', '/api/store/products', '/store/products'], async (req, 
     const dealerFilterList = [];
     [dealer, dealers, seller].forEach(val => {
       if (val && String(val).toLowerCase() !== 'all') {
-        String(val).split(',').map(s => s.trim().toLowerCase()).filter(Boolean).forEach(s => {
-          if (!dealerFilterList.includes(s)) dealerFilterList.push(s);
-        });
+        String(val)
+          .split(',')
+          .map(s => s.replace(/\(\s*yetkili bayi\s*\)/gi, '').trim().toLowerCase())
+          .filter(Boolean)
+          .forEach(s => {
+            if (!dealerFilterList.includes(s)) dealerFilterList.push(s);
+          });
       }
     });
     if (dealerFilterList.length > 0) {
+      const dealerNameTerms = [];
+      dealerFilterList.forEach(d => {
+        if (!dealerNameTerms.includes(d)) dealerNameTerms.push(d);
+        const spaced = d.replace(/[-_]+/g, ' ').replace(/([a-zığüşöç])oto$/i, '$1 oto').trim();
+        if (spaced && spaced !== d && !dealerNameTerms.includes(spaced)) {
+          dealerNameTerms.push(spaced);
+        }
+      });
       andConditions.push({
         tenant: {
           OR: [
             { subdomain: { in: dealerFilterList } },
             { id: { in: dealerFilterList } },
-            ...dealerFilterList.map(d => ({ name: { contains: d, mode: 'insensitive' } }))
+            ...dealerNameTerms.map(d => ({ name: { contains: d, mode: 'insensitive' } }))
           ]
         }
       });
@@ -1526,9 +1552,13 @@ router.get('/search', async (req, res) => {
     const dealerFilterList = [];
     [dealer, dealers, seller].forEach(val => {
       if (val && String(val).toLowerCase() !== 'all') {
-        String(val).split(',').map(s => s.trim().toLowerCase()).filter(Boolean).forEach(s => {
-          if (!dealerFilterList.includes(s)) dealerFilterList.push(s);
-        });
+        String(val)
+          .split(',')
+          .map(s => s.replace(/\(\s*yetkili bayi\s*\)/gi, '').trim().toLowerCase())
+          .filter(Boolean)
+          .forEach(s => {
+            if (!dealerFilterList.includes(s)) dealerFilterList.push(s);
+          });
       }
     });
 

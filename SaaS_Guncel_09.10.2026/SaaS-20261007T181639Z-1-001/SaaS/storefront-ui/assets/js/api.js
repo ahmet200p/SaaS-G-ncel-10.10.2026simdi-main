@@ -1821,12 +1821,21 @@
       const multiplier = Math.max(0, (100 - discountRate) / 100);
 
       // Parse query params if any
+      const normalizeMockDealerKey = (val) => String(val || '')
+        .replace(/\(\s*Yetkili Bayi\s*\)/gi, '')
+        .trim()
+        .toLocaleLowerCase('tr-TR')
+        .replace(/ı/g, 'i').replace(/ğ/g, 'g').replace(/ü/g, 'u')
+        .replace(/ş/g, 's').replace(/ö/g, 'o').replace(/ç/g, 'c')
+        .replace(/[^a-z0-9]/g, '');
+
       let brandFilter = '';
       let searchFilter = '';
       let vinFilter = '';
       let categoryFilter = '';
       let subCatFilter = '';
       let mfrFilter = '';
+      let dealerFilterList = [];
       let inStockFilter = false;
       let minPriceFilter = 0;
       let maxPriceFilter = 0;
@@ -1841,16 +1850,46 @@
         inStockFilter = parsedUrl.searchParams.get('inStock') === 'true';
         minPriceFilter = parseFloat(parsedUrl.searchParams.get('minPrice') || '0') || 0;
         maxPriceFilter = parseFloat(parsedUrl.searchParams.get('maxPrice') || '0') || 0;
+        [
+          parsedUrl.searchParams.get('dealer'),
+          parsedUrl.searchParams.get('dealers'),
+          parsedUrl.searchParams.get('seller')
+        ].forEach(val => {
+          if (val && String(val).toLowerCase() !== 'all') {
+            String(val)
+              .split(',')
+              .map(s => s.replace(/\(\s*yetkili bayi\s*\)/gi, '').trim().toLowerCase())
+              .filter(Boolean)
+              .forEach(s => {
+                if (!dealerFilterList.includes(s)) dealerFilterList.push(s);
+              });
+          }
+        });
       } catch (e) {}
 
       let calculated = (store.tenantCatalog || []).map(tc => {
         const prod = (store.products || []).find(p => p.id === tc.productId) || {};
+        const matchedTenant = (store.tenants || []).find(t => t.id === tc.tenantId) || null;
+        const dealerNameVal = (matchedTenant && matchedTenant.name) || tc.dealerName || 'Yetkili Bayi';
+        const dealerSubVal = (matchedTenant && matchedTenant.subdomain) || tc.tenantSubdomain || 'bayi';
+        const tenantObj = matchedTenant
+          ? { id: matchedTenant.id, name: matchedTenant.name, subdomain: matchedTenant.subdomain, themeColor: matchedTenant.themeColor, status: matchedTenant.status, isActive: matchedTenant.isActive }
+          : (tc.tenantId ? { id: tc.tenantId, name: dealerNameVal, subdomain: dealerSubVal, status: 'APPROVED', isActive: true } : null);
         const listPrice = tc.customPrice !== null && tc.customPrice !== undefined ? tc.customPrice : (prod.defaultPrice || 0);
         const discountAmount = discountRate > 0 ? listPrice * (discountRate / 100) : 0;
         const finalPrice = discountRate > 0 ? parseFloat((listPrice - discountAmount).toFixed(2)) : listPrice;
         return {
           tenantProductId: tc.id,
           productId: prod.id,
+          tenantId: tenantObj ? tenantObj.id : (tc.tenantId || null),
+          tenantSubdomain: dealerSubVal,
+          dealerName: dealerNameVal,
+          tenantName: dealerNameVal,
+          companyName: dealerNameVal,
+          sellerName: dealerNameVal,
+          supplierName: dealerNameVal,
+          tenant: tenantObj,
+          user: { companyName: dealerNameVal, name: dealerNameVal },
           oeNumber: prod.oeNumber || '',
           name: prod.name || 'Yedek Parça',
           category: prod.category || 'Otomotiv',
@@ -2116,7 +2155,10 @@
             defaultPrice: 1100,
             stock: 30,
             imageUrl: TECHNICAL_BLUEPRINT_SVG,
-            estimatedLaborTime: '40 Dk'
+            estimatedLaborTime: '40 Dk',
+            tenantId: 'tenant-mehmet-oto',
+            tenantSubdomain: 'mehmetoto',
+            dealerName: 'Mehmet Oto'
           },
           {
             name: 'Ford Focus Triger Kayış & Rulman Seti',
@@ -2130,7 +2172,28 @@
             defaultPrice: 2950,
             stock: 15,
             imageUrl: TECHNICAL_BLUEPRINT_SVG,
-            estimatedLaborTime: '2 Saat'
+            estimatedLaborTime: '2 Saat',
+            tenantId: 'tenant-mehmet-oto',
+            tenantSubdomain: 'mehmetoto',
+            dealerName: 'Mehmet Oto'
+          },
+          {
+            name: 'ABS wheel speed sensor',
+            oeNumber: '479006554R',
+            stockCode: '479006554R',
+            vehicleBrand: 'Renault',
+            category: 'Elektrik & Sensör',
+            partGroup: 'Elektrik & Aydınlatma',
+            subCategory: 'Elektrik & Aydınlatma',
+            manufacturer: 'Orijinal Renault (OEM)',
+            compatibleModels: 'Clio II / Thalia / Symbol / Lutecia',
+            defaultPrice: 320.53,
+            stock: 78,
+            imageUrl: 'https://img.parts-catalogs.com/renault_2019_10/dessins/01038898.png',
+            estimatedLaborTime: '1 Saat',
+            tenantId: 'tenant-mehmet-oto',
+            tenantSubdomain: 'mehmetoto',
+            dealerName: 'Mehmet Oto'
           }
         ];
 
@@ -2139,9 +2202,23 @@
           const discAmt = discountRate > 0 ? listP * (discountRate / 100) : 0;
           const finP = parseFloat((listP - discAmt).toFixed(2));
           const lr = getRecommendedTogetherAndLabor(seed.name, seed.partGroup, seed.oeNumber);
+          const seedTenantId = seed.tenantId || 'tenant-ahmet-oto';
+          const seedTenantSub = seed.tenantSubdomain || 'ahmetoto';
+          const seedDealerName = seed.dealerName || 'Ahmet Oto Yedek Parça';
+          const seedDisplay = seedDealerName.toLowerCase().includes('yetkili') ? seedDealerName : `${seedDealerName} (Yetkili Bayi)`;
+          const seedTenantObj = {
+            id: seedTenantId,
+            name: seedDealerName,
+            subdomain: seedTenantSub,
+            status: 'APPROVED',
+            isActive: true
+          };
           return {
             tenantProductId: `tp-seed-${sIdx + 1}`,
             productId: `prod-seed-${sIdx + 1}`,
+            tenantId: seedTenantId,
+            tenantSubdomain: seedTenantSub,
+            tenant: seedTenantObj,
             oeNumber: seed.oeNumber,
             oemNumber: seed.oeNumber,
             stockCode: seed.stockCode || seed.oeNumber,
@@ -2163,13 +2240,14 @@
             manufacturer: seed.manufacturer || '',
             estimatedLaborTime: seed.estimatedLaborTime || lr.estimatedLaborTime,
             isDiscounted: discountRate > 0,
-            supplierName: 'Ahmet Oto (Yetkili Bayi)',
-            companyName: 'Ahmet Oto (Yetkili Bayi)',
-            dealerName: 'Ahmet Oto (Yetkili Bayi)',
-            sellerName: 'Ahmet Oto (Yetkili Bayi)',
+            supplierName: seedDisplay,
+            companyName: seedDisplay,
+            dealerName: seedDealerName,
+            tenantName: seedDealerName,
+            sellerName: seedDisplay,
             user: {
-              companyName: 'Ahmet Oto (Yetkili Bayi)',
-              name: 'Ahmet Oto'
+              companyName: seedDealerName,
+              name: seedDealerName
             },
             defaultPrice: listP,
             customPrice: listP,
@@ -2229,7 +2307,10 @@
                 supplierName: 'Ahmet Oto (Yetkili Bayi)',
                 companyName: 'Ahmet Oto (Yetkili Bayi)',
                 sellerName: 'Ahmet Oto (Yetkili Bayi)',
-                dealerName: 'Ahmet Oto (Yetkili Bayi)',
+                dealerName: 'Ahmet Oto Yedek Parça',
+                tenantId: 'tenant-ahmet-oto',
+                tenantSubdomain: 'ahmetoto',
+                tenant: { id: 'tenant-ahmet-oto', name: 'Ahmet Oto Yedek Parça', subdomain: 'ahmetoto', status: 'APPROVED', isActive: true },
                 isLocalStock: true,
                 tenantProductId: 'cat-7701209639',
                 productId: 'cat-7701209639',
@@ -2413,7 +2494,10 @@
                 supplierName: 'Ahmet Oto (Yetkili Bayi)',
                 companyName: 'Ahmet Oto (Yetkili Bayi)',
                 sellerName: 'Ahmet Oto (Yetkili Bayi)',
-                dealerName: 'Ahmet Oto (Yetkili Bayi)',
+                dealerName: 'Ahmet Oto Yedek Parça',
+                tenantId: 'tenant-ahmet-oto',
+                tenantSubdomain: 'ahmetoto',
+                tenant: { id: 'tenant-ahmet-oto', name: 'Ahmet Oto Yedek Parça', subdomain: 'ahmetoto', status: 'APPROVED', isActive: true },
                 isLocalStock: true,
                 tenantProductId: 'cat-7701209639',
                 productId: 'cat-7701209639',
@@ -2438,6 +2522,9 @@
                 item.technicalSpecs = sampleSpecs;
                 item.compatibleModels = sampleModels;
                 item.supplierName = item.supplierName || 'Ahmet Oto (Yetkili Bayi)';
+                item.dealerName = item.dealerName || 'Ahmet Oto Yedek Parça';
+                item.tenantId = item.tenantId || 'tenant-ahmet-oto';
+                item.tenantSubdomain = item.tenantSubdomain || 'ahmetoto';
                 item.stockCode = item.stockCode || '7701209639';
                 item.brand = item.brand || sampleBrand;
                 item.price = item.price || item.defaultPrice || 1450;
@@ -2569,6 +2656,23 @@
 
       if (maxPriceFilter > 0) {
         calculated = calculated.filter(p => (p.discountedPrice || p.defaultPrice || 0) <= maxPriceFilter);
+      }
+
+      if (dealerFilterList.length > 0) {
+        calculated = calculated.filter(p => {
+          const pSub = String(p.tenantSubdomain || (p.tenant && p.tenant.subdomain) || '').trim().toLowerCase();
+          const pTid = String(p.tenantId || (p.tenant && p.tenant.id) || '').trim().toLowerCase();
+          const pName = String(p.dealerName || p.tenantName || p.sellerName || p.supplierName || (p.tenant && p.tenant.name) || '').trim().toLowerCase();
+          const pNorm = normalizeMockDealerKey(pName);
+          const pSubNorm = normalizeMockDealerKey(pSub);
+          return dealerFilterList.some(d => {
+            const dNorm = normalizeMockDealerKey(d);
+            return (pSub && pSub === d) ||
+                   (pTid && pTid === d) ||
+                   (pName && pName.includes(d)) ||
+                   (dNorm && (pNorm === dNorm || pSubNorm === dNorm || pNorm.startsWith(dNorm)));
+          });
+        });
       }
 
       const currentBal = firstCust && firstCust.balance !== undefined ? firstCust.balance : 14850.00;
@@ -2979,10 +3083,11 @@
     }
 
     // 3. Canlı Sunucuya Bağlantı Denemesi (Render Canlı Express API'sine doğrudan bağlan)
+    let timeoutId = null;
     try {
       const controller = new AbortController();
-      const timeoutMs = (options.body instanceof FormData) ? 60000 : 15000;
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      const timeoutMs = (options.body instanceof FormData) ? 60000 : 25000;
+      timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       const response = await fetch(url, {
         ...options,
@@ -2992,6 +3097,7 @@
       });
 
       clearTimeout(timeoutId);
+      timeoutId = null;
 
       let data;
       const contentType = response.headers.get('content-type');
@@ -3052,6 +3158,7 @@
       return data;
 
     } catch (error) {
+      if (timeoutId) clearTimeout(timeoutId);
       console.warn(`[API] Canlı API bağlantısı sağlanamadı (${error.message}). Bağımsız yerel motor (handleOfflineMock) devreye alınıyor.`);
       if (typeof handleOfflineMock === 'function') {
         const cleanEp = (endpoint || '').startsWith('/api') ? endpoint.slice(4) : endpoint;
